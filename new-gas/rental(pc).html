@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>성의교정 대관 현황</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; }
+        .bu-chip { transition: all 0.2s; border: 1.5px solid #e2e8f0; cursor: pointer; background: white; white-space: nowrap; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+        .bu-chip.active { background-color: #1E3A5F; color: white; border-color: #1E3A5F; font-weight: 900; }
+        
+        .fixed-table { table-layout: fixed; width: 100%; border-collapse: collapse; background: white; }
+        .fixed-table th { background-color: #f8fafc; color: #64748b; font-weight: 700; font-size: 10px; padding: 10px 2px; border-bottom: 1px solid #e2e8f0; text-align: center; }
+        .fixed-table td { padding: 10px 4px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; line-height: 1.3; word-break: break-all; overflow-wrap: break-word; }
+
+        .col-place { width: 110px; }   
+        .col-time { width: 75px; }    
+        .col-event { width: auto; }    
+        .col-count { width: 45px; }    
+        .col-dept { width: 100px; }    
+        .col-status { width: 55px; }   
+
+        .wrap-text { display: block; font-size: 10px; text-align: center; }
+        .status-badge { font-weight: 800; padding: 2px 4px; border-radius: 4px; font-size: 9px; display: inline-block; border: 1px solid transparent; }
+        .period-info { font-size: 9px; font-weight: 700; color: #A855F7; margin-top: 2px; line-height: 1.1; }
+        .text-sun { color: #EF4444; }
+        .text-sat { color: #3B82F6; }
+
+        .rental-card { border: 1.2px solid #e2e8f0; background: white; border-radius: 0.75rem; position: relative; overflow: hidden; }
+        .card-daily { border-left: 6px solid #3B82F6; }
+        .card-period { border-left: 6px solid #A855F7; }
+    </style>
+</head>
+<body class="p-3 md:p-6">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-[#EEF2F6] rounded-3xl p-5 mb-4 border border-slate-200 shadow-sm flex flex-col items-center">
+            <div class="flex items-center gap-2 mb-4">
+                <h1 class="text-xl font-black text-[#1E3A5F] tracking-tighter">성의교정 대관 현황</h1>
+                <span id="statusTag" class="text-[9px] font-black px-2 py-0.5 rounded-full border bg-white text-slate-400">연결 확인 중</span>
+            </div>
+            <div class="relative w-full max-w-xs mb-4">
+                <input type="text" id="rangePicker" class="w-full h-12 rounded-2xl border-2 border-white font-black text-slate-700 shadow-sm text-center text-sm" placeholder="조회 기간 선택">
+            </div>
+            <div class="grid grid-cols-4 gap-1.5 w-full" id="buContainer"></div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-2 mb-6">
+            <select id="viewMode" onchange="renderUI()" class="col-span-4 h-12 bg-white border-2 border-slate-100 rounded-xl px-2 font-black text-slate-600 text-[11px] outline-none shadow-sm">
+                <option value="table" selected>💻 리스트형</option>
+                <option value="card">📱 카드형</option>
+            </select>
+            <button onclick="downloadExcel()" class="col-span-4 h-12 bg-[#27ae60] text-white rounded-xl font-black text-[11px] shadow-md active:scale-95">📥 엑셀다운</button>
+            <button onclick="loadFromGoogle()" class="col-span-4 h-12 bg-[#1E3A5F] text-white rounded-xl font-black text-[11px] shadow-md active:scale-95">조회(동기화)</button>
+        </div>
+
+        <div id="outputArea" class="space-y-8 pb-20"></div>
+    </div>
+
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzKtqrzNK11rX4sCdDFv0lcgUcdVwsNiUnlXYc8Zjm0dJNlNV8ThwKrtqOgKBeVrP3g/exec";
+        const BUILDINGS = ["전체", "성의회관", "의산연", "옴니버스 파크", "의과대학", "간호대학", "대학본관", "서울성모별관"];
+        let selectedBu = ["성의회관", "의산연", "옴니버스 파크"];
+        let sheetData = [];
+        let dateRange = { start: new Date().toISOString().split('T')[0], end: new Date().toISOString().split('T')[0] };
+
+        window.onload = () => {
+            initBuChips();
+            flatpickr("#rangePicker", {
+                mode: "range", locale: "ko", dateFormat: "Y-m-d", defaultDate: [dateRange.start, dateRange.end],
+                onClose: (dates) => {
+                    if (dates.length === 2) {
+                        dateRange.start = dates[0].toLocaleDateString('en-CA');
+                        dateRange.end = dates[1].toLocaleDateString('en-CA');
+                        renderUI();
+                    }
+                }
+            });
+            const cached = localStorage.getItem("rental_db_cache");
+            if (cached) {
+                sheetData = JSON.parse(cached);
+                renderUI();
+            }
+            loadFromGoogle();
+        };
+
+        async function loadFromGoogle() {
+            const tag = document.getElementById('statusTag');
+            try {
+                const res = await fetch(GAS_URL + "?t=" + new Date().getTime());
+                const data = await res.json();
+                if(data.error) throw new Error(data.error);
+                
+                sheetData = data;
+                localStorage.setItem("rental_db_cache", JSON.stringify(data));
+                
+                tag.innerText = "● ONLINE";
+                tag.className = "text-[9px] font-black px-2 py-0.5 rounded-full border bg-white text-green-500 border-green-200";
+                renderUI();
+            } catch (e) { 
+                tag.innerText = "● OFFLINE"; 
+                tag.className = "text-[9px] font-black px-2 py-0.5 rounded-full border bg-white text-red-500 border-red-200";
+            }
+        }
+
+        function getShift(dateStr) {
+            const base = new Date('2026-03-09');
+            const target = new Date(dateStr);
+            const diff = Math.floor((target.setHours(0,0,0,0) - base.setHours(0,0,0,0)) / 86400000);
+            const patterns = [{n:'C', c:'#3B82F6'}, {n:'A', c:'#EF4444'}, {n:'B', c:'#F59E0B'}];
+            return patterns[((diff % 3) + 3) % 3];
+        }
+
+        function renderUI() {
+            const area = document.getElementById('outputArea');
+            const mode = document.getElementById('viewMode').value;
+            area.innerHTML = '';
+            
+            let curr = new Date(dateRange.start + 'T00:00:00');
+            const stop = new Date(dateRange.end + 'T00:00:00');
+
+            while (curr <= stop) {
+                const dStr = curr.toLocaleDateString('en-CA');
+                const shift = getShift(dStr);
+                const dayIdx = curr.getDay();
+                const dayName = ["일","월","화","수","목","금","토"][dayIdx];
+                const dayClass = dayIdx === 0 ? 'text-sun' : (dayIdx === 6 ? 'text-sat' : 'text-slate-600');
+
+                let dayHtml = `<div>
+                    <div class="flex items-center justify-center gap-3 bg-[#EEF2F6] border border-slate-200 p-3 rounded-2xl mb-6 shadow-sm">
+                        <span class="font-black text-sm text-slate-600">${dStr.replace(/-/g,'.')} <span class="${dayClass}">(${dayName})</span></span>
+                        <span class="text-white text-[10px] px-2 py-0.5 rounded-md font-black shadow-sm" style="background-color:${shift.c}">${shift.n}조 근무</span>
+                    </div>`;
+
+                selectedBu.forEach(buName => {
+                    if (buName === "전체") return;
+                    const searchBu = buName === "의산연" ? "의생명산업연구원" : buName;
+                    // 데이터 매핑 수정: rawDate와 bu 필드 사용
+                    const filtered = sheetData.filter(d => d.rawDate === dStr && d.bu.includes(searchBu));
+
+                    dayHtml += `<div class="mb-8"><div class="flex items-center gap-2 px-1 font-black text-sm text-[#1E3A5F] mb-3"><span class="w-1.5 h-4 bg-[#1E3A5F] rounded-full"></span>${buName} (${filtered.length}건)</div>`;
+
+                    if (filtered.length > 0) {
+                        if (mode === 'table') {
+                            dayHtml += `<div class="overflow-x-auto border border-slate-200 rounded-xl bg-white shadow-sm"><table class="fixed-table"><thead><tr><th class="col-place">장소</th><th class="col-time">시간</th><th class="col-event">행사명</th><th class="col-count">인원</th><th class="col-dept">부서명</th><th class="col-status">상태</th></tr></thead><tbody class="divide-y divide-slate-100">`;
+                            filtered.forEach(i => {
+                                const isPeriod = i.type === '기간';
+                                dayHtml += `<tr>
+                                    <td class="col-place font-bold text-slate-600"><div class="wrap-text">${i.place}</div></td>
+                                    <td class="col-time font-bold text-red-500 text-[10px] text-center">${i.time}</td>
+                                    <td class="col-event">
+                                        <div class="font-black text-slate-900 leading-tight text-[11px]">${i.event}</div>
+                                        ${isPeriod ? `<div class="period-info">📅 ${i.period} (${i.yoil || i.week})</div>` : ''}
+                                    </td>
+                                    <td class="col-count text-center text-[10px] font-bold text-slate-500">${i.people || i.count || '-'}명</td>
+                                    <td class="col-dept text-slate-400 font-bold italic"><div class="wrap-text">${i.dept}</div></td>
+                                    <td class="col-status text-center"><span class="status-badge ${i.status==='확정'?'text-orange-600 bg-orange-50 border-orange-100':'text-slate-400 bg-slate-50 border-slate-100'}">${i.status}</span></td>
+                                </tr>`;
+                            });
+                            dayHtml += `</tbody></table></div>`;
+                        } else {
+                            dayHtml += `<div class="grid grid-cols-1 gap-3">`;
+                            filtered.forEach(i => {
+                                const isPeriod = i.type === '기간';
+                                dayHtml += `
+                                <div class="rental-card p-4 shadow-sm ${isPeriod ? 'card-period' : 'card-daily'}">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <span class="text-[12px] font-black text-slate-700">📍 ${i.place}</span>
+                                        <span class="text-[11px] font-bold text-red-500 italic">🕒 ${i.time}</span>
+                                    </div>
+                                    <div class="text-[15px] font-black text-slate-900 leading-tight tracking-tight mb-2">${i.event}</div>
+                                    ${isPeriod ? `<div class="period-info mb-3">📅 ${i.period} (${i.yoil || i.week})</div>` : '<div class="h-2"></div>'}
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center gap-2">
+                                            <span class="status-badge ${i.status==='확정' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-slate-50 text-slate-400 border-slate-100'}">${i.status}</span>
+                                            <span class="text-[10px] font-bold text-slate-400 italic">${i.dept}</span>
+                                        </div>
+                                        <span class="text-[11px] font-black text-slate-300 tracking-tighter">👥 ${i.people || i.count || 0}명</span>
+                                    </div>
+                                </div>`;
+                            });
+                            dayHtml += `</div>`;
+                        }
+                    } else {
+                        dayHtml += `<div class="p-6 text-center bg-white rounded-2xl text-slate-300 text-[11px] font-bold border border-dashed border-slate-100">대관 내역 없음</div>`;
+                    }
+                    dayHtml += `</div>`;
+                });
+                dayHtml += `</div>`;
+                area.innerHTML += dayHtml;
+                curr.setDate(curr.getDate() + 1);
+            }
+        }
+
+        async function downloadExcel() {
+            if (sheetData.length === 0) return alert("데이터가 없습니다.");
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('대관현황');
+            sheet.columns = [{ width: 22 }, { width: 14 }, { width: 45 }, { width: 22 }, { width: 10 }, { width: 10 }];
+            let rIdx = 1;
+            let curr = new Date(dateRange.start + 'T00:00:00');
+            const end = new Date(dateRange.end + 'T00:00:00');
+
+            while (curr <= end) {
+                const dStr = curr.toLocaleDateString('en-CA');
+                const shift = getShift(dStr);
+                
+                sheet.mergeCells(`A${rIdx}:F${rIdx}`);
+                const dCell = sheet.getCell(`A${rIdx}`);
+                dCell.value = `📅 ${dStr} | ${shift.n}조 근무`;
+                dCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF334155'} };
+                dCell.font = { color:{argb:'FFFFFFFF'}, bold:true };
+                dCell.alignment = { vertical: 'middle', horizontal: 'center' };
+                sheet.getRow(rIdx).height = 30;
+                rIdx++;
+
+                selectedBu.forEach(bu => {
+                    const searchName = (bu === "의산연") ? "의생명산업연구원" : bu;
+                    const filtered = sheetData.filter(d => d.rawDate === dStr && d.bu.includes(searchName));
+                    
+                    sheet.mergeCells(`A${rIdx}:F${rIdx}`);
+                    const bCell = sheet.getCell(`A${rIdx}`);
+                    bCell.value = `🏢 ${bu} (${filtered.length}건)`;
+                    bCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFE9ECEF'} };
+                    bCell.font = { color:{argb:'FF1E3A5F'}, bold:true };
+                    bCell.alignment = { vertical: 'middle' };
+                    sheet.getRow(rIdx).height = 30;
+                    rIdx++;
+
+                    if (filtered.length > 0) {
+                        const hRow = sheet.addRow(['장소', '시간', '행사명', '부서', '인원', '상태']);
+                        hRow.height = 30;
+                        hRow.eachCell(c => { 
+                            c.font={bold:true}; c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF8F9FA'}};
+                            c.border={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}};
+                            c.alignment = { vertical: 'middle', horizontal: 'center' };
+                        });
+                        rIdx++;
+                        
+                        filtered.forEach(i => {
+                            const row = sheet.addRow([i.place, i.time, i.event, i.dept, (i.people || i.count), i.status]);
+                            row.eachCell((c, colNum) => { 
+                                c.border={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}};
+                                c.alignment={vertical:'middle', wrapText:true};
+                                if([1,2,5,6].includes(colNum)) c.alignment.horizontal='center';
+                            });
+                            row.height = 35;
+                            rIdx++;
+                        });
+                    }
+                    rIdx++;
+                });
+                curr.setDate(curr.getDate() + 1);
+            }
+            const buffer = await workbook.xlsx.writeBuffer();
+            saveAs(new Blob([buffer]), `성의대관현황_${dateRange.start}.xlsx`);
+        }
+
+        function initBuChips() {
+            const container = document.getElementById('buContainer');
+            BUILDINGS.forEach(bu => {
+                const chip = document.createElement('div');
+                chip.className = `bu-chip h-10 rounded-xl shadow-sm ${selectedBu.includes(bu) ? 'active' : ''}`;
+                chip.innerText = bu;
+                chip.onclick = () => {
+                    if (bu === "전체") {
+                        const others = BUILDINGS.filter(b => b !== "전체");
+                        selectedBu = (selectedBu.length === others.length) ? [] : [...others];
+                    } else {
+                        if (selectedBu.includes(bu)) selectedBu = selectedBu.filter(b => b !== bu);
+                        else selectedBu.push(bu);
+                    }
+                    document.querySelectorAll('.bu-chip').forEach(c => {
+                        const name = c.innerText;
+                        c.classList.toggle('active', name === "전체" ? selectedBu.length === BUILDINGS.length - 1 : selectedBu.includes(name));
+                    });
+                    renderUI();
+                };
+                container.appendChild(chip);
+            });
+        }
+    </script>
+</body>
+</html>
