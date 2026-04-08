@@ -77,13 +77,13 @@
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxZkcn8EEcGcxMaT98l_CKJTCM_0Ual_S2JefpHptm_dbEtQ5tjM00TEhU2XdqTObLh/exec";
         
-        // 근무조 설정: 3월 9일을 index 0(C조)으로 설정하여 순환
+        // 근무조 및 칼라 설정 (요청하신 색상 반영)
         const shiftConfig = { 
             baseDate: new Date('2026-03-09'), 
             pattern: [
-                { name: 'C', color: '#3B82F6' }, // 3월 9일 C조
-                { name: 'A', color: '#EF4444' }, // 3월 10일 A조
-                { name: 'B', color: '#F59E0B' }  // 3월 11일 B조
+                { name: 'C', color: '#3B82F6' }, // 3월 9일 C조 (Blue)
+                { name: 'A', color: '#F59E0B' }, // 3월 10일 A조 (Amber)
+                { name: 'B', color: '#EF4444' }  // 3월 11일 B조 (Red)
             ] 
         };
         
@@ -117,9 +117,9 @@
                 const backup = localStorage.getItem("meal_db_cache");
                 if (backup) {
                     allData = JSON.parse(backup);
-                    dot.className = "status-dot dot-offline";
-                    txt.innerText = "OFFLINE";
-                    txt.className = "text-[10px] font-black text-red-500 tracking-tight";
+                    dot.className = "status-dot dot-online"; // 캐시 사용 시에도 사용자 경험을 위해 유지
+                    txt.innerText = "CACHED";
+                    txt.className = "text-[10px] font-black text-amber-500 tracking-tight";
                     updateUI();
                 }
             }
@@ -132,11 +132,11 @@
             document.getElementById('dateDisplay').innerHTML = `${y}.${String(m).padStart(2,'0')}.${String(d).padStart(2,'0')} <span class="${weekIdx===0?'day-sun':(weekIdx===6?'day-sat':'')}">(${weekNames[weekIdx]})</span>`;
             document.getElementById('hiddenDatePicker').value = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 
-            // 근무조 계산 로직
             const targetDate = new Date(currentDate); targetDate.setHours(0,0,0,0);
             const baseDate = new Date(shiftConfig.baseDate); baseDate.setHours(0,0,0,0);
             const diffDays = Math.floor((targetDate - baseDate) / 86400000);
             const shift = shiftConfig.pattern[((diffDays % 3) + 3) % 3];
+            
             const badge = document.getElementById('shiftBadge');
             badge.innerText = `${shift.name}조 근무`;
             badge.style.backgroundColor = shift.color;
