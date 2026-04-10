@@ -16,6 +16,7 @@
         .status-dot { width: 7px; height: 7px; border-radius: 50%; }
         .dot-online { background-color: #10B981; box-shadow: 0 0 6px #10B981; }
         .dot-offline { background-color: #EF4444; box-shadow: 0 0 6px #EF4444; }
+        .dot-sync { background-color: #F59E0B; box-shadow: 0 0 6px #F59E0B; }
         .menu-card-custom { background-color: white; border-radius: 0 0 2rem 2rem; border-top-width: 7px; border-right-width: 2px; border-bottom-width: 2px; border-left-width: 2px; border-style: solid; }
         #hiddenDatePicker { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
         @media (min-width: 640px) { .menu-main-style { font-size: 1.875rem; line-height: 2.25rem; } }
@@ -38,7 +39,7 @@
             <div class="flex items-center">
                 <div id="statusPill" class="status-pill">
                     <span id="statusDot" class="status-dot dot-offline"></span>
-                    <span id="statusText" class="text-[10px] font-black text-slate-400 uppercase tracking-tight">접속 중...</span>
+                    <span id="statusText" class="text-[10px] font-black text-slate-400 uppercase tracking-tight">준비 중</span>
                 </div>
             </div>
             <div class="flex gap-1.5">
@@ -77,16 +78,17 @@
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxZkcn8EEcGcxMaT98l_CKJTCM_0Ual_S2JefpHptm_dbEtQ5tjM00TEhU2XdqTObLh/exec";
         
-        // 근무조 및 칼라 설정 (요청하신 색상 반영)
+        // 근무조 설정
         const shiftConfig = { 
             baseDate: new Date('2026-03-09'), 
             pattern: [
-                { name: 'C', color: '#3B82F6' }, // 3월 9일 C조 (Blue)
-                { name: 'A', color: '#F59E0B' }, // 3월 10일 A조 (Amber)
-                { name: 'B', color: '#EF4444' }  // 3월 11일 B조 (Red)
+                { name: 'C', color: '#3B82F6' },
+                { name: 'A', color: '#F59E0B' },
+                { name: 'B', color: '#EF4444' } 
             ] 
         };
         
+        // 식사 메타데이터
         const mealMeta = {
             '조식': { color: '#E65D4F', inactiveBg: '#F9DEDC', startTime: '07:00', endTime: '09:00' },
             '간편식': { color: '#F2A134', inactiveBg: '#FDF2E2', startTime: '07:00', endTime: '09:30' },
@@ -102,25 +104,42 @@
 
         function normalize(str) { return String(str).replace(/[^ㄱ-ㅎ가-힣a-zA-Z0-9]/g, ""); }
 
+        // [핵심수정] 오프라인 우선(Offline-First) 데이터 로드 로직
         async function loadData() {
             const dot = document.getElementById('statusDot');
             const txt = document.getElementById('statusText');
+            
+            // 1. 우선 로컬 캐시 확인
+            const backup = localStorage.getItem("meal_db_cache");
+            if (backup) {
+                allData = JSON.parse(backup);
+                dot.className = "status-dot dot-sync"; // 동기화 중(노란색) 표시
+                txt.innerText = "LOCAL (OFFLINE)";
+                txt.className = "text-[10px] font-black text-amber-500 tracking-tight";
+                updateUI(); // 저장된 데이터로 즉시 화면 표시
+            }
+
+            // 2. 백그라운드에서 온라인 최신 데이터 가져오기
             try {
                 const res = await fetch(GAS_URL + "?t=" + new Date().getTime());
-                allData = await res.json();
-                localStorage.setItem("meal_db_cache", JSON.stringify(allData));
+                const freshData = await res.json();
+                
+                // 최신 데이터로 업데이트 및 저장
+                allData = freshData;
+                localStorage.setItem("meal_db_cache", JSON.stringify(freshData));
+                
+                // 상태 업데이트 (완료)
                 dot.className = "status-dot dot-online";
-                txt.innerText = "ONLINE";
+                txt.innerText = "ONLINE (SYNCED)";
                 txt.className = "text-[10px] font-black text-emerald-500 tracking-tight";
-                updateUI();
+                
+                updateUI(); 
             } catch (e) {
-                const backup = localStorage.getItem("meal_db_cache");
-                if (backup) {
-                    allData = JSON.parse(backup);
-                    dot.className = "status-dot dot-online"; // 캐시 사용 시에도 사용자 경험을 위해 유지
-                    txt.innerText = "CACHED";
-                    txt.className = "text-[10px] font-black text-amber-500 tracking-tight";
-                    updateUI();
+                console.warn("네트워크 업데이트 실패, 로컬 데이터 유지");
+                if (!backup) {
+                    dot.className = "status-dot dot-offline";
+                    txt.innerText = "ERROR (NO DATA)";
+                    txt.className = "text-[10px] font-black text-red-500 tracking-tight";
                 }
             }
         }
@@ -129,9 +148,11 @@
             const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, d = currentDate.getDate();
             const weekIdx = currentDate.getDay();
             const weekNames = ['일', '월', '화', '수', '목', '금', '토'];
+            
             document.getElementById('dateDisplay').innerHTML = `${y}.${String(m).padStart(2,'0')}.${String(d).padStart(2,'0')} <span class="${weekIdx===0?'day-sun':(weekIdx===6?'day-sat':'')}">(${weekNames[weekIdx]})</span>`;
             document.getElementById('hiddenDatePicker').value = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 
+            // 근무조 계산
             const targetDate = new Date(currentDate); targetDate.setHours(0,0,0,0);
             const baseDate = new Date(shiftConfig.baseDate); baseDate.setHours(0,0,0,0);
             const diffDays = Math.floor((targetDate - baseDate) / 86400000);
@@ -141,6 +162,7 @@
             badge.innerText = `${shift.name}조 근무`;
             badge.style.backgroundColor = shift.color;
 
+            // 탭 렌더링
             const tabsContainer = document.getElementById('tabs-container');
             tabsContainer.innerHTML = '';
             MEAL_ORDER.forEach(meal => {
@@ -155,6 +177,7 @@
                 tabsContainer.appendChild(btn);
             });
 
+            // 데이터 매칭 (날짜 포맷 유연하게 처리)
             const key = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const dayData = allData[key] || allData[`${y}-${m}-${d}`] || null;
             let info = null;
@@ -162,6 +185,7 @@
                 for (const k in dayData) { if (normalize(k) === normalize(activeTab)) { info = dayData[k]; break; } }
             }
 
+            // 카드 업데이트
             const menuCard = document.getElementById('menu-card');
             menuCard.style.borderColor = mealMeta[activeTab].color;
             document.getElementById('main-menu').innerText = info?.menu || "식단 정보가 없습니다.";
@@ -188,8 +212,7 @@
             const start = new Date(); start.setHours(sH, sM, 0);
             const end = new Date(); end.setHours(eH, eM, 0);
 
-            let msg = "";
-            let icon = "";
+            let msg = ""; let icon = "";
 
             if (now < start) {
                 const diffMin = Math.ceil((start - now) / 60000);
