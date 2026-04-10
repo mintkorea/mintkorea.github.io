@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>C조 통합 근무 시스템 v2.2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; margin: 0; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .nav-tab.active { color: #2E4077; border-bottom: 3px solid #2E4077; background-color: white; }
+        
+        .custom-table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; table-layout: fixed; background: white; }
+        .custom-table th { background: #f8fafc; color: #1e293b; padding: 6px 1px; border: 1px solid #e2e8f0; font-weight: 800; }
+        .custom-table td { border: 1px solid #e2e8f0; padding: 6px 1px; color: #475569; height: 38px; }
+        .time-cell { width: 85px !important; background-color: #f8fafc; font-weight: 700; color: #1e293b; }
+        
+        .status-card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+        .worker-card { background: white; padding: 15px 10px; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center; }
+        .worker-name { font-size: 11px; font-weight: 800; color: #64748b; margin-bottom: 4px; }
+        .worker-pos { font-size: 18px; font-weight: 900; }
+        
+        .blue-msg-box { background-color: #eff6ff; color: #1e40af; padding: 20px 15px; border-radius: 16px; text-align: center; font-weight: 800; margin-bottom: 16px; border: 1px solid #dbeafe; font-size: 15px; line-height: 1.5; }
+        .big-msg-box { background: white; color: #1e40af; padding: 20px 15px; border-radius: 24px; text-align: center; font-weight: 900; margin-bottom: 16px; border: 1px solid #e2e8f0; font-size: 16px; line-height: 1.6; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); }
+        .next-duty-inline { display: block; font-size: 13px; color: #ef4444; margin-top: 8px; font-weight: 800; border-top: 1px dashed #e2e8f0; padding-top: 8px; }
+    </style>
+</head>
+<body>
+    <div id="main-wrapper" class="max-w-md mx-auto bg-white min-h-screen shadow-lg flex flex-col relative">
+        <div class="bg-[#2E4077] p-6 text-center text-white">
+            <h1 class="text-xl font-black flex items-center justify-center gap-2">🛡️ <span id="headTitle">C조 통합 근무 시스템</span></h1>
+            <p id="current-time" class="text-[10px] opacity-70 mt-1.5 font-bold tracking-wider"></p>
+        </div>
+
+        <div class="flex border-b bg-slate-50 sticky top-0 z-50">
+            <button onclick="openTab('status')" id="btn-status" class="nav-tab active flex-1 py-4 text-[11px] font-black">🕒 실시간현황</button>
+            <button onclick="openTab('schedule')" id="btn-schedule" class="nav-tab flex-1 py-4 text-[11px] font-black text-slate-400">📅 근무편성표</button>
+            <button onclick="openTab('calendar')" id="btn-calendar" class="nav-tab flex-1 py-4 text-[11px] font-black text-slate-400">🏥 근무달력</button>
+        </div>
+
+        <div id="status" class="tab-content active p-3">
+            <div id="worker-cards" class="status-card-grid"></div>
+            <div id="time-msg"></div>
+            
+            <div id="notice-label" class="hidden"></div>
+            
+            <div class="flex justify-between items-center mb-2 px-1">
+                <span class="text-[11px] font-black text-slate-400">🕒 상세 근무 시간표</span>
+                <button onclick="toggleFullTable()" id="toggle-full-table" class="text-[9px] bg-slate-700 text-white px-3 py-1 rounded-full font-bold">전체보기 OFF</button>
+            </div>
+            <div class="overflow-hidden rounded-xl border border-slate-200 shadow-sm"><table class="custom-table" id="status-table"></table></div>
+        </div>
+        
+        <div id="schedule" class="tab-content p-3"></div>
+        <div id="calendar" class="tab-content p-3"></div>
+    </div>
+
+    <script>
+        const DEFAULT_CONFIG = { appTitle: 'C조 통합 근무 시스템', baseDate: '2026-03-09', patterns: [{ name: 'C', color: '#E3F2FD', highlight: '#1976D2' }, { name: 'A', color: '#FFF3E0', highlight: '#F57C00' }, { name: 'B', color: '#FFEBEE', highlight: '#D32F2F' }] };
+        let config = JSON.parse(localStorage.getItem('shift_v5_config')) || DEFAULT_CONFIG;
+        let isFullTable = false;
+        
+        const WORKER_COLORS = { "황재업": { bg: "#2E4077", toneUp: "#E3F2FD" }, "김태언": { bg: "#059669", toneUp: "#ECFDF5" }, "이태원": { bg: "#D97706", toneUp: "#FFFBEB" }, "이정석": { bg: "#7C3AED", toneUp: "#F5F3FF" } };
+        const DATA_LIST = [["07:00", "08:00", "보안실", "로비", "로비", "휴게"], ["08:00", "09:00", "보안실", "휴게", "휴게", "로비"], ["09:00", "10:00", "보안실", "순찰", "휴게", "로비"], ["10:00", "11:00", "휴게", "보안실", "로비", "휴게"], ["11:00", "12:00", "보안실", "중식", "로비", "중식"], ["12:00", "13:00", "중식", "보안실", "중식", "로비"], ["13:00", "14:00", "보안실", "휴게", "순찰", "로비"], ["14:00", "15:00", "순찰", "보안실", "로비", "휴게"], ["15:00", "16:00", "보안실", "휴게", "로비", "휴게"], ["16:00", "17:00", "휴게", "보안실", "휴게", "로비"], ["17:00", "18:00", "보안실", "휴게", "휴게", "로비"], ["18:00", "19:00", "보안실", "석식", "로비", "석식"], ["19:00", "20:00", "보안실", "보안실", "석식", "로비"], ["20:00", "21:00", "석식", "보안실", "로비", "휴게"], ["21:00", "22:00", "보안실", "순찰", "로비", "휴게"], ["22:00", "23:00", "순찰", "보안실", "순찰", "로비"], ["23:00", "00:00", "보안실", "휴게", "휴게", "로비"], ["00:00", "01:00", "보안실", "휴게", "휴게", "로비"], ["01:00", "01:40", "보안실", "휴게", "휴게", "로비"], ["01:40", "02:00", "보안실", "보안실", "로비", "로비"], ["02:00", "03:00", "휴게", "보안실", "로비", "휴게"], ["03:00", "04:00", "휴게", "보안실", "로비", "휴게"], ["04:00", "05:00", "휴게", "보안실", "로비", "휴게"], ["05:00", "06:00", "보안실", "순찰", "로비", "순찰"], ["06:00", "07:00", "보안실", "정리", "로비", "정리"]];
+        const workersPattern = [["황재업", "김태언", "이태원", "이정석"], ["황재업", "김태언", "이정석", "이태원"], ["황재업", "이정석", "김태언", "이태원"], ["황재업", "이정석", "이태원", "김태언"], ["황재업", "이태원", "김태언", "이정석"], ["황재업", "이태원", "이정석", "김태언"]];
+
+        function getLogicDate(d) { let t = new Date(d); if (t.getHours() < 7) t.setDate(t.getDate() - 1); t.setHours(0, 0, 0, 0); return t; }
+        function getShift(d) { let base = new Date(config.baseDate); base.setHours(0,0,0,0); let target = new Date(d); target.setHours(0,0,0,0); let diff = Math.round((target - base) / 86400000); return config.patterns[((diff % 3) + 3) % 3]; }
+        function getWorkers(d, useLogic) { let base = new Date(config.baseDate); base.setHours(0,0,0,0); let target = useLogic ? getLogicDate(d) : new Date(d); target.setHours(0,0,0,0); let diff = Math.round((target - base) / 86400000); let idx = Math.floor(((diff % 18) + 18) % 18 / 3); return workersPattern[idx]; }
+        function getNextCDate(standardDate) { let d = new Date(standardDate); d.setHours(0,0,0,0); for (let i = 1; i <= 7; i++) { let temp = new Date(d); temp.setDate(d.getDate() + i); if (getShift(temp).name === 'C') return temp; } return null; }
+
+        function renderStatus() {
+            const now = new Date(); const hr = now.getHours(); const min = now.getMinutes();
+            const lDate = getLogicDate(now); const shift = getShift(lDate);
+            const isNowC = (shift.name === 'C');
+            
+            // [변경] 3. 정리된 메시지 표출 적용
+            let msg = ""; let isBig = false;
+            if (isNowC) {
+                // 근무 중인 경우의 시간별 메시지
+                if (hr === 5) msg = "🗓️ 오늘은 C조 근무일입니다.<br>즐겁고 보람 된 하루를 준비하십시오.";
+                else if (hr === 6 && min >= 40) msg = "🤝 근무교대 시간입니다.<br>근무 투입 및 인수인계에 만전 기하십시오.";
+                else if (hr === 6) msg = "👋 수고하셨습니다. 잘 마무리 하세요.<br>A조와 근무 교대를 준비하십시오.";
+                else msg = "🛡️ 현재 C조 근무 시간입니다.<br>오늘도 안전에 만전 기해 주십시오!";
+            } else {
+                // 휴무 중인 경우의 메시지
+                if (hr === 7) msg = "✨ 밤새 고생 많으셨습니다.<br>안전하게 퇴근하십시오!";
+                else {
+                    isBig = true;
+                    const nextC = getNextCDate(now);
+                    const today = new Date(now).setHours(0,0,0,0);
+                    const diff = Math.round((nextC - today) / 86400000);
+                    
+                    if (diff === 1) msg = "🗓️ 내일은 C조 근무일입니다.<br>든든하게 드시고 푹 쉬세요! 💪";
+                    else msg = "😴 아직 휴무가 하루 더 남았습니다!<br>충분히 즐거운 시간 보내세요. ☕";
+                }
+            }
+
+            const nextC = getNextCDate(now);
+            const nextStr = nextC ? `${nextC.getMonth()+1}월 ${nextC.getDate()}일` : "-";
+            document.getElementById('time-msg').innerHTML = `<div class="${isBig ? 'big-msg-box' : 'blue-msg-box'}">${msg}<span class="next-duty-inline">📅 다음 근무는 <span class="underline underline-offset-4">${nextStr}</span>입니다.</span></div>`;
+
+            let targetDateForWorkers = isNowC ? now : nextC;
+            const workers = getWorkers(targetDateForWorkers, isNowC);
+            
+            let nowMin = hr * 60 + min; 
+            if (nowMin < 420) nowMin += 1440;
+
+            let curViewIdx = -1;
+            DATA_LIST.forEach((r, i) => {
+                let [sH, sM] = r[0].split(':').map(Number); let sT = (sH < 7 ? sH * 60 + sM + 1440 : sH * 60 + sM);
+                let [eH, eM] = r[1].split(':').map(Number); 
+                let eT = (eH < 7 && r[1] !== "07:00") ? (eH * 60 + eM + 1440) : (eH === 7 ? 1860 : eH * 60 + eM);
+                if (nowMin >= sT && nowMin < eT) curViewIdx = i;
+            });
+
+            document.getElementById('worker-cards').innerHTML = workers.map((w, idx) => `
+                <div class="worker-card" style="border-left: 8px solid ${WORKER_COLORS[w]?.bg || '#cbd5e1'}; ${!isNowC ? 'background:#f8fafc; opacity:0.7;' : ''}">
+                    <div class="worker-name">${['조장','성의','의산연A','의산연B'][idx]} ${w}</div>
+                    <div class="worker-pos" style="color:${WORKER_COLORS[w]?.bg}">${(isNowC && curViewIdx !== -1) ? DATA_LIST[curViewIdx][idx+2] : (isNowC ? '대기' : '대기')}</div>
+                </div>`).join('');
+
+            let h = `<thead><tr><th rowspan="2" class="time-cell">시간</th><th colspan="2">성의회관</th><th colspan="2">의산연</th></tr><tr><th style="background-color:${WORKER_COLORS[workers[0]]?.toneUp}">${workers[0]}</th><th style="background-color:${WORKER_COLORS[workers[1]]?.toneUp}">${workers[1]}</th><th style="background-color:${WORKER_COLORS[workers[2]]?.toneUp}">${workers[2]}</th><th style="background-color:${WORKER_COLORS[workers[3]]?.toneUp}">${workers[3]}</th></tr></thead><tbody>`;
+            const startIdx = (isNowC && !isFullTable) ? Math.max(0, curViewIdx) : 0;
+            DATA_LIST.forEach((r, i) => {
+                if (i >= startIdx || isFullTable) {
+                    const isNow = isNowC && i === curViewIdx;
+                    h += `<tr ${isNow ? 'style="background-color:#fff7ed; outline:2px solid #ef4444; font-weight:bold;"' : ''}><td class="time-cell">${r[0]}~${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td></tr>`;
+                }
+            });
+            document.getElementById('status-table').innerHTML = h + `</tbody>`;
+            document.getElementById('current-time').innerText = now.toLocaleString();
+        }
+
+        setInterval(renderStatus, 10000);
+        window.onload = renderStatus;
+        function toggleFullTable() { isFullTable = !isFullTable; renderStatus(); }
+        function openTab(id) { document.querySelectorAll('.tab-content, .nav-tab').forEach(el => el.classList.remove('active')); document.getElementById(id).classList.add('active'); document.getElementById('btn-'+id).classList.add('active'); renderStatus(); }
+    </script>
+</body>
+</html>
