@@ -1,155 +1,183 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
-import { 
-  getFirestore, collection, addDoc, query, onSnapshot, 
-  serverTimestamp, getDocs, doc, deleteDoc, updateDoc 
-} from 'firebase/firestore';
-import { MessageSquare, Plus, X, ChevronLeft, Loader2, Send, Edit2, Trash2 } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>인수인계 및 공지</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body class="bg-slate-50">
+    <div id="root"></div>
 
-// Firebase 초기화
-const firebaseConfig = JSON.parse(__firebase_config);
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'sungui-duty-app';
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-const App = () => {
-  const [user, setUser] = useState(null);
-  const [posts, setPosts] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // 입력 및 수정 상태
-  const [editingId, setEditingId] = useState(null);
-  const [category, setCategory] = useState('성의회관');
-  const [content, setContent] = useState('');
-  const [author, setAuthor] = useState('');
-
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
+        // Firebase 설정 (시스템에서 제공하는 변수 사용)
+        const firebaseConfig = JSON.parse(__firebase_config);
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
-      } catch (err) { console.error("Auth Error:", err); }
-    };
-    initAuth();
-    const unsubscribe = onAuthStateChanged(auth, (u) => { if (u) setUser(u); });
-    return () => unsubscribe();
-  }, []);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'sungui-duty-app';
 
-  useEffect(() => {
-    if (!user) return;
-    const postsCol = collection(db, 'artifacts', appId, 'public', 'data', 'notices');
-    const q = query(postsCol);
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const postData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      postData.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-      setPosts(postData);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, [user]);
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [posts, setPosts] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            
+            const [editingId, setEditingId] = useState(null);
+            const [category, setCategory] = useState('성의회관');
+            const [content, setContent] = useState('');
+            const [author, setAuthor] = useState('');
 
-  const handlePostSubmit = async () => {
-    if (!content.trim() || !author.trim() || !user || isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      if (editingId) {
-        const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'notices', editingId);
-        await updateDoc(postRef, { category, content, author, updatedAt: serverTimestamp() });
-      } else {
-        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'notices'), {
-          category, content, author, createdAt: serverTimestamp(), userId: user.uid
-        });
-      }
-      closeModal();
-    } catch (err) { alert("저장 실패"); }
-    finally { setIsSubmitting(false); }
-  };
+            // 익명 인증 처리
+            useEffect(() => {
+                const unsubscribe = auth.onAuthStateChanged((u) => {
+                    if (u) setUser(u);
+                    else auth.signInAnonymously();
+                });
+                return () => unsubscribe();
+            }, []);
 
-  const handleDelete = async (postId) => {
-    if (!confirm("삭제하시겠습니까?")) return;
-    try {
-      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'notices', postId));
-    } catch (err) { alert("삭제 실패"); }
-  };
+            // 실시간 데이터 동기화
+            useEffect(() => {
+                if (!user) return;
+                const postsCol = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notices');
+                
+                const unsubscribe = postsCol.orderBy('createdAt', 'desc').onSnapshot((snapshot) => {
+                    const postData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    setPosts(postData);
+                    setLoading(false);
+                }, (err) => {
+                    console.error("데이터 로드 에러:", err);
+                    setLoading(false);
+                });
+                return () => unsubscribe();
+            }, [user]);
 
-  const openEditModal = (post) => {
-    setEditingId(post.id);
-    setCategory(post.category);
-    setContent(post.content);
-    setAuthor(post.author);
-    setIsModalOpen(true);
-  };
+            // 글 등록 및 수정
+            const handlePostSubmit = async () => {
+                if (!content.trim() || !author.trim() || isSubmitting) return;
+                setIsSubmitting(true);
+                try {
+                    const postsCol = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notices');
+                    const payload = {
+                        category, content, author,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setEditingId(null);
-    setCategory('성의회관');
-    setContent('');
-    setAuthor('');
-  };
+                    if (editingId) {
+                        await postsCol.doc(editingId).update(payload);
+                    } else {
+                        await postsCol.add({
+                            ...payload,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            userId: user.uid
+                        });
+                    }
+                    closeModal();
+                } catch (err) {
+                    alert("저장에 실패했습니다.");
+                } finally {
+                    setIsSubmitting(false);
+                }
+            };
 
-  return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      <header className="bg-[#2d3e75] text-white p-5 sticky top-0 z-50 flex items-center shadow-md">
-        <button onClick={() => window.parent.postMessage('goBack', '*')} className="mr-4"><ChevronLeft size={24} /></button>
-        <h1 className="font-bold text-lg">인수인계 및 공지</h1>
-      </header>
+            // 글 삭제
+            const handleDelete = async (postId) => {
+                if (!confirm("정말로 삭제하시겠습니까?")) return;
+                try {
+                    await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notices').doc(postId).delete();
+                } catch (err) {
+                    alert("삭제 실패");
+                }
+            };
 
-      <main className="p-4 max-w-2xl mx-auto space-y-4">
-        {loading ? (
-          <div className="text-center py-20 font-bold text-slate-400">연결 중...</div>
-        ) : (
-          posts.map(post => (
-            <div key={post.id} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-              <div className="flex justify-between mb-4">
-                <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg text-xs font-bold">{post.category}</span>
-                {user && post.userId === user.uid && (
-                  <div className="flex gap-2">
-                    <button onClick={() => openEditModal(post)} className="text-slate-400 hover:text-indigo-600"><Edit2 size={16}/></button>
-                    <button onClick={() => handleDelete(post.id)} className="text-slate-400 hover:text-rose-600"><Trash2 size={16}/></button>
-                  </div>
-                )}
-              </div>
-              <p className="font-bold text-slate-800 mb-4 whitespace-pre-wrap">{post.content}</p>
-              <div className="text-right text-xs font-bold text-slate-400 border-t pt-3">— {post.author}</div>
-            </div>
-          ))
-        )}
-      </main>
+            const openEditModal = (post) => {
+                setEditingId(post.id);
+                setCategory(post.category);
+                setContent(post.content);
+                setAuthor(post.author);
+                setIsModalOpen(true);
+            };
 
-      <button onClick={() => setIsModalOpen(true)} className="fixed bottom-8 right-8 w-16 h-16 bg-[#2d3e75] text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform">
-        <Plus size={32} />
-      </button>
+            const closeModal = () => {
+                setIsModalOpen(false);
+                setEditingId(null);
+                setCategory('성의회관');
+                setContent('');
+                setAuthor('');
+            };
 
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-lg rounded-3xl p-8 shadow-2xl">
-            <h2 className="text-xl font-bold mb-6">{editingId ? '수정하기' : '새 글 쓰기'}</h2>
-            <div className="space-y-4">
-              <div className="flex gap-2">
-                {['성의회관', '의산연', '공지사항'].map(cat => (
-                  <button key={cat} onClick={() => setCategory(cat)} className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${category === cat ? 'bg-[#2d3e75] text-white border-[#2d3e75]' : 'bg-white text-slate-300 border-slate-100'}`}>{cat}</button>
-                ))}
-              </div>
-              <input value={author} onChange={(e)=>setAuthor(e.target.value)} placeholder="작성자 성함" className="w-full p-4 bg-slate-50 rounded-xl font-bold focus:outline-none" />
-              <textarea value={content} onChange={(e)=>setContent(e.target.value)} placeholder="내용 입력" className="w-full h-40 p-4 bg-slate-50 rounded-xl font-bold focus:outline-none resize-none" />
-              <button onClick={handlePostSubmit} disabled={isSubmitting} className="w-full py-4 bg-[#2d3e75] text-white rounded-xl font-bold text-lg">
-                {isSubmitting ? <Loader2 className="animate-spin mx-auto"/> : (editingId ? "수정 완료" : "등록 완료")}
-              </button>
-              <button onClick={closeModal} className="w-full py-2 text-slate-400 font-bold">닫기</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+            return (
+                <div className="min-h-screen pb-20">
+                    <header className="bg-[#2d3e75] text-white p-5 sticky top-0 z-50 flex items-center shadow-md">
+                        <button onClick={() => window.parent.postMessage('goBack', '*')} className="mr-4 text-2xl font-bold">〈</button>
+                        <h1 className="text-xl font-black">인수인계 및 공지</h1>
+                    </header>
 
-export default App;
+                    <main className="p-4 max-w-2xl mx-auto space-y-4">
+                        {loading ? (
+                            <div className="text-center py-20 text-slate-400 font-bold">연결 중...</div>
+                        ) : (
+                            posts.map(post => (
+                                <div key={post.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <span className={`px-3 py-1 rounded-lg text-[11px] font-black ${post.category === '공지사항' ? 'bg-rose-50 text-rose-600' : 'bg-indigo-50 text-indigo-600'}`}>
+                                            {post.category}
+                                        </span>
+                                        {user && post.userId === user.uid && (
+                                            <div className="flex gap-3 text-slate-300 text-xs">
+                                                <button onClick={() => openEditModal(post)} className="hover:text-indigo-600 font-bold underline">수정</button>
+                                                <button onClick={() => handleDelete(post.id)} className="hover:text-rose-600 font-bold underline">삭제</button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <p className="font-bold text-slate-800 whitespace-pre-wrap leading-relaxed mb-4">{post.content}</p>
+                                    <div className="text-right text-xs font-black text-slate-400 border-t pt-3">— {post.author}</div>
+                                </div>
+                            ))
+                        )}
+                    </main>
+
+                    <button onClick={() => setIsModalOpen(true)} className="fixed bottom-8 right-8 w-16 h-16 bg-[#2d3e75] text-white rounded-full shadow-2xl flex items-center justify-center text-3xl font-light hover:scale-110 active:scale-95 transition-all">＋</button>
+
+                    {isModalOpen && (
+                        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+                            <div className="bg-white w-full max-w-lg rounded-3xl p-8 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                                <h2 className="text-xl font-black mb-6 text-slate-800">{editingId ? '게시물 수정' : '새 글 등록'}</h2>
+                                <div className="space-y-4">
+                                    <div className="flex gap-2">
+                                        {['성의회관', '의산연', '공지사항'].map(cat => (
+                                            <button key={cat} onClick={() => setCategory(cat)} className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${category === cat ? 'bg-[#2d3e75] text-white border-[#2d3e75]' : 'bg-white text-slate-300 border-slate-100'}`}>{cat}</button>
+                                        ))}
+                                    </div>
+                                    <input value={author} onChange={(e)=>setAuthor(e.target.value)} placeholder="작성자 성함" className="w-full p-4 bg-slate-50 rounded-xl font-bold focus:ring-2 focus:ring-indigo-100 outline-none border-none" />
+                                    <textarea value={content} onChange={(e)=>setContent(e.target.value)} placeholder="내용을 입력하세요" className="w-full h-40 p-4 bg-slate-50 rounded-xl font-bold focus:ring-2 focus:ring-indigo-100 outline-none resize-none border-none" />
+                                    <button onClick={handlePostSubmit} disabled={isSubmitting} className="w-full py-4 bg-[#2d3e75] text-white rounded-xl font-black text-lg">
+                                        {isSubmitting ? "처리 중..." : (editingId ? "수정 완료" : "등록 완료")}
+                                    </button>
+                                    <button onClick={closeModal} className="w-full py-2 text-slate-400 font-bold text-sm">취소</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
