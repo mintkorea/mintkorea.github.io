@@ -22,7 +22,7 @@
             word-break: keep-all;
             margin: 0;
             padding: 0;
-            line-height: 1.1; /* 전반적인 줄간 최소화 */
+            line-height: 1.1;
         }
 
         .app-container {
@@ -48,21 +48,22 @@
             display: flex;
             margin: 0 10px 6px 10px;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
         }
 
         .table-header {
-            width: 60px;
+            width: 50px;
             background-color: #f8fafc;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 800;
-            font-size: 0.85rem; /* 폰트 키움 */
+            font-size: 0.8rem;
             color: #6366f1;
-            border-right: 1px solid #f1f5f9;
+            border-right: 1px solid #e2e8f0;
             flex-shrink: 0;
             text-align: center;
-            line-height: 1.1;
+            line-height: 1.2;
         }
 
         .table-body {
@@ -70,49 +71,55 @@
             min-width: 0;
         }
 
-        .inner-table {
+        .duty-table {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
+            font-size: 0.85rem;
         }
 
-        .inner-table th, .inner-table td {
-            padding: 6px 4px; /* 줄간 확실히 줄임 */
+        .duty-table th {
+            background-color: #f8fafc;
+            color: #475569;
+            font-weight: 800;
+            padding: 8px 2px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .duty-table td {
+            padding: 12px 2px;
             text-align: center;
-            font-size: 0.95rem; /* 폰트 키움 */
+            font-weight: 900;
+            border: 1px solid #e2e8f0;
+            font-size: 0.9rem;
         }
 
-        .inner-table th {
-            color: #94a3b8;
-            font-weight: 600;
-            font-size: 0.8rem;
-            border-bottom: 1px solid #f8fafc;
-        }
-
-        .inner-table td {
-            color: #334155;
-            font-weight: 700;
-        }
+        /* 이미지에 최적화된 개인별 배경색 및 글자색 배색 고정 */
+        .user-황재업 { background-color: #eff6ff !important; color: #1e40af !important; }
+        .user-김태언 { background-color: #f0fdf4 !important; color: #166534 !important; }
+        .user-이태원 { background-color: #fffbeb !important; color: #9a3412 !important; }
+        .user-이정석 { background-color: #f5f3ff !important; color: #5b21b6 !important; }
 
         .badge-yellow {
             background-color: var(--brand-yellow);
             color: #1e293b;
-            padding: 4px 10px;
+            padding: 4px 12px;
             border-radius: 6px;
             font-weight: 900;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* 상단 퀵버튼 높이 최소화 및 아이콘 좌측 배치 */
         .quick-btn {
             background: white;
-            padding: 6px 10px;
+            padding: 8px 10px;
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 6px;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
         }
 
         #event-list {
@@ -123,8 +130,6 @@
         #event-list::-webkit-scrollbar { display: none; }
 
         .building-group { margin-bottom: 4px; }
-        .building-group:last-child { margin-bottom: 0; }
-
         .building-title {
             font-size: 11px;
             font-weight: 900;
@@ -140,7 +145,7 @@
             display: flex;
             align-items: flex-start;
             gap: 4px;
-            padding: 2px 0; /* 줄간 최소화 */
+            padding: 2px 0;
         }
 
         .place-tag {
@@ -149,11 +154,10 @@
             font-size: 12px;
             white-space: nowrap;
             flex-shrink: 0;
-            padding: 0 2px;
         }
 
         .event-name {
-            font-size: 14px; /* 폰트 키움 */
+            font-size: 14px;
             font-weight: 700;
             color: #1e293b;
             line-height: 1.2;
@@ -170,73 +174,63 @@
                     <h1 class="text-2xl font-black mb-0.5">성의교정 통합근무</h1>
                     <p id="today-display" class="text-base opacity-90 font-bold">--</p>
                 </div>
-                <div id="shift-badge" class="badge-yellow">--조</div>
+                <div id="shift-badge" class="badge-yellow">근무 : --조</div>
             </div>
         </div>
 
-        <!-- 상단 버튼 높이 및 레이아웃 수정 -->
         <div class="grid grid-cols-3 gap-2 px-2.5 -mt-3 mb-3">
-            <div class="quick-btn">
-                <span class="text-base">📅</span>
+            <div class="quick-btn" onclick="location.href='calendar.html'">
+                <span>📅</span>
                 <span class="text-[12px] font-black text-slate-700">근무달력</span>
             </div>
-            <div class="quick-btn">
-                <span class="text-base">📞</span>
+            <div class="quick-btn" onclick="location.href='yellowpage.html'">
+                <span>📞</span>
                 <span class="text-[12px] font-black text-slate-700">연락처</span>
             </div>
-            <div class="quick-btn">
-                <span class="text-base">🏥</span>
+            <div class="quick-btn" onclick="location.href='info.html'">
+                <span>🏥</span>
                 <span class="text-[12px] font-black text-slate-700">시설안내</span>
             </div>
         </div>
 
-        <!-- 근무예정 (간격 확실히 축소) -->
-        <div class="table-card">
-            <div class="table-header text-xs">근무<br>예정</div>
+        <div class="table-card" onclick="location.href='team.html'">
+            <div class="table-header">근무<br>현황</div>
             <div class="table-body">
-                <table class="inner-table">
+                <table class="duty-table">
                     <thead>
                         <tr>
-                            <th style="width: 22%;">월/일</th>
-                            <th style="width: 39%;">성의회관</th>
-                            <th style="width: 39%;">의산연</th>
+                            <th style="width: 20%;">날짜</th>
+                            <th style="width: 20%;">조장</th>
+                            <th style="width: 20%;">회관</th>
+                            <th style="width: 20%;">의산A</th>
+                            <th style="width: 20%;">의산B</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td class="py-1">4/14</td>
-                            <td class="py-1 text-slate-400">황재업 김태언</td>
-                            <td class="py-1 text-slate-400">이태원 이정석</td>
-                        </tr>
-                        <tr>
-                            <td class="py-1">4/17</td>
-                            <td class="py-1 text-slate-400">황재업 김태언</td>
-                            <td class="py-1 text-slate-400">이정석 이태원</td>
-                        </tr>
+                    <tbody id="duty-preview-body">
+                        <!-- JS에서 즉시 생성 -->
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- 오늘행사 (중간 라인 제거 및 줄간 최소화) -->
-        <div class="table-card">
+        <div class="table-card" onclick="location.href='rentalm.html'">
             <div class="table-header">오늘<br>행사</div>
             <div id="event-list" class="table-body p-2">
-                <div class="text-[12px] text-slate-400 text-center py-2 font-bold">데이터 로드 중...</div>
+                <div class="text-[12px] text-slate-400 text-center py-2 font-bold italic">데이터 불러오는 중...</div>
             </div>
         </div>
 
-        <div class="table-card">
+        <div class="table-card" onclick="location.href='notice.html'">
             <div class="table-header">최신<br>공지</div>
             <div class="table-body p-2.5">
-                <div class="text-[14px] font-black text-red-600 mb-0">시신기증 접수증 전송후 반드시 통화</div>
+                <div class="text-[14px] font-black text-red-600">시신기증 접수증 전송후 반드시 통화</div>
                 <div class="text-[12px] font-bold text-red-400 opacity-80">(즉시모심, 삼일장 모두 해당)</div>
             </div>
         </div>
 
-        <div class="table-card">
+        <div class="table-card" onclick="location.href='meal.html'">
             <div class="table-header">오늘<br>식단</div>
-            <div class="table-body flex divide-x divide-slate-50">
+            <div class="table-body flex divide-x divide-slate-100">
                 <div class="flex-1 p-2 text-center">
                     <span class="block text-[11px] font-bold text-slate-400">중식</span>
                     <span id="lunch-menu" class="text-[15px] font-black text-slate-800">--</span>
@@ -257,9 +251,43 @@
         const CONFIG = {
             baseDate: '2026-03-09',
             patterns: ['C', 'A', 'B'],
+            workersPattern: [
+                ["황재업", "김태언", "이태원", "이정석"],
+                ["황재업", "김태언", "이정석", "이태원"],
+                ["황재업", "이정석", "김태언", "이태원"],
+                ["황재업", "이정석", "이태원", "김태언"],
+                ["황재업", "이태원", "김태언", "이정석"],
+                ["황재업", "이태원", "이정석", "김태언"]
+            ],
             eventUrl: "https://script.google.com/macros/s/AKfycbzKtqrzNK11rX4sCdDFv0lcgUcdVwsNiUnlXYc8Zjm0dJNlNV8ThwKrtqOgKBeVrP3g/exec",
             mealUrl: "https://script.google.com/macros/s/AKfycbxZkcn8EEcGcxMaT98l_CKJTCM_0Ual_S2JefpHptm_dbEtQ5tjM00TEhU2XdqTObLh/exec"
         };
+
+        // 오프라인 로직 (무조건 즉시 실행됨)
+        function getWorkers(d) {
+            const base = new Date(CONFIG.baseDate); base.setHours(0,0,0,0);
+            const target = new Date(d); target.setHours(0,0,0,0);
+            const diff = Math.round((target - base) / 86400000);
+            const idx = Math.floor(((diff % 18) + 18) % 18 / 3);
+            return CONFIG.workersPattern[idx];
+        }
+
+        function getNextCDates(count = 2) {
+            const results = [];
+            const d = new Date(); d.setHours(0,0,0,0);
+            for (let i = 0; results.length < count && i < 30; i++) {
+                const temp = new Date(d); temp.setDate(d.getDate() + i);
+                const diff = Math.round((temp - new Date(CONFIG.baseDate)) / 86400000);
+                if (((diff % 3) + 3) % 3 === 0) {
+                    const days = ['일','월','화','수','목','금','토'];
+                    results.push({
+                        date: `${temp.getMonth() + 1}/${temp.getDate()}(${days[temp.getDay()]})`,
+                        workers: getWorkers(temp)
+                    });
+                }
+            }
+            return results;
+        }
 
         function getShift(d) {
             const base = new Date(CONFIG.baseDate); base.setHours(0,0,0,0);
@@ -268,22 +296,36 @@
             return CONFIG.patterns[((diff % 3) + 3) % 3];
         }
 
+        // 화면 기초 데이터 업데이트 (API와 무관)
         function updateUI() {
             const now = new Date();
             document.getElementById('today-display').innerText = now.toLocaleDateString('ko-KR', { year:'numeric', month:'numeric', day:'numeric', weekday:'short' });
-            const shift = getShift(now);
-            document.getElementById('shift-badge').innerText = `${shift}조`;
+            document.getElementById('shift-badge').innerText = `근무 : ${getShift(now)}조`;
+
+            const nextCDates = getNextCDates(2);
+            const tbody = document.getElementById('duty-preview-body');
+            tbody.innerHTML = nextCDates.map(item => `
+                <tr>
+                    <td style="color: #64748b; font-weight: 800;">${item.date}</td>
+                    <td class="user-${item.workers[0]}">${item.workers[0]}</td>
+                    <td class="user-${item.workers[1]}">${item.workers[1]}</td>
+                    <td class="user-${item.workers[2]}">${item.workers[2]}</td>
+                    <td class="user-${item.workers[3]}">${item.workers[3]}</td>
+                </tr>
+            `).join('');
         }
 
+        // 행사 정보 업데이트 (실패해도 화면 안멈춤)
         async function updateEvents() {
-            const now = new Date();
-            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
             const eventContainer = document.getElementById('event-list');
-
             try {
-                const res = await fetch(`${CONFIG.eventUrl}?t=${new Date().getTime()}`);
-                const data = await res.json();
+                const now = new Date();
+                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
                 
+                const res = await fetch(`${CONFIG.eventUrl}?t=${new Date().getTime()}`);
+                if (!res.ok) throw new Error();
+                
+                const data = await res.json();
                 const sunguiEvents = data.filter(r => r.rawDate === todayStr && r.bu.includes("성의회관"));
                 const uisanEvents = data.filter(r => r.rawDate === todayStr && r.bu.includes("의생명산업연구원"));
 
@@ -291,60 +333,45 @@
                     eventContainer.innerHTML = `<div class="text-[12px] text-slate-400 text-center py-2 font-bold">대관 내역 없음</div>`;
                     return;
                 }
-
-                let htmlContent = "";
-
-                // 성의회관 그룹 (중간 선 없이 처리)
+                let html = "";
                 if (sunguiEvents.length > 0) {
-                    htmlContent += `<div class="building-group">
-                        <div class="building-title">성의회관</div>
-                        ${sunguiEvents.map(item => `
-                            <div class="event-item">
-                                <span class="place-tag">[${item.place}]</span>
-                                <span class="event-name">${item.event}</span>
-                            </div>
-                        `).join('')}
-                    </div>`;
+                    html += `<div class="building-group"><div class="building-title">성의회관</div>${sunguiEvents.map(item => `<div class="event-item"><span class="place-tag">[${item.place}]</span><span class="event-name">${item.event}</span></div>`).join('')}</div>`;
                 }
-
-                // 의산연 그룹
                 if (uisanEvents.length > 0) {
-                    htmlContent += `<div class="building-group ${sunguiEvents.length > 0 ? 'mt-3' : ''}">
-                        <div class="building-title">의산연</div>
-                        ${uisanEvents.map(item => `
-                            <div class="event-item">
-                                <span class="place-tag">[${item.place}]</span>
-                                <span class="event-name">${item.event}</span>
-                            </div>
-                        `).join('')}
-                    </div>`;
+                    html += `<div class="building-group ${sunguiEvents.length > 0 ? 'mt-2' : ''}"><div class="building-title">의산연</div>${uisanEvents.map(item => `<div class="event-item"><span class="place-tag">[${item.place}]</span><span class="event-name">${item.event}</span></div>`).join('')}</div>`;
                 }
-
-                eventContainer.innerHTML = htmlContent;
-
+                eventContainer.innerHTML = html;
             } catch (e) {
-                eventContainer.innerHTML = `<div class="text-[12px] text-red-400 text-center py-2 font-bold">로드 실패</div>`;
+                eventContainer.innerHTML = `<div class="text-[12px] text-red-400 text-center py-2 font-bold opacity-60">행사 데이터 연결 실패</div>`;
             }
         }
 
+        // 식단 정보 업데이트
         async function updateMeal() {
-            const now = new Date();
-            const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
             try {
+                const now = new Date();
+                const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
                 const res = await fetch(CONFIG.mealUrl);
                 const data = await res.json();
                 const day = data[key];
                 if(day) {
                     document.getElementById('lunch-menu').innerText = (day["중식"] || day["중 식"])?.menu.split('(')[0] || "미등록";
                     document.getElementById('night-menu').innerText = (day["야식"] || day["야 식"])?.menu.split('(')[0] || "미등록";
+                } else {
+                    document.getElementById('lunch-menu').innerText = "정보없음";
+                    document.getElementById('night-menu').innerText = "정보없음";
                 }
-            } catch(e) {}
+            } catch(e) {
+                document.getElementById('lunch-menu').innerText = "통신오류";
+                document.getElementById('night-menu').innerText = "통신오류";
+            }
         }
 
+        // 초기 실행 순서 조정: 화면 UI부터 먼저 띄우고 데이터 호출
         window.onload = () => {
-            updateUI();
-            updateEvents();
-            updateMeal();
+            updateUI(); // 1. 즉시 화면 그림
+            updateEvents(); // 2. 백그라운드에서 행사 호출
+            updateMeal(); // 3. 백그라운드에서 식단 호출
         };
     </script>
 </body>
