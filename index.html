@@ -44,6 +44,7 @@
                         return;
                     }
                     const posts = snap.docs.map(doc => doc.data());
+                    // RULE 2: 클라이언트 측 정렬
                     posts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                     const latest = posts[0];
                     noticeEl.innerHTML = `
@@ -141,8 +142,8 @@
             </div>
         </a>
 
-        <!-- 공지사항 -->
-        <a href="notice.html" class="table-card">
+        <!-- 공지사항 (notice.jsx 파일로 연결되도록 수정) -->
+        <a href="notice.jsx" class="table-card">
             <div class="table-header label-notice">최신<br>공지</div>
             <div id="latest-notice-container" class="table-body">
                 <div class="text-[12px] text-slate-400 font-bold py-2">최신 공지를 확인 중...</div>
@@ -205,7 +206,6 @@
             
             document.getElementById('shift-badge').innerText = `${getShiftName(currentDate)}조 근무`;
             
-            // 근무 현황 프리뷰
             const tbody = document.getElementById('duty-preview-body');
             let results = [];
             const days = ['일','월','화','수','목','금','토'];
