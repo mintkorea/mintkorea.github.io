@@ -9,20 +9,39 @@
     <style>
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; scroll-behavior: smooth; }
         .tab-transition { transition: all 0.2s ease-in-out; }
-        /* 메뉴 텍스트: 긴 메뉴도 가독성 있게 유지 */
         .menu-main-style { letter-spacing: -0.03em !important; word-break: keep-all; font-size: 1.5rem; line-height: 2rem; }
         .day-sun { color: #EF4444; }
         .day-sat { color: #3B82F6; }
-        .status-pill { display: flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
-        .status-dot { width: 7px; height: 7px; border-radius: 50%; }
-        .dot-online { background-color: #10B981; box-shadow: 0 0 6px #10B981; }
-        .dot-offline { background-color: #EF4444; box-shadow: 0 0 6px #EF4444; }
-        .dot-sync { background-color: #F59E0B; box-shadow: 0 0 6px #F59E0B; }
+        
+        /* [수정] 상태 표시창을 네비 버튼과 조화롭게 크기 축소 */
+        .status-pill { 
+            display: flex; 
+            align-items: center; 
+            gap: 4px; 
+            padding: 4px 8px; /* 여백 축소 */
+            border-radius: 6px; 
+            border: 1px solid #e2e8f0; 
+            background: white; 
+            height: 32px; /* 버튼들과 높이 맞춤 */
+        }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+        .dot-online { background-color: #10B981; box-shadow: 0 0 4px #10B981; }
+        .dot-offline { background-color: #EF4444; box-shadow: 0 0 4px #EF4444; }
+        .dot-sync { background-color: #F59E0B; box-shadow: 0 0 4px #F59E0B; }
+        
         .menu-card-custom { background-color: white; border-radius: 0 0 2rem 2rem; border-top-width: 7px; border-right-width: 2px; border-bottom-width: 2px; border-left-width: 2px; border-style: solid; }
         #hiddenDatePicker { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
         
-        /* [수정] 화살표 버튼 개행 방지 및 폰트 강조 */
-        .btn-no-wrap { white-space: nowrap !important; display: flex; align-items: center; justify-content: center; gap: 4px; }
+        /* 버튼 공통 스타일: 높이 고정 및 개행 방지 */
+        .btn-nav-custom { 
+            height: 32px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            white-space: nowrap !important;
+            font-size: 11px; 
+            font-weight: 900;
+        }
         
         @media (min-width: 640px) { .menu-main-style { font-size: 1.875rem; line-height: 2.25rem; } }
     </style>
@@ -41,21 +60,20 @@
         </div>
 
         <div id="results-anchor" class="w-full flex items-center justify-between mb-3 px-1 pb-2 border-b border-slate-100">
-            <div class="flex items-center">
-                <div id="statusPill" class="status-pill">
-                    <span id="statusDot" class="status-dot dot-offline"></span>
-                    <span id="statusText" class="text-[10px] font-black text-slate-400 uppercase tracking-tight">준비 중</span>
-                </div>
+            <div id="statusPill" class="status-pill">
+                <span id="statusDot" class="status-dot dot-offline"></span>
+                <span id="statusText" class="text-[9px] font-black text-slate-400 uppercase tracking-tight">WAITING</span>
             </div>
+            
             <div class="flex gap-1.5">
-                <button onclick="changeDate(-1)" class="btn-no-wrap bg-white border border-slate-300 rounded-lg px-3 py-2 text-[11px] font-black text-slate-600 shadow-sm active:bg-slate-50">
-                    <span>←</span><span>PREV</span>
+                <button onclick="changeDate(-1)" class="btn-nav-custom bg-white border border-slate-300 rounded-lg px-3 text-slate-600 shadow-sm active:bg-slate-50">
+                    ← PREV
                 </button>
-                <button onclick="goToday()" class="btn-no-wrap bg-white border border-slate-300 rounded-lg px-4 py-2 text-[11px] font-black text-[#1E3A5F] shadow-sm active:bg-slate-50">
+                <button onclick="goToday()" class="btn-nav-custom bg-white border border-slate-300 rounded-lg px-4 text-[#1E3A5F] shadow-sm active:bg-slate-50">
                     TODAY
                 </button>
-                <button onclick="changeDate(1)" class="btn-no-wrap bg-white border border-slate-300 rounded-lg px-3 py-2 text-[11px] font-black text-slate-600 shadow-sm active:bg-slate-50">
-                    <span>NEXT</span><span>→</span>
+                <button onclick="changeDate(1)" class="btn-nav-custom bg-white border border-slate-300 rounded-lg px-3 text-slate-600 shadow-sm active:bg-slate-50">
+                    NEXT →
                 </button>
             </div>
         </div>
@@ -121,8 +139,8 @@
             if (backup) {
                 allData = JSON.parse(backup);
                 dot.className = "status-dot dot-sync";
-                txt.innerText = "LOCAL (OFFLINE)";
-                txt.className = "text-[10px] font-black text-amber-500 tracking-tight";
+                txt.innerText = "LOCAL (OFF)";
+                txt.className = "text-[9px] font-black text-amber-500 tracking-tight";
                 updateUI();
             }
 
@@ -132,14 +150,14 @@
                 allData = freshData;
                 localStorage.setItem("meal_db_cache", JSON.stringify(freshData));
                 dot.className = "status-dot dot-online";
-                txt.innerText = "ONLINE (SYNCED)";
-                txt.className = "text-[10px] font-black text-emerald-500 tracking-tight";
+                txt.innerText = "SYNCED";
+                txt.className = "text-[9px] font-black text-emerald-500 tracking-tight";
                 updateUI(); 
             } catch (e) {
                 if (!backup) {
                     dot.className = "status-dot dot-offline";
-                    txt.innerText = "ERROR (NO DATA)";
-                    txt.className = "text-[10px] font-black text-red-500 tracking-tight";
+                    txt.innerText = "OFFLINE";
+                    txt.className = "text-[9px] font-black text-red-500 tracking-tight";
                 }
             }
         }
@@ -197,7 +215,7 @@
             const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, d = currentDate.getDate();
 
             if (!isToday) {
-                document.getElementById('timer-text').innerText = `${m}월 ${d}일의 ${activeTab} 식단입니다.`;
+                document.getElementById('timer-text').innerText = `${m}/${d} ${activeTab} 식단`;
                 document.getElementById('timer-icon').innerText = "📅";
                 return;
             }
@@ -213,14 +231,14 @@
             if (now < start) {
                 const diffMin = Math.ceil((start - now) / 60000);
                 const diffHr = Math.floor(diffMin / 60);
-                msg = `${activeTab} 제공까지 ${diffHr > 0 ? diffHr + '시간 ' : ''}${diffMin % 60}분 남음`;
+                msg = `${activeTab}까지 ${diffHr > 0 ? diffHr + 'h ' : ''}${diffMin % 60}m 남음`;
                 icon = "⏳";
             } else if (now <= end) {
                 const diffMin = Math.floor((end - now) / 60000);
-                msg = `${activeTab} 배식 중! (남은 시간: ${diffMin}분)`;
+                msg = `${activeTab} 배식 중 (${diffMin}분 남음)`;
                 icon = "🍽️";
             } else {
-                msg = `${activeTab} 배식이 종료되었습니다.`;
+                msg = `${activeTab} 배식 종료`;
                 icon = "✅";
             }
 
