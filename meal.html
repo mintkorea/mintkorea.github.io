@@ -13,18 +13,18 @@
         .day-sun { color: #EF4444; }
         .day-sat { color: #3B82F6; }
         
-        /* [수정] 상태 표시창을 네비 버튼과 조화롭게 크기 축소 */
+        /* 상태 표시창 크기 및 텍스트 정밀 조정 */
         .status-pill { 
             display: flex; 
             align-items: center; 
             gap: 4px; 
-            padding: 4px 8px; /* 여백 축소 */
+            padding: 0 8px; 
             border-radius: 6px; 
             border: 1px solid #e2e8f0; 
             background: white; 
-            height: 32px; /* 버튼들과 높이 맞춤 */
+            height: 32px; 
         }
-        .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+        .status-dot { width: 5px; height: 5px; border-radius: 50%; }
         .dot-online { background-color: #10B981; box-shadow: 0 0 4px #10B981; }
         .dot-offline { background-color: #EF4444; box-shadow: 0 0 4px #EF4444; }
         .dot-sync { background-color: #F59E0B; box-shadow: 0 0 4px #F59E0B; }
@@ -32,7 +32,6 @@
         .menu-card-custom { background-color: white; border-radius: 0 0 2rem 2rem; border-top-width: 7px; border-right-width: 2px; border-bottom-width: 2px; border-left-width: 2px; border-style: solid; }
         #hiddenDatePicker { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
         
-        /* 버튼 공통 스타일: 높이 고정 및 개행 방지 */
         .btn-nav-custom { 
             height: 32px; 
             display: flex; 
@@ -107,27 +106,12 @@
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxZkcn8EEcGcxMaT98l_CKJTCM_0Ual_S2JefpHptm_dbEtQ5tjM00TEhU2XdqTObLh/exec";
         
-        const shiftConfig = { 
-            baseDate: new Date('2026-03-09'), 
-            pattern: [
-                { name: 'C', color: '#3B82F6' },
-                { name: 'A', color: '#F59E0B' },
-                { name: 'B', color: '#EF4444' } 
-            ] 
-        };
-        
-        const mealMeta = {
-            '조식': { color: '#E65D4F', inactiveBg: '#F9DEDC', startTime: '07:00', endTime: '09:00' },
-            '간편식': { color: '#F2A134', inactiveBg: '#FDF2E2', startTime: '07:00', endTime: '09:30' },
-            '중식': { color: '#6AB04C', inactiveBg: '#EDF6E9', startTime: '11:20', endTime: '14:00' },
-            '석식': { color: '#3498DB', inactiveBg: '#EBF3FA', startTime: '17:20', endTime: '19:20' },
-            '야식': { color: '#8E44AD', inactiveBg: '#F0ECF7', startTime: '18:00', endTime: '20:00' }
-        };
+        // 근무조/식단 메타데이터 로직 동일 유지...
+        const shiftConfig = { baseDate: new Date('2026-03-09'), pattern: [{ name: 'C', color: '#3B82F6' }, { name: 'A', color: '#F59E0B' }, { name: 'B', color: '#EF4444' }] };
+        const mealMeta = { '조식': { color: '#E65D4F', inactiveBg: '#F9DEDC', startTime: '07:00', endTime: '09:00' }, '간편식': { color: '#F2A134', inactiveBg: '#FDF2E2', startTime: '07:00', endTime: '09:30' }, '중식': { color: '#6AB04C', inactiveBg: '#EDF6E9', startTime: '11:20', endTime: '14:00' }, '석식': { color: '#3498DB', inactiveBg: '#EBF3FA', startTime: '17:20', endTime: '19:20' }, '야식': { color: '#8E44AD', inactiveBg: '#F0ECF7', startTime: '18:00', endTime: '20:00' } };
         const MEAL_ORDER = ["조식", "간편식", "중식", "석식", "야식"];
         
-        let allData = {}; 
-        let currentDate = new Date();
-        let activeTab = "중식";
+        let allData = {}; let currentDate = new Date(); let activeTab = "중식";
 
         function normalize(str) { return String(str).replace(/[^ㄱ-ㅎ가-힣a-zA-Z0-9]/g, ""); }
 
@@ -139,7 +123,8 @@
             if (backup) {
                 allData = JSON.parse(backup);
                 dot.className = "status-dot dot-sync";
-                txt.innerText = "LOCAL (OFF)";
+                // [수정] 요청하신 텍스트로 변경
+                txt.innerText = "OFF(LOCAL)";
                 txt.className = "text-[9px] font-black text-amber-500 tracking-tight";
                 updateUI();
             }
@@ -150,107 +135,62 @@
                 allData = freshData;
                 localStorage.setItem("meal_db_cache", JSON.stringify(freshData));
                 dot.className = "status-dot dot-online";
-                txt.innerText = "SYNCED";
+                // [수정] 요청하신 텍스트로 변경
+                txt.innerText = "ON(SYNCED)";
                 txt.className = "text-[9px] font-black text-emerald-500 tracking-tight";
                 updateUI(); 
             } catch (e) {
                 if (!backup) {
                     dot.className = "status-dot dot-offline";
-                    txt.innerText = "OFFLINE";
+                    txt.innerText = "ERROR";
                     txt.className = "text-[9px] font-black text-red-500 tracking-tight";
                 }
             }
         }
 
+        // updateUI, changeDate 등 나머지 함수 로직 동일 유지...
         function updateUI() {
             const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, d = currentDate.getDate();
             const weekIdx = currentDate.getDay();
             const weekNames = ['일', '월', '화', '수', '목', '금', '토'];
-            
             document.getElementById('dateDisplay').innerHTML = `${y}.${String(m).padStart(2,'0')}.${String(d).padStart(2,'0')} <span class="${weekIdx===0?'day-sun':(weekIdx===6?'day-sat':'')}">(${weekNames[weekIdx]})</span>`;
             document.getElementById('hiddenDatePicker').value = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-
             const targetDate = new Date(currentDate); targetDate.setHours(0,0,0,0);
             const baseDate = new Date(shiftConfig.baseDate); baseDate.setHours(0,0,0,0);
             const diffDays = Math.floor((targetDate - baseDate) / 86400000);
             const shift = shiftConfig.pattern[((diffDays % 3) + 3) % 3];
-            
-            const badge = document.getElementById('shiftBadge');
-            badge.innerText = `${shift.name}조 근무`;
-            badge.style.backgroundColor = shift.color;
-
-            const tabsContainer = document.getElementById('tabs-container');
-            tabsContainer.innerHTML = '';
+            const badge = document.getElementById('shiftBadge'); badge.innerText = `${shift.name}조 근무`; badge.style.backgroundColor = shift.color;
+            const tabsContainer = document.getElementById('tabs-container'); tabsContainer.innerHTML = '';
             MEAL_ORDER.forEach(meal => {
-                const isActive = meal === activeTab;
-                const meta = mealMeta[meal];
-                const btn = document.createElement('button');
-                btn.innerText = meal;
-                btn.className = `py-3.5 text-[11px] font-black rounded-t-2xl tab-transition`;
-                btn.style.backgroundColor = isActive ? meta.color : meta.inactiveBg;
-                btn.style.color = isActive ? 'white' : '#64748b';
-                btn.onclick = () => { activeTab = meal; updateUI(); };
-                tabsContainer.appendChild(btn);
+                const isActive = meal === activeTab; const meta = mealMeta[meal];
+                const btn = document.createElement('button'); btn.innerText = meal; btn.className = `py-3.5 text-[11px] font-black rounded-t-2xl tab-transition`;
+                btn.style.backgroundColor = isActive ? meta.color : meta.inactiveBg; btn.style.color = isActive ? 'white' : '#64748b';
+                btn.onclick = () => { activeTab = meal; updateUI(); }; tabsContainer.appendChild(btn);
             });
-
             const key = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const dayData = allData[key] || allData[`${y}-${m}-${d}`] || null;
-            let info = null;
-            if (dayData) {
-                for (const k in dayData) { if (normalize(k) === normalize(activeTab)) { info = dayData[k]; break; } }
-            }
-
-            const menuCard = document.getElementById('menu-card');
-            menuCard.style.borderColor = mealMeta[activeTab].color;
+            let info = null; if (dayData) { for (const k in dayData) { if (normalize(k) === normalize(activeTab)) { info = dayData[k]; break; } } }
+            const menuCard = document.getElementById('menu-card'); menuCard.style.borderColor = mealMeta[activeTab].color;
             document.getElementById('main-menu').innerText = info?.menu || "식단 정보가 없습니다.";
             document.getElementById('sub-menu').innerText = info?.side || "-";
             document.getElementById('comment-text').innerText = info?.comment || "오늘도 즐거운 하루 되세요! 😊";
-
             updateStatusMsg();
         }
-
         function updateStatusMsg() {
-            const now = new Date();
-            const isToday = currentDate.toDateString() === now.toDateString();
-            const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, d = currentDate.getDate();
-
-            if (!isToday) {
-                document.getElementById('timer-text').innerText = `${m}/${d} ${activeTab} 식단`;
-                document.getElementById('timer-icon').innerText = "📅";
-                return;
-            }
-
-            const meta = mealMeta[activeTab];
-            const [sH, sM] = meta.startTime.split(':').map(Number);
-            const [eH, eM] = meta.endTime.split(':').map(Number);
-            const start = new Date(); start.setHours(sH, sM, 0);
-            const end = new Date(); end.setHours(eH, eM, 0);
-
+            const now = new Date(); const isToday = currentDate.toDateString() === now.toDateString(); const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, d = currentDate.getDate();
+            if (!isToday) { document.getElementById('timer-text').innerText = `${m}/${d} ${activeTab} 식단`; document.getElementById('timer-icon').innerText = "📅"; return; }
+            const meta = mealMeta[activeTab]; const [sH, sM] = meta.startTime.split(':').map(Number); const [eH, eM] = meta.endTime.split(':').map(Number);
+            const start = new Date(); start.setHours(sH, sM, 0); const end = new Date(); end.setHours(eH, eM, 0);
             let msg = ""; let icon = "";
-
-            if (now < start) {
-                const diffMin = Math.ceil((start - now) / 60000);
-                const diffHr = Math.floor(diffMin / 60);
-                msg = `${activeTab}까지 ${diffHr > 0 ? diffHr + 'h ' : ''}${diffMin % 60}m 남음`;
-                icon = "⏳";
-            } else if (now <= end) {
-                const diffMin = Math.floor((end - now) / 60000);
-                msg = `${activeTab} 배식 중 (${diffMin}분 남음)`;
-                icon = "🍽️";
-            } else {
-                msg = `${activeTab} 배식 종료`;
-                icon = "✅";
-            }
-
-            document.getElementById('timer-text').innerText = msg;
-            document.getElementById('timer-icon').innerText = icon;
+            if (now < start) { const diffMin = Math.ceil((start - now) / 60000); const diffHr = Math.floor(diffMin / 60); msg = `${activeTab}까지 ${diffHr > 0 ? diffHr + 'h ' : ''}${diffMin % 60}m 남음`; icon = "⏳"; }
+            else if (now <= end) { const diffMin = Math.floor((end - now) / 60000); msg = `${activeTab} 배식 중 (${diffMin}분 남음)`; icon = "🍽️"; }
+            else { msg = `${activeTab} 배식 종료`; icon = "✅"; }
+            document.getElementById('timer-text').innerText = msg; document.getElementById('timer-icon').innerText = icon;
         }
-
         function changeDate(n) { currentDate.setDate(currentDate.getDate() + n); updateUI(); }
         function goToday() { currentDate = new Date(); activeTab = autoMeal(); updateUI(); }
         function syncDateInput(input) { if (input.value) { currentDate = new Date(input.value); updateUI(); } }
         function autoMeal() { const h = new Date().getHours(); if (h < 9) return "조식"; if (h < 14) return "중식"; return "석식"; }
-
         window.onload = () => { activeTab = autoMeal(); loadData(); };
         setInterval(updateStatusMsg, 60000);
     </script>
