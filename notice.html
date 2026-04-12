@@ -2,188 +2,167 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>인수인계 및 공지</title>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>업무 게시판 (영구저장)</title>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <style>
+        :root { --primary: #007bff; --bg: #f4f7f6; }
+        body { font-family: -apple-system, 'Malgun Gothic', sans-serif; background: var(--bg); margin: 0; padding: 10px; color: #333; }
+        .container { max-width: 600px; margin: auto; background: #fff; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 15px; }
+        
+        /* 사용자 설정 상단바 */
+        .auth-bar { background: #343a40; color: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+        .auth-bar input { width: 80px; border: none; border-radius: 4px; padding: 3px 7px; }
+
+        /* 입력 폼 스타일 */
+        .form-section { border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 20px; }
+        .input-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        select, input[type="text"] { padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; }
+        #category { width: 110px; }
+        #title { flex: 1; }
+        #editor-container { height: 180px; margin-bottom: 10px; border-radius: 0 0 8px 8px; }
+        .ql-toolbar { border-radius: 8px 8px 0 0 !important; }
+
+        button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; transition: 0.3s; }
+        button:active { background: #0056b3; transform: scale(0.98); }
+
+        /* 게시글 목록 스타일 */
+        .post-card { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 15px; margin-top: 15px; position: relative; }
+        .post-header { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+        .badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; color: white; background: #6c757d; font-weight: bold; }
+        .badge.notice { background: #dc3545; }
+        .post-title { font-weight: bold; font-size: 17px; color: #111; }
+        .post-meta { font-size: 12px; color: #999; margin-bottom: 10px; }
+        .post-body { font-size: 15px; line-height: 1.5; color: #444; word-break: break-all; }
+        .delete-btn { width: auto; padding: 4px 8px; font-size: 11px; background: #ff4d4d; margin-top: 10px; }
+        .loading { text-align: center; padding: 20px; font-size: 14px; color: #666; }
+    </style>
 </head>
-<body class="bg-slate-50 font-sans">
-    <div id="root"></div>
+<body>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
+<div class="container">
+    <div class="auth-bar">
+        <span>👤 접속자: <input type="text" id="currentUser" value="사용자1" onchange="renderPosts()"></span>
+        <small>(admin은 전체 관리)</small>
+    </div>
 
-        // 시스템 환경 변수 로드
-        const firebaseConfig = JSON.parse(__firebase_config);
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
+    <div class="form-section">
+        <div class="input-row">
+            <select id="category">
+                <option value="성의회관">성의회관</option>
+                <option value="의산연">의산연</option>
+                <option value="공지사항">공지사항</option>
+            </select>
+            <input type="text" id="title" placeholder="제목을 입력하세요">
+        </div>
+        <div id="editor-container"></div>
+        <button onclick="saveToGoogle()">게시글 등록하기</button>
+    </div>
+
+    <div id="loading" class="loading" style="display:none;">데이터 처리 중...</div>
+    <div id="post-list"></div>
+</div>
+
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+<script>
+    // 1. 배포하신 구글 앱스 스크립트 URL 연동
+    const API_URL = "https://script.google.com/macros/s/AKfycbyZsShJ5BztRyC-eTNmCy2wfSYOd8NjpgnO-0AbfTfpQqxD-XotTs3oglQ5T0dJB-nW/exec";
+    
+    // 2. 에디터 초기화
+    var quill = new Quill('#editor-container', {
+        theme: 'snow',
+        modules: {
+            toolbar: [
+                [{ 'size': ['small', false, 'large', 'huge'] }],
+                ['bold', { 'color': [] }, { 'background': [] }],
+                ['clean']
+            ]
         }
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'sungui-duty-app';
+    });
 
-        const App = () => {
-            const [user, setUser] = useState(null);
-            const [posts, setPosts] = useState([]);
-            const [loading, setLoading] = useState(true);
-            const [isModalOpen, setIsModalOpen] = useState(false);
-            const [isSubmitting, setIsSubmitting] = useState(false);
-            
-            const [editingId, setEditingId] = useState(null);
-            const [category, setCategory] = useState('성의회관');
-            const [content, setContent] = useState('');
-            const [author, setAuthor] = useState('');
+    let cachedPosts = [];
 
-            // 1. 익명 인증 (접속 권한 확보)
-            useEffect(() => {
-                const unsubscribe = auth.onAuthStateChanged((u) => {
-                    if (u) setUser(u);
-                    else auth.signInAnonymously().catch(console.error);
-                });
-                return () => unsubscribe();
-            }, []);
+    // 3. 게시글 저장 (POST)
+    async function saveToGoogle() {
+        const title = document.getElementById('title').value;
+        const content = quill.root.innerHTML;
+        const user = document.getElementById('currentUser').value;
+        const category = document.getElementById('category').value;
 
-            // 2. 데이터 실시간 수신
-            useEffect(() => {
-                if (!user) return;
-                const postsCol = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notices');
-                
-                const unsubscribe = postsCol.orderBy('createdAt', 'desc').onSnapshot((snapshot) => {
-                    const postData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    setPosts(postData);
-                    setLoading(false);
-                }, (err) => {
-                    console.error("데이터 수신 오류:", err);
-                    setLoading(false);
-                });
-                return () => unsubscribe();
-            }, [user]);
+        if(!title || quill.getText().trim().length === 0) return alert("제목과 내용을 입력해주세요.");
 
-            // 3. 저장 및 수정
-            const handlePostSubmit = async () => {
-                if (!content.trim() || !author.trim() || isSubmitting) return;
-                setIsSubmitting(true);
-                try {
-                    const postsCol = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notices');
-                    const data = {
-                        category, content, author,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    };
+        document.getElementById('loading').style.display = 'block';
 
-                    if (editingId) {
-                        await postsCol.doc(editingId).update(data);
-                    } else {
-                        await postsCol.add({
-                            ...data,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            userId: user.uid
-                        });
-                    }
-                    closeModal();
-                } catch (err) {
-                    alert("저장에 실패했습니다.");
-                } finally {
-                    setIsSubmitting(false);
-                }
-            };
-
-            // 4. 삭제
-            const handleDelete = async (postId) => {
-                if (!confirm("정말로 삭제하시겠습니까?")) return;
-                try {
-                    await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notices').doc(postId).delete();
-                } catch (err) {
-                    alert("삭제 실패");
-                }
-            };
-
-            const openEditModal = (post) => {
-                setEditingId(post.id);
-                setCategory(post.category);
-                setContent(post.content);
-                setAuthor(post.author);
-                setIsModalOpen(true);
-            };
-
-            const closeModal = () => {
-                setIsModalOpen(false);
-                setEditingId(null);
-                setCategory('성의회관');
-                setContent('');
-                setAuthor('');
-            };
-
-            return (
-                <div className="min-h-screen pb-24">
-                    <header className="bg-[#2d3e75] text-white p-5 sticky top-0 z-50 flex items-center shadow-md">
-                        <button onClick={() => window.parent.postMessage('goBack', '*')} className="mr-4 text-2xl">〈</button>
-                        <h1 className="text-xl font-black tracking-tight">인수인계 및 공지</h1>
-                    </header>
-
-                    <main className="p-4 max-w-2xl mx-auto space-y-4">
-                        {loading ? (
-                            <div className="text-center py-20 text-slate-400 font-bold">서버 연결 중...</div>
-                        ) : posts.length === 0 ? (
-                            <div className="text-center py-20 text-slate-300 font-bold">등록된 내용이 없습니다.</div>
-                        ) : (
-                            posts.map(post => (
-                                <div key={post.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <span className={`px-3 py-1 rounded-lg text-[11px] font-black border ${
-                                            post.category === '공지사항' ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-indigo-50 text-indigo-600 border-indigo-100'
-                                        }`}>
-                                            {post.category}
-                                        </span>
-                                        {user && post.userId === user.uid && (
-                                            <div className="flex gap-3 text-slate-300 text-xs font-bold uppercase tracking-tighter">
-                                                <button onClick={() => openEditModal(post)} className="hover:text-indigo-600 underline">Edit</button>
-                                                <button onClick={() => handleDelete(post.id)} className="hover:text-rose-600 underline">Delete</button>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <p className="font-bold text-slate-800 whitespace-pre-wrap leading-relaxed mb-4 text-[16px]">{post.content}</p>
-                                    <div className="text-right text-xs font-black text-slate-400 border-t pt-3">— {post.author}</div>
-                                </div>
-                            ))
-                        )}
-                    </main>
-
-                    {/* 플로팅 버튼 */}
-                    <button onClick={() => setIsModalOpen(true)} className="fixed bottom-8 right-8 w-16 h-16 bg-[#2d3e75] text-white rounded-full shadow-2xl flex items-center justify-center text-4xl font-light hover:scale-110 active:scale-95 transition-all z-40">＋</button>
-
-                    {/* 작성/수정 모달 */}
-                    {isModalOpen && (
-                        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
-                            <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl overflow-hidden animate-in zoom-in-95">
-                                <h2 className="text-xl font-black mb-6 text-slate-800">{editingId ? '내용 수정' : '새 글 작성'}</h2>
-                                <div className="space-y-4">
-                                    <div className="flex gap-2">
-                                        {['성의회관', '의산연', '공지사항'].map(cat => (
-                                            <button key={cat} onClick={() => setCategory(cat)} className={`flex-1 py-3 rounded-xl font-black border-2 transition-all text-sm ${category === cat ? 'bg-[#2d3e75] text-white border-[#2d3e75]' : 'bg-white text-slate-300 border-slate-100'}`}>{cat}</button>
-                                        ))}
-                                    </div>
-                                    <input value={author} onChange={(e)=>setAuthor(e.target.value)} placeholder="작성자 성함" className="w-full p-4 bg-slate-50 rounded-2xl font-bold focus:ring-2 focus:ring-indigo-100 outline-none border-none text-slate-700" />
-                                    <textarea value={content} onChange={(e)=>setContent(e.target.value)} placeholder="전달할 내용을 입력하세요..." className="w-full h-48 p-4 bg-slate-50 rounded-2xl font-bold focus:ring-2 focus:ring-indigo-100 outline-none resize-none border-none text-slate-700 leading-relaxed" />
-                                    <button onClick={handlePostSubmit} disabled={isSubmitting || !content.trim() || !author.trim()} className="w-full py-5 bg-[#2d3e75] text-white rounded-[1.5rem] font-black text-lg shadow-xl active:scale-95 transition-all disabled:opacity-20">
-                                        {isSubmitting ? "전송 중..." : (editingId ? "수정 완료" : "등록 완료")}
-                                    </button>
-                                    <button onClick={closeModal} className="w-full py-2 text-slate-400 font-bold text-sm">취소하고 나가기</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
+        const payload = {
+            id: Date.now().toString(),
+            user: user,
+            category: category,
+            title: title,
+            content: content,
+            date: new Date().toLocaleString('ko-KR')
         };
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+        try {
+            await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            alert("등록되었습니다.");
+            location.reload();
+        } catch (e) {
+            alert("저장 실패: " + e);
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    // 4. 게시글 불러오기 (GET)
+    async function fetchPosts() {
+        document.getElementById('loading').style.display = 'block';
+        try {
+            const response = await fetch(API_URL);
+            cachedPosts = await response.json();
+            renderPosts();
+        } catch (e) {
+            document.getElementById('post-list').innerHTML = "<p class='loading'>데이터를 불러올 수 없습니다.</p>";
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    // 5. 화면에 그리기 및 권한 체크
+    function renderPosts() {
+        const listDiv = document.getElementById('post-list');
+        const currentUser = document.getElementById('currentUser').value;
+        listDiv.innerHTML = "";
+
+        if(cachedPosts.length === 0) {
+            listDiv.innerHTML = "<p class='loading'>등록된 게시글이 없습니다.</p>";
+            return;
+        }
+
+        cachedPosts.slice().reverse().forEach(post => {
+            // 구글 시트 데이터 구조: [id, user, category, title, content, date]
+            const [id, user, category, title, content, date] = post;
+            const canManage = (user === currentUser || currentUser === 'admin');
+            const categoryClass = (category === '공지사항') ? 'badge notice' : 'badge';
+
+            listDiv.innerHTML += `
+                <div class="post-card">
+                    <div class="post-header">
+                        <span class="${categoryClass}">${category}</span>
+                        <span class="post-title">${title}</span>
+                    </div>
+                    <div class="post-meta">작성자: ${user} | ${date}</div>
+                    <div class="post-body">${content}</div>
+                    ${canManage ? `<button class="delete-btn" onclick="alert('삭제 기능은 구글 시트에서 직접 행을 삭제하거나 스크립트 보완이 필요합니다.')">본인글 확인됨</button>` : ''}
+                </div>
+            `;
+        });
+    }
+
+    // 실행
+    fetchPosts();
+</script>
+
 </body>
 </html>
