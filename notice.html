@@ -13,13 +13,13 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
-<body class="bg-slate-50">
+<body class="bg-slate-50 font-sans">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // Firebase 설정 (시스템에서 제공하는 변수 사용)
+        // 시스템 환경 변수 로드
         const firebaseConfig = JSON.parse(__firebase_config);
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
@@ -40,16 +40,16 @@
             const [content, setContent] = useState('');
             const [author, setAuthor] = useState('');
 
-            // 익명 인증 처리
+            // 1. 익명 인증 (접속 권한 확보)
             useEffect(() => {
                 const unsubscribe = auth.onAuthStateChanged((u) => {
                     if (u) setUser(u);
-                    else auth.signInAnonymously();
+                    else auth.signInAnonymously().catch(console.error);
                 });
                 return () => unsubscribe();
             }, []);
 
-            // 실시간 데이터 동기화
+            // 2. 데이터 실시간 수신
             useEffect(() => {
                 if (!user) return;
                 const postsCol = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notices');
@@ -59,28 +59,28 @@
                     setPosts(postData);
                     setLoading(false);
                 }, (err) => {
-                    console.error("데이터 로드 에러:", err);
+                    console.error("데이터 수신 오류:", err);
                     setLoading(false);
                 });
                 return () => unsubscribe();
             }, [user]);
 
-            // 글 등록 및 수정
+            // 3. 저장 및 수정
             const handlePostSubmit = async () => {
                 if (!content.trim() || !author.trim() || isSubmitting) return;
                 setIsSubmitting(true);
                 try {
                     const postsCol = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('notices');
-                    const payload = {
+                    const data = {
                         category, content, author,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     };
 
                     if (editingId) {
-                        await postsCol.doc(editingId).update(payload);
+                        await postsCol.doc(editingId).update(data);
                     } else {
                         await postsCol.add({
-                            ...payload,
+                            ...data,
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                             userId: user.uid
                         });
@@ -93,7 +93,7 @@
                 }
             };
 
-            // 글 삭제
+            // 4. 삭제
             const handleDelete = async (postId) => {
                 if (!confirm("정말로 삭제하시겠습니까?")) return;
                 try {
@@ -120,54 +120,60 @@
             };
 
             return (
-                <div className="min-h-screen pb-20">
+                <div className="min-h-screen pb-24">
                     <header className="bg-[#2d3e75] text-white p-5 sticky top-0 z-50 flex items-center shadow-md">
-                        <button onClick={() => window.parent.postMessage('goBack', '*')} className="mr-4 text-2xl font-bold">〈</button>
-                        <h1 className="text-xl font-black">인수인계 및 공지</h1>
+                        <button onClick={() => window.parent.postMessage('goBack', '*')} className="mr-4 text-2xl">〈</button>
+                        <h1 className="text-xl font-black tracking-tight">인수인계 및 공지</h1>
                     </header>
 
                     <main className="p-4 max-w-2xl mx-auto space-y-4">
                         {loading ? (
-                            <div className="text-center py-20 text-slate-400 font-bold">연결 중...</div>
+                            <div className="text-center py-20 text-slate-400 font-bold">서버 연결 중...</div>
+                        ) : posts.length === 0 ? (
+                            <div className="text-center py-20 text-slate-300 font-bold">등록된 내용이 없습니다.</div>
                         ) : (
                             posts.map(post => (
-                                <div key={post.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                                <div key={post.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                     <div className="flex justify-between items-start mb-4">
-                                        <span className={`px-3 py-1 rounded-lg text-[11px] font-black ${post.category === '공지사항' ? 'bg-rose-50 text-rose-600' : 'bg-indigo-50 text-indigo-600'}`}>
+                                        <span className={`px-3 py-1 rounded-lg text-[11px] font-black border ${
+                                            post.category === '공지사항' ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                                        }`}>
                                             {post.category}
                                         </span>
                                         {user && post.userId === user.uid && (
-                                            <div className="flex gap-3 text-slate-300 text-xs">
-                                                <button onClick={() => openEditModal(post)} className="hover:text-indigo-600 font-bold underline">수정</button>
-                                                <button onClick={() => handleDelete(post.id)} className="hover:text-rose-600 font-bold underline">삭제</button>
+                                            <div className="flex gap-3 text-slate-300 text-xs font-bold uppercase tracking-tighter">
+                                                <button onClick={() => openEditModal(post)} className="hover:text-indigo-600 underline">Edit</button>
+                                                <button onClick={() => handleDelete(post.id)} className="hover:text-rose-600 underline">Delete</button>
                                             </div>
                                         )}
                                     </div>
-                                    <p className="font-bold text-slate-800 whitespace-pre-wrap leading-relaxed mb-4">{post.content}</p>
+                                    <p className="font-bold text-slate-800 whitespace-pre-wrap leading-relaxed mb-4 text-[16px]">{post.content}</p>
                                     <div className="text-right text-xs font-black text-slate-400 border-t pt-3">— {post.author}</div>
                                 </div>
                             ))
                         )}
                     </main>
 
-                    <button onClick={() => setIsModalOpen(true)} className="fixed bottom-8 right-8 w-16 h-16 bg-[#2d3e75] text-white rounded-full shadow-2xl flex items-center justify-center text-3xl font-light hover:scale-110 active:scale-95 transition-all">＋</button>
+                    {/* 플로팅 버튼 */}
+                    <button onClick={() => setIsModalOpen(true)} className="fixed bottom-8 right-8 w-16 h-16 bg-[#2d3e75] text-white rounded-full shadow-2xl flex items-center justify-center text-4xl font-light hover:scale-110 active:scale-95 transition-all z-40">＋</button>
 
+                    {/* 작성/수정 모달 */}
                     {isModalOpen && (
-                        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-                            <div className="bg-white w-full max-w-lg rounded-3xl p-8 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                                <h2 className="text-xl font-black mb-6 text-slate-800">{editingId ? '게시물 수정' : '새 글 등록'}</h2>
+                        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+                            <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl overflow-hidden animate-in zoom-in-95">
+                                <h2 className="text-xl font-black mb-6 text-slate-800">{editingId ? '내용 수정' : '새 글 작성'}</h2>
                                 <div className="space-y-4">
                                     <div className="flex gap-2">
                                         {['성의회관', '의산연', '공지사항'].map(cat => (
-                                            <button key={cat} onClick={() => setCategory(cat)} className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${category === cat ? 'bg-[#2d3e75] text-white border-[#2d3e75]' : 'bg-white text-slate-300 border-slate-100'}`}>{cat}</button>
+                                            <button key={cat} onClick={() => setCategory(cat)} className={`flex-1 py-3 rounded-xl font-black border-2 transition-all text-sm ${category === cat ? 'bg-[#2d3e75] text-white border-[#2d3e75]' : 'bg-white text-slate-300 border-slate-100'}`}>{cat}</button>
                                         ))}
                                     </div>
-                                    <input value={author} onChange={(e)=>setAuthor(e.target.value)} placeholder="작성자 성함" className="w-full p-4 bg-slate-50 rounded-xl font-bold focus:ring-2 focus:ring-indigo-100 outline-none border-none" />
-                                    <textarea value={content} onChange={(e)=>setContent(e.target.value)} placeholder="내용을 입력하세요" className="w-full h-40 p-4 bg-slate-50 rounded-xl font-bold focus:ring-2 focus:ring-indigo-100 outline-none resize-none border-none" />
-                                    <button onClick={handlePostSubmit} disabled={isSubmitting} className="w-full py-4 bg-[#2d3e75] text-white rounded-xl font-black text-lg">
-                                        {isSubmitting ? "처리 중..." : (editingId ? "수정 완료" : "등록 완료")}
+                                    <input value={author} onChange={(e)=>setAuthor(e.target.value)} placeholder="작성자 성함" className="w-full p-4 bg-slate-50 rounded-2xl font-bold focus:ring-2 focus:ring-indigo-100 outline-none border-none text-slate-700" />
+                                    <textarea value={content} onChange={(e)=>setContent(e.target.value)} placeholder="전달할 내용을 입력하세요..." className="w-full h-48 p-4 bg-slate-50 rounded-2xl font-bold focus:ring-2 focus:ring-indigo-100 outline-none resize-none border-none text-slate-700 leading-relaxed" />
+                                    <button onClick={handlePostSubmit} disabled={isSubmitting || !content.trim() || !author.trim()} className="w-full py-5 bg-[#2d3e75] text-white rounded-[1.5rem] font-black text-lg shadow-xl active:scale-95 transition-all disabled:opacity-20">
+                                        {isSubmitting ? "전송 중..." : (editingId ? "수정 완료" : "등록 완료")}
                                     </button>
-                                    <button onClick={closeModal} className="w-full py-2 text-slate-400 font-bold text-sm">취소</button>
+                                    <button onClick={closeModal} className="w-full py-2 text-slate-400 font-bold text-sm">취소하고 나가기</button>
                                 </div>
                             </div>
                         </div>
