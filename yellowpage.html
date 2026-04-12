@@ -25,7 +25,7 @@
         .info-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; justify-content: center; min-height: 28px; }
         .top-row { display: flex; align-items: center; justify-content: space-between; }
         .name-area { font-size: 15px; font-weight: 800; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
-        .num-area { font-size: 14px; font-weight: 800; color: #1e3a8a; text-align: right; margin-right: 12px; flex: 1; letter-spacing: -0.02em; }
+        .num-area { font-size: 14px; font-weight: 800; color: #1e3a8a; text-align: right; margin-right: 12px; flex: 1; letter-spacing: -0.02em; min-width: 80px; }
         .icon-area { width: 64px; display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0; align-self: center; }
         .btn-icon { text-decoration: none; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; font-size: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; }
         .btn-m { background: #ecfdf5; color: #059669; border-color: #d1fae5; }
@@ -151,50 +151,51 @@
         document.getElementById('clear-search').style.display = query ? "flex" : "none";
         container.innerHTML = "";
 
-        // 정렬 엔진: 숫자 포함 카테고리(보안1, 보안2)를 완벽하게 정렬
+        // 정렬 엔진: 탭순위 -> 탭내 숫자순위 -> 부서명
         const sorted = [...allData].sort((a, b) => {
             const getTabRank = (cat) => {
                 for (let k in tabPriority) { if (cat.includes(k)) return tabPriority[k]; }
                 return 99;
             };
-            
             const rA = getTabRank(a.cat), rB = getTabRank(b.cat);
             if (rA !== rB) return rA - rB;
-
-            // 카테고리 내 숫자 추출 정렬 (보안1, 보안2...)
             const numA = parseInt(a.cat.replace(/[^0-9]/g, "")) || 0;
             const numB = parseInt(b.cat.replace(/[^0-9]/g, "")) || 0;
             if (numA !== numB) return numA - numB;
-
-            // 부서명 가나다 정렬
-            if (a.dept !== b.dept) return new Intl.Collator('ko', {numeric: true}).compare(a.dept || "", b.dept || "");
-            return new Intl.Collator('ko').compare(a.name || "", b.name || "");
+            return new Intl.Collator('ko', {numeric: true}).compare(a.dept || "", b.dept || "");
         });
 
         sorted.filter(item => {
             const tabMatch = (currentTab === "전체") || (item.cat && item.cat.includes(currentTab));
             if (!tabMatch) return false;
             if (!query) return true;
-            
             const name = (item.name || "").toLowerCase();
             const dept = (item.dept || "").toLowerCase();
             const tel = (item.tel || "").replace(/[^0-9]/g, "");
             const hp = (item.hp || "").replace(/[^0-9]/g, "");
-            
             if (deptOnly) return dept.includes(query) || getChosung(dept).includes(query);
             return name.includes(query) || getChosung(name).includes(query) || 
                    dept.includes(query) || getChosung(dept).includes(query) ||
                    (query.length >= 4 && (tel.includes(query) || hp.includes(query)));
         }).forEach(r => {
             const dName = r.name ? `${r.dept} ${r.name}` : r.dept;
-            const displayTel = (r.tel||"").replace('02-3147-','').replace('02-2258-','');
             
-            // 휴대폰 노출 로직 수정 (공백 제거 후 판단)
+            // 1. 일반전화 표시 가공 (앞자리 축소)
+            let displayTel = (r.tel||"").toString().replace('02-3147-','').replace('02-2258-','');
+            
+            // 2. 휴대폰 번호 가공 및 표시 결정 (핵심 수정!)
             const rawHp = (r.hp || "").toString().replace(/[^0-9]/g, "");
             const mBtn = (rawHp.length > 5) 
                 ? `<a href="tel:${rawHp}" class="btn-icon btn-m">M</a>` 
                 : `<div class="btn-placeholder"></div>`;
 
+            // 일반전화가 없으면 휴대폰 번호를 화면에 텍스트로 노출
+            let finalNumberDisplay = displayTel;
+            if (!displayTel && rawHp) {
+                finalNumberDisplay = r.hp; 
+            }
+
+            // 3. 일반전화 호출 링크 (T 버튼)
             let callLink = "";
             const rawTel = (r.tel || "").toString().replace(/[^0-9*]/g,'');
             if (rawTel) {
@@ -209,7 +210,7 @@
                     <div class="info-area">
                         <div class="top-row">
                             <div class="name-area">${dName}</div>
-                            <div class="num-area">${displayTel}</div>
+                            <div class="num-area">${finalNumberDisplay}</div>
                         </div>
                         ${r.work ? `<div class="work-text">${r.work}</div>` : ''}
                     </div>
@@ -218,6 +219,7 @@
         });
     }
 
+    // CSV 및 DB 관리 함수들
     function splitCSVLine(line) {
         const result = [];
         let cur = '', inQuotes = false;
@@ -236,10 +238,7 @@
             const transaction = db.transaction(["contacts"], "readwrite");
             const store = transaction.objectStore("contacts");
             store.clear();
-            allData.forEach(item => { 
-                const {id, ...rest} = item; 
-                store.add(rest); 
-            });
+            allData.forEach(item => { const {id, ...rest} = item; store.add(rest); });
             transaction.oncomplete = () => resolve();
         });
     }
@@ -264,7 +263,6 @@
             </tr>`);
         });
     }
-    
     async function saveAll() { await performSave(); alert("저장됨"); location.reload(); }
 
     if ('serviceWorker' in navigator) {
