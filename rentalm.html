@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>성의교정 대관 현황 (Mobile)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; scroll-behavior: smooth; }
+        .day-sun { color: #EF4444 !important; } 
+        .day-sat { color: #3B82F6 !important; } 
+        .bu-chip { transition: all 0.2s; border: 1.5px solid #e2e8f0; cursor: pointer; background: white; white-space: nowrap; }
+        .bu-chip.active { background-color: #1E3A5F; color: white; border-color: #1E3A5F; font-weight: 800; }
+        .rental-card { border: 1.2px solid #e2e8f0; background: white; border-radius: 0.75rem; }
+        .status-badge { font-weight: 800; padding: 1px 6px; border-radius: 4px; font-size: 10px; border-width: 1px; }
+        .type-header { font-size: 11px; font-weight: 900; display: flex; align-items: center; gap: 4px; margin-bottom: 6px; margin-left: 4px; }
+        .empty-box { border: 1.5px dashed #cbd5e1; border-radius: 0.75rem; padding: 1.25rem; text-align: center; color: #64748b; font-size: 11px; font-weight: 700; margin-bottom: 1rem; background-color: #ffffff; }
+        .ctrl-item { display: flex; align-items: center; justify-content: center; height: 32px; padding: 0 10px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; font-weight: 900; font-size: 10px; color: #64748b; transition: all 0.2s; white-space: nowrap; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; }
+        .dot-online { background-color: #10B981; box-shadow: 0 0 4px #10B981; }
+        .dot-offline { background-color: #EF4444; box-shadow: 0 0 4px #EF4444; }
+        .dot-cached { background-color: #F59E0B; box-shadow: 0 0 4px #F59E0B; }
+        .ctrl-action { color: #1E3A5F; border-color: #1E3A5F; cursor: pointer; }
+        .flatpickr-input-custom { background-color: white; border: 2px solid white; border-radius: 1rem; height: 3.2rem; width: 100%; max-width: 260px; text-align: center; font-weight: 900; font-size: 1.125rem; color: #1E3A5F; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; }
+        
+        /* 하단 플로팅 바 PC 대응 수정 */
+        .nav-bar { 
+            position: fixed; 
+            bottom: 0; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            width: 100%;
+            max-width: 42rem; /* Tailwind의 max-w-2xl과 동일 */
+            height: 60px; 
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(8px);
+            border-top: 1px solid #e2e8f0; 
+            display: flex; 
+            z-index: 100; 
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+        .nav-label { font-size: 10px; font-weight: 900; color: #64748b; }
+        .nav-label.active { color: #1E3A5F; }
+        .nav-icon { font-size: 16px; margin-bottom: -2px; }
+    </style>
+</head>
+<body class="text-slate-800 pb-24">
+    <div id="app" class="max-w-2xl mx-auto flex flex-col items-center p-2 pt-3">
+        <div id="header" class="w-full bg-[#EEF2F6] rounded-2xl p-4 flex flex-col mb-3 border border-slate-200 shadow-sm items-center">
+            <div class="flex items-center gap-2 mb-3">
+                <h1 class="text-lg font-black text-[#1E3A5F] tracking-tighter">성의교정 대관 현황</h1>
+                <span id="shiftBadge" class="text-white text-[10px] px-2 py-0.5 rounded-md font-black shadow-md tracking-tight">--</span>
+            </div>
+            <div class="w-full flex justify-center">
+                <input type="text" id="datePicker" class="flatpickr-input-custom" placeholder="날짜 선택">
+            </div>
+        </div>
+
+        <div class="w-full mb-3 px-1">
+            <div class="grid grid-cols-4 gap-1.5" id="buContainer"></div>
+        </div>
+
+        <div id="results-anchor" class="w-full flex items-center justify-between mb-4 px-1 pb-2 border-b border-slate-100">
+            <div class="flex items-center gap-1.5">
+                <div class="ctrl-item">
+                    <span id="statusDot" class="status-dot dot-offline"></span>
+                    <span id="statusText" class="uppercase">WAIT</span>
+                </div>
+                <button onclick="fetchOnlineData()" class="ctrl-item ctrl-action">
+                    <span class="mr-1">🔄</span>동기화
+                </button>
+            </div>
+            <div class="flex gap-1">
+                <button onclick="moveDate(-1)" class="ctrl-item ctrl-action px-2">← PREV</button>
+                <button onclick="moveDate(0)" class="ctrl-item ctrl-action px-2.5">TODAY</button>
+                <button onclick="moveDate(1)" class="ctrl-item ctrl-action px-2">NEXT →</button>
+            </div>
+        </div>
+
+        <div id="rentalSection" class="w-full">
+            <div id="loading" class="text-center py-10 text-slate-400 font-bold text-xs">데이터 로드 중...</div>
+            <div id="listArea"></div>
+        </div>
+    </div>
+
+    <nav class="nav-bar shadow-[0_-8px_20px_rgba(0,0,0,0.08)]">
+        <button onclick="moveDate(-1)" class="nav-item">
+            <span class="nav-icon">◀</span>
+            <span class="nav-label">이전날</span>
+        </button>
+        <button onclick="moveDate(0)" class="nav-item">
+            <span class="nav-icon">📅</span>
+            <span class="nav-label active">오늘</span>
+        </button>
+        <button onclick="moveDate(1)" class="nav-item">
+            <span class="nav-icon">▶</span>
+            <span class="nav-label">다음날</span>
+        </button>
+        <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="nav-item">
+            <span class="nav-icon">▲</span>
+            <span class="nav-label">맨위로</span>
+        </button>
+        <button onclick="document.getElementById('results-anchor').scrollIntoView({behavior:'smooth'})" class="nav-item">
+            <span class="nav-icon">🔍</span>
+            <span class="nav-label">결과</span>
+        </button>
+    </nav>
+
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzKtqrzNK11rX4sCdDFv0lcgUcdVwsNiUnlXYc8Zjm0dJNlNV8ThwKrtqOgKBeVrP3g/exec";
+        const BUILDINGS = ["전체", "성의회관", "의산연", "옴니버스 파크", "의과대학", "간호대학", "대학본관", "서울성모별관"];
+        const HOLIDAYS = ["2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-01", "2026-05-05", "2026-05-24", "2026-06-06", "2026-08-15", "2026-09-24", "2026-09-25", "2026-09-26", "2026-10-03", "2026-10-09", "2026-12-25"];
+        let selectedBu = ["성의회관", "의산연"]; 
+        let allData = [];
+        let currentDate = new Date();
+        let fp;
+
+        async function initApp() {
+            const backup = localStorage.getItem("rental_db_cache");
+            if (backup) {
+                allData = JSON.parse(backup);
+                updateStatusUI(false, "CACHED", "dot-cached");
+                document.getElementById('loading').classList.add('hidden');
+                updateDisplay();
+            }
+            await fetchOnlineData(false);
+        }
+
+        async function fetchOnlineData(isAlert = true) {
+            const dot = document.getElementById('statusDot');
+            const txt = document.getElementById('statusText');
+            txt.innerText = "SYNCING";
+            dot.className = "status-dot dot-offline";
+            try {
+                const res = await fetch(`${GAS_URL}?t=${new Date().getTime()}`);
+                if (!res.ok) throw new Error("Network error");
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    allData = data;
+                    localStorage.setItem("rental_db_cache", JSON.stringify(data));
+                    updateStatusUI(true, "ONLINE", "dot-online");
+                    document.getElementById('loading').classList.add('hidden');
+                    updateDisplay();
+                    if(isAlert) alert("최신 정보로 업데이트되었습니다.");
+                }
+            } catch (e) {
+                updateStatusUI(false, "OFFLINE", "dot-offline");
+                if(isAlert) alert("데이터 로드 실패.");
+            }
+        }
+
+        function updateStatusUI(isOnline, msg, dotClass) {
+            const dot = document.getElementById('statusDot');
+            const txt = document.getElementById('statusText');
+            dot.className = `status-dot ${dotClass}`;
+            txt.innerText = msg;
+            txt.className = `uppercase font-bold ${isOnline ? 'text-emerald-500' : (msg === 'CACHED' ? 'text-amber-500' : 'text-red-500')}`;
+        }
+
+        function updateDisplay() {
+            const yyyy = currentDate.getFullYear();
+            const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(currentDate.getDate()).padStart(2, '0');
+            const dateStr = `${yyyy}-${mm}-${dd}`;
+            
+            if(fp) fp.setDate(currentDate, false);
+            
+            const pickerInput = document.getElementById('datePicker');
+            pickerInput.classList.remove('day-sun', 'day-sat');
+            const day = currentDate.getDay();
+            if(day === 0 || HOLIDAYS.includes(dateStr)) pickerInput.classList.add('day-sun');
+            else if(day === 6) pickerInput.classList.add('day-sat');
+            
+            const baseDate = new Date('2026-03-09').setHours(0,0,0,0);
+            const targetDate = new Date(dateStr).setHours(0,0,0,0);
+            const diff = Math.round((targetDate - baseDate) / 86400000);
+            const patterns = [{n:'C',c:'#1976D2'},{n:'A',c:'#F57C00'},{n:'B',c:'#D32F2F'}];
+            const shift = patterns[((diff % 3) + 3) % 3];
+            document.getElementById('shiftBadge').innerText = `${shift.n}조 근무`;
+            document.getElementById('shiftBadge').style.backgroundColor = shift.c;
+            
+            renderRental(dateStr);
+        }
+
+        function renderRental(selectedDate) {
+            const listArea = document.getElementById('listArea');
+            listArea.innerHTML = "";
+            if (selectedBu.length === 0) { listArea.innerHTML = '<div class="empty-box">건물을 선택해주세요.</div>'; return; }
+            
+            selectedBu.forEach(buName => {
+                if (buName === "전체") return;
+                const searchBu = buName === "의산연" ? "의생명산업연구원" : buName;
+                const buFiltered = allData.filter(r => r.rawDate === selectedDate && (r.bu && r.bu.includes(searchBu)));
+                
+                let buHtml = `<div class="mb-5"><div class="flex items-center gap-1.5 px-1 font-black text-[15px] text-[#1E3A5F] mb-2"><span class="w-1 h-3.5 bg-[#1E3A5F] rounded-full"></span>${buName}</div>`;
+                
+                if (buFiltered.length === 0) { 
+                    buHtml += `<div class="empty-box">대관 내역이 없습니다.</div>`; 
+                } else {
+                    const daily = buFiltered.filter(r => r.type === '당일');
+                    const periodic = buFiltered.filter(r => r.type === '기간');
+                    if(daily.length > 0) {
+                        buHtml += `<div class="type-header text-blue-500">🔵 당일 대관 <span class="bg-blue-50 px-1.5 rounded text-[9px] border border-blue-100">${daily.length}</span></div>`;
+                        daily.forEach(r => buHtml += createCard(r, false));
+                    }
+                    if(periodic.length > 0) {
+                        buHtml += `<div class="type-header text-purple-500 mt-2">🟣 기간 대관 <span class="bg-purple-50 px-1.5 rounded text-[9px] border border-purple-100">${periodic.length}</span></div>`;
+                        periodic.forEach(r => buHtml += createCard(r, true));
+                    }
+                }
+                listArea.innerHTML += buHtml + `</div>`;
+            });
+        }
+
+        function createCard(r, isPeriodic) {
+            const statusColor = r.status === '확정' || r.status === '승인' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-slate-50 text-slate-500 border-slate-100';
+            return `<div class="rental-card p-3 mb-2 shadow-sm border-l-[4px] ${!isPeriodic ? 'border-l-blue-400' : 'border-l-purple-400'}">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[12px] font-black text-slate-700 tracking-tight">📍 ${r.place}</span>
+                        <span class="text-[10px] font-bold text-red-500 italic">🕒 ${r.time}</span>
+                    </div>
+                    <div class="text-[14px] font-black text-slate-900 mb-2 leading-tight tracking-tight">${r.event}</div>
+                    ${isPeriodic ? `<div class="mb-2 text-[9px] font-bold text-purple-500 bg-purple-50/50 p-1 rounded tracking-tighter">📅 ${r.period} (${r.yoil})</div>` : ''}
+                    <div class="flex justify-between items-center pt-1">
+                        <div class="flex items-center gap-1.5">
+                            <span class="status-badge ${statusColor}">${r.status}</span>
+                            <span class="text-[10px] font-bold text-slate-500 italic">🏢 ${r.dept}</span>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-300 tracking-tighter">👥 ${r.people}명</span>
+                    </div>
+                </div>`;
+        }
+
+        function moveDate(offset) {
+            if (offset === 0) currentDate = new Date();
+            else currentDate.setDate(currentDate.getDate() + offset);
+            updateDisplay();
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+        window.onload = () => {
+            fp = flatpickr("#datePicker", {
+                locale: "ko", dateFormat: "Y.m.d (D)", defaultDate: new Date(), disableMobile: "true",
+                onChange: (selectedDates) => { if(selectedDates.length > 0) { currentDate = selectedDates[0]; updateDisplay(); } }
+            });
+
+            const container = document.getElementById('buContainer');
+            BUILDINGS.forEach(bu => {
+                const chip = document.createElement('div');
+                chip.className = `bu-chip py-1.5 rounded-lg text-[10px] font-black text-center shadow-sm ${selectedBu.includes(bu) ? 'active' : ''}`;
+                chip.innerText = bu;
+                chip.onclick = () => {
+                    if (bu === "전체") {
+                        const others = BUILDINGS.filter(b => b !== "전체");
+                        selectedBu = (selectedBu.length === others.length) ? [] : [...others];
+                    } else {
+                        if (selectedBu.includes(bu)) selectedBu = selectedBu.filter(b => b !== bu);
+                        else selectedBu.push(bu);
+                    }
+                    document.querySelectorAll('.bu-chip').forEach((c, i) => {
+                        const b = BUILDINGS[i];
+                        c.classList.toggle('active', b === "전체" ? selectedBu.length === BUILDINGS.length - 1 : selectedBu.includes(b));
+                    });
+                    updateDisplay();
+                };
+                container.appendChild(chip);
+            });
+            initApp();
+        };
+    </script>
+</body>
+</html>
