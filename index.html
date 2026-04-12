@@ -18,10 +18,11 @@
             font-family: 'Pretendard', -apple-system, sans-serif; 
             background-color: var(--bg-light); 
             color: #1e293b;
-            letter-spacing: -0.03em;
+            letter-spacing: -0.04em;
             word-break: keep-all;
             margin: 0;
             padding: 0;
+            line-height: 1.1; /* 전반적인 줄간 최소화 */
         }
 
         .app-container {
@@ -34,10 +35,10 @@
 
         .brand-header {
             background-color: var(--brand-navy);
-            padding: 24px 20px 30px 20px;
+            padding: 20px 18px 24px 18px;
             color: white;
-            border-bottom-left-radius: 20px;
-            border-bottom-right-radius: 20px;
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
         }
 
         .table-card {
@@ -45,23 +46,23 @@
             border-radius: 12px;
             overflow: hidden;
             display: flex;
-            margin: 0 12px 8px 12px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            margin: 0 10px 6px 10px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
 
         .table-header {
-            width: 65px;
+            width: 60px;
             background-color: #f8fafc;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 800;
-            font-size: 0.75rem;
+            font-size: 0.85rem; /* 폰트 키움 */
             color: #6366f1;
             border-right: 1px solid #f1f5f9;
             flex-shrink: 0;
             text-align: center;
-            line-height: 1.2;
+            line-height: 1.1;
         }
 
         .table-body {
@@ -76,92 +77,86 @@
         }
 
         .inner-table th, .inner-table td {
-            padding: 10px 4px;
+            padding: 6px 4px; /* 줄간 확실히 줄임 */
             text-align: center;
-            font-size: 0.8rem;
+            font-size: 0.95rem; /* 폰트 키움 */
         }
 
         .inner-table th {
             color: #94a3b8;
             font-weight: 600;
-            font-size: 0.7rem;
+            font-size: 0.8rem;
             border-bottom: 1px solid #f8fafc;
         }
 
         .inner-table td {
             color: #334155;
-            font-weight: 500;
+            font-weight: 700;
         }
 
         .badge-yellow {
             background-color: var(--brand-yellow);
             color: #1e293b;
-            padding: 4px 12px;
-            border-radius: 8px;
+            padding: 4px 10px;
+            border-radius: 6px;
             font-weight: 900;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
         }
 
+        /* 상단 퀵버튼 높이 최소화 및 아이콘 좌측 배치 */
         .quick-btn {
             background: white;
-            padding: 10px;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            padding: 6px 10px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
 
-        /* 스크롤 및 레이아웃 최적화 */
         #event-list {
-            max-height: 220px; 
+            max-height: 250px; 
             overflow-y: auto;
             scrollbar-width: none;
         }
-        #event-list::-webkit-scrollbar {
-            display: none;
-        }
+        #event-list::-webkit-scrollbar { display: none; }
 
-        .building-group {
-            margin-bottom: 8px;
-        }
-
-        .building-group:last-child {
-            margin-bottom: 0;
-        }
+        .building-group { margin-bottom: 4px; }
+        .building-group:last-child { margin-bottom: 0; }
 
         .building-title {
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 900;
-            color: #64748b;
-            background: #f8fafc;
-            padding: 2px 8px;
-            border-radius: 4px;
+            color: #475569;
+            background: #f1f5f9;
+            padding: 1px 6px;
+            border-radius: 3px;
             display: inline-block;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
 
         .event-item {
             display: flex;
             align-items: flex-start;
             gap: 4px;
-            padding: 4px 4px;
+            padding: 2px 0; /* 줄간 최소화 */
         }
 
         .place-tag {
             color: #2d3e75;
             font-weight: 900;
-            font-size: 11px;
+            font-size: 12px;
             white-space: nowrap;
             flex-shrink: 0;
-            background: #eef2ff;
-            padding: 0 4px;
-            border-radius: 3px;
+            padding: 0 2px;
         }
 
         .event-name {
-            font-size: 12px;
+            font-size: 14px; /* 폰트 키움 */
             font-weight: 700;
-            color: #334155;
-            line-height: 1.4;
+            color: #1e293b;
+            line-height: 1.2;
         }
     </style>
 </head>
@@ -172,30 +167,32 @@
         <div class="brand-header">
             <div class="flex justify-between items-start">
                 <div>
-                    <h1 class="text-xl font-black mb-1">성의교정 통합근무</h1>
-                    <p id="today-display" class="text-sm opacity-80 font-medium">--</p>
+                    <h1 class="text-2xl font-black mb-0.5">성의교정 통합근무</h1>
+                    <p id="today-display" class="text-base opacity-90 font-bold">--</p>
                 </div>
-                <div id="shift-badge" class="badge-yellow">--조 근무중</div>
+                <div id="shift-badge" class="badge-yellow">--조</div>
             </div>
         </div>
 
-        <div class="grid grid-cols-3 gap-2 px-3 -mt-4 mb-4">
+        <!-- 상단 버튼 높이 및 레이아웃 수정 -->
+        <div class="grid grid-cols-3 gap-2 px-2.5 -mt-3 mb-3">
             <div class="quick-btn">
-                <span class="block text-lg mb-0.5">📅</span>
-                <span class="text-[11px] font-bold text-slate-600">근무달력</span>
+                <span class="text-base">📅</span>
+                <span class="text-[12px] font-black text-slate-700">근무달력</span>
             </div>
             <div class="quick-btn">
-                <span class="block text-lg mb-0.5">📞</span>
-                <span class="text-[11px] font-bold text-slate-600">연락처</span>
+                <span class="text-base">📞</span>
+                <span class="text-[12px] font-black text-slate-700">연락처</span>
             </div>
             <div class="quick-btn">
-                <span class="block text-lg mb-0.5">🏥</span>
-                <span class="text-[11px] font-bold text-slate-600">시설안내</span>
+                <span class="text-base">🏥</span>
+                <span class="text-[12px] font-black text-slate-700">시설안내</span>
             </div>
         </div>
 
+        <!-- 근무예정 (간격 확실히 축소) -->
         <div class="table-card">
-            <div class="table-header">근무<br>예정</div>
+            <div class="table-header text-xs">근무<br>예정</div>
             <div class="table-body">
                 <table class="inner-table">
                     <thead>
@@ -205,35 +202,35 @@
                             <th style="width: 39%;">의산연</th>
                         </tr>
                     </thead>
-                    <tbody class="font-bold">
+                    <tbody>
                         <tr>
-                            <td>4/14</td>
-                            <td class="text-slate-400">황재업 김태언</td>
-                            <td class="text-slate-400">이태원 이정석</td>
+                            <td class="py-1">4/14</td>
+                            <td class="py-1 text-slate-400">황재업 김태언</td>
+                            <td class="py-1 text-slate-400">이태원 이정석</td>
                         </tr>
                         <tr>
-                            <td>4/17</td>
-                            <td class="text-slate-400">황재업 김태언</td>
-                            <td class="text-slate-400">이정석 이태원</td>
+                            <td class="py-1">4/17</td>
+                            <td class="py-1 text-slate-400">황재업 김태언</td>
+                            <td class="py-1 text-slate-400">이정석 이태원</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- 오늘행사 섹션 (건물별 그룹화 적용) -->
+        <!-- 오늘행사 (중간 라인 제거 및 줄간 최소화) -->
         <div class="table-card">
             <div class="table-header">오늘<br>행사</div>
-            <div id="event-list" class="table-body p-3">
-                <div class="text-[11px] text-slate-400 text-center py-2 font-bold">행사 데이터를 불러오는 중...</div>
+            <div id="event-list" class="table-body p-2">
+                <div class="text-[12px] text-slate-400 text-center py-2 font-bold">데이터 로드 중...</div>
             </div>
         </div>
 
         <div class="table-card">
             <div class="table-header">최신<br>공지</div>
-            <div class="table-body p-3">
-                <div class="text-[12px] font-black text-red-500 mb-0.5">시신기증 접수증 전송후 반드시 통화할 것</div>
-                <div class="text-[11px] font-bold text-red-300">(즉시모심, 삼일장 모두 해당)</div>
+            <div class="table-body p-2.5">
+                <div class="text-[14px] font-black text-red-600 mb-0">시신기증 접수증 전송후 반드시 통화</div>
+                <div class="text-[12px] font-bold text-red-400 opacity-80">(즉시모심, 삼일장 모두 해당)</div>
             </div>
         </div>
 
@@ -241,18 +238,18 @@
             <div class="table-header">오늘<br>식단</div>
             <div class="table-body flex divide-x divide-slate-50">
                 <div class="flex-1 p-2 text-center">
-                    <span class="block text-[10px] font-bold text-slate-300">중식</span>
-                    <span id="lunch-menu" class="text-[13px] font-black text-slate-700">--</span>
+                    <span class="block text-[11px] font-bold text-slate-400">중식</span>
+                    <span id="lunch-menu" class="text-[15px] font-black text-slate-800">--</span>
                 </div>
                 <div class="flex-1 p-2 text-center">
-                    <span class="block text-[10px] font-bold text-slate-300">야식</span>
-                    <span id="night-menu" class="text-[13px] font-black text-indigo-500">--</span>
+                    <span class="block text-[11px] font-bold text-slate-400">야식</span>
+                    <span id="night-menu" class="text-[15px] font-black text-indigo-600">--</span>
                 </div>
             </div>
         </div>
 
-        <footer class="mt-4 text-center pb-10">
-            <p class="text-[9px] text-slate-300 font-bold tracking-widest opacity-60 uppercase">Catholic Medical Campus - Duty System</p>
+        <footer class="mt-4 text-center pb-8">
+            <p class="text-[10px] text-slate-300 font-bold tracking-widest opacity-60">CATHOLIC MEDICAL CAMPUS</p>
         </footer>
     </div>
 
@@ -275,7 +272,7 @@
             const now = new Date();
             document.getElementById('today-display').innerText = now.toLocaleDateString('ko-KR', { year:'numeric', month:'numeric', day:'numeric', weekday:'short' });
             const shift = getShift(now);
-            document.getElementById('shift-badge').innerText = `${shift}조 근무중`;
+            document.getElementById('shift-badge').innerText = `${shift}조`;
         }
 
         async function updateEvents() {
@@ -291,32 +288,32 @@
                 const uisanEvents = data.filter(r => r.rawDate === todayStr && r.bu.includes("의생명산업연구원"));
 
                 if (sunguiEvents.length === 0 && uisanEvents.length === 0) {
-                    eventContainer.innerHTML = `<div class="text-[11px] text-slate-400 text-center py-2 font-bold">오늘 대관 내역이 없습니다.</div>`;
+                    eventContainer.innerHTML = `<div class="text-[12px] text-slate-400 text-center py-2 font-bold">대관 내역 없음</div>`;
                     return;
                 }
 
                 let htmlContent = "";
 
-                // 1. 성의회관 그룹
+                // 성의회관 그룹 (중간 선 없이 처리)
                 if (sunguiEvents.length > 0) {
                     htmlContent += `<div class="building-group">
                         <div class="building-title">성의회관</div>
                         ${sunguiEvents.map(item => `
                             <div class="event-item">
-                                <span class="place-tag">${item.place}</span>
+                                <span class="place-tag">[${item.place}]</span>
                                 <span class="event-name">${item.event}</span>
                             </div>
                         `).join('')}
                     </div>`;
                 }
 
-                // 2. 의산연 그룹
+                // 의산연 그룹
                 if (uisanEvents.length > 0) {
-                    htmlContent += `<div class="building-group ${sunguiEvents.length > 0 ? 'mt-4 border-t border-slate-50 pt-2' : ''}">
+                    htmlContent += `<div class="building-group ${sunguiEvents.length > 0 ? 'mt-3' : ''}">
                         <div class="building-title">의산연</div>
                         ${uisanEvents.map(item => `
                             <div class="event-item">
-                                <span class="place-tag">${item.place}</span>
+                                <span class="place-tag">[${item.place}]</span>
                                 <span class="event-name">${item.event}</span>
                             </div>
                         `).join('')}
@@ -326,7 +323,7 @@
                 eventContainer.innerHTML = htmlContent;
 
             } catch (e) {
-                eventContainer.innerHTML = `<div class="text-[11px] text-red-400 text-center py-2 font-bold">데이터 로드 실패</div>`;
+                eventContainer.innerHTML = `<div class="text-[12px] text-red-400 text-center py-2 font-bold">로드 실패</div>`;
             }
         }
 
@@ -340,14 +337,8 @@
                 if(day) {
                     document.getElementById('lunch-menu').innerText = (day["중식"] || day["중 식"])?.menu.split('(')[0] || "미등록";
                     document.getElementById('night-menu').innerText = (day["야식"] || day["야 식"])?.menu.split('(')[0] || "미등록";
-                } else {
-                    document.getElementById('lunch-menu').innerText = "정보없음";
-                    document.getElementById('night-menu').innerText = "정보없음";
                 }
-            } catch(e) { 
-                document.getElementById('lunch-menu').innerText = "오류";
-                document.getElementById('night-menu').innerText = "오류";
-            }
+            } catch(e) {}
         }
 
         window.onload = () => {
