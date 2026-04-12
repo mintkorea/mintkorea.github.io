@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>성의교정 주요 전화</title>
-    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
     <style>
         * { box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
@@ -12,50 +11,51 @@
         .container { max-width: 600px; margin: 0 auto; background: white; min-height: 100vh; padding: 12px; position: relative; }
         .app-title { font-weight: 900; color: #1e3a8a; font-size: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
         
+        /* 검색 및 탭 스타일 */
         .search-area { background: #f1f5f9; padding: 12px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
         .search-container { position: relative; width: 100%; margin-bottom: 8px; }
-        .search-box { width: 100%; padding: 12px 40px 12px 14px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 16px; outline: none; transition: all 0.2s; }
-        .search-box:focus { border-color: #1e3a8a; background: white; }
-        .clear-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: #94a3b8; color: white; border-radius: 50%; border: none; font-size: 14px; display: none; align-items: center; justify-content: center; cursor: pointer; }
-        
+        .search-box { width: 100%; padding: 12px 40px 12px 14px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 16px; outline: none; }
+        .clear-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: #94a3b8; color: white; border-radius: 50%; border: none; display: none; align-items: center; justify-content: center; cursor: pointer; }
         .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 15px; }
         .tab { padding: 10px 0; background: #f1f5f9; border-radius: 6px; font-size: 13px; cursor: pointer; color: #64748b; font-weight: 700; text-align: center; }
         .tab.active { background: #1e3a8a; color: white; }
         
+        /* 리스트 스타일 */
         .phone-item { border-bottom: 1px solid #f1f5f9; padding: 12px 4px; display: flex; align-items: flex-start; }
         .info-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; justify-content: center; min-height: 28px; }
         .top-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-        
-        /* [수정] 말줄임표 제거 및 글자 크기 유연화 */
-        .name-area { 
-            font-size: 15px; 
-            font-weight: 800; 
-            color: #0f172a; 
-            flex: 1; 
-            word-break: keep-all; 
-            line-height: 1.2;
-        }
-        
+        .name-area { font-weight: 800; color: #0f172a; flex: 1; word-break: keep-all; line-height: 1.2; }
         .num-area { font-size: 14px; font-weight: 800; color: #1e3a8a; text-align: right; letter-spacing: -0.02em; white-space: nowrap; }
         .highlight-num { color: #0ea5e9; font-style: italic; }
-        
         .icon-area { display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0; align-self: center; padding-left: 8px; }
         .btn-icon { text-decoration: none; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; font-size: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; }
         .btn-m { background: #ecfdf5; color: #059669; border-color: #d1fae5; }
-        .btn-placeholder { width: 28px; }
         .work-text { font-size: 12px; color: #64748b; font-weight: 500; margin-top: 4px; }
-        
+
+        /* 관리자 UI */
         #admin-view { display: none; padding-bottom: 80px; }
+        .admin-controls { background: #f1f5f9; padding: 15px; border-radius: 10px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .admin-btn-group { display: flex; gap: 8px; }
+        .btn-admin { flex: 1; padding: 10px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; font-size: 13px; }
+        .btn-sync { background: #4285f4; color: white; }
+        .btn-upload { background: #34a853; color: white; }
+        .btn-pw { background: #64748b; color: white; }
+        
         .table-wrapper { overflow-x: auto; margin-top: 10px; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 900px; }
         th, td { border: 1px solid #e2e8f0; padding: 8px 4px; }
         .save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 10px; border-top: 2px solid #e2e8f0; display: flex; gap: 8px; max-width: 600px; margin: 0 auto; z-index: 100; }
+
+        /* 모달 스타일 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 350px; }
+        .modal-input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="app-title">성의교정 주요 전화 <button onclick="checkAdminPw()" style="border:none; background:none; color:#eee; font-size:10px;">Admin</button></div>
+    <div class="app-title">성의교정 주요 전화 <button onclick="loginAdmin()" style="border:none; background:none; color:#eee; font-size:10px;">Admin</button></div>
 
     <div id="user-view">
         <div class="search-area">
@@ -69,7 +69,6 @@
                 </label>
             </div>
         </div>
-
         <div class="tabs">
             <div class="tab active" onclick="filterTab('전체')">전체</div>
             <div class="tab" onclick="filterTab('보안')">보안</div>
@@ -83,6 +82,14 @@
     </div>
 
     <div id="admin-view">
+        <div class="admin-controls">
+            <div class="admin-btn-group">
+                <button class="btn-admin btn-sync" onclick="syncWithGoogleSheet()">구글 시트 동기화</button>
+                <button class="btn-admin btn-upload" onclick="document.getElementById('csv-file').click()">PC 파일 업로드</button>
+                <input type="file" id="csv-file" style="display:none" accept=".csv" onchange="uploadCSV(this)">
+            </div>
+            <button class="btn-admin btn-pw" onclick="openPwModal()">비밀번호 변경</button>
+        </div>
         <div class="table-wrapper">
             <table>
                 <thead><tr style="background:#f8fafc;"><th>구분</th><th>부서명</th><th>담당자</th><th>전화</th><th>휴대폰</th><th>비고</th><th>keyword</th><th>삭제</th></tr></thead>
@@ -96,24 +103,24 @@
     </div>
 </div>
 
+<div id="pw-modal" class="modal">
+    <div class="modal-content">
+        <h3 style="margin-top:0">비밀번호 변경</h3>
+        <input type="password" id="new-pw" class="modal-input" placeholder="새 비밀번호 입력">
+        <div style="display:flex; gap:8px;">
+            <button onclick="changePassword()" style="flex:1; padding:10px; background:#1e3a8a; color:white; border:none; border-radius:6px; font-weight:bold;">변경</button>
+            <button onclick="closePwModal()" style="flex:1; padding:10px; background:#e2e8f0; border:none; border-radius:6px;">닫기</button>
+        </div>
+    </div>
+</div>
+
 <script>
     let allData = [];
     let currentTab = "전체";
     const tabPriority = { "보안": 1, "시설": 2, "미화": 3, "총무": 4, "지원": 5, "기타": 6 };
     const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpOX8Ll6no4uXd5jnK0umTY3U_eKZXcDK2z_f2EsxSQDuOqk4YGzNkULJn_WgjTFBUseCbl6smBh0Z/pub?gid=1424582869&single=true&output=csv";
 
-    function getChosung(str) {
-        if (!str) return "";
-        const cho = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
-        let result = "";
-        for (let i = 0; i < str.length; i++) {
-            const code = str.charCodeAt(i) - 44032;
-            if (code > -1 && code < 11172) result += cho[Math.floor(code / 588)];
-            else result += str.charAt(i);
-        }
-        return result;
-    }
-
+    // 데이터베이스 및 초기 로드
     const dbName = "YellowPage_DB";
     let db;
     const request = indexedDB.open(dbName, 1);
@@ -121,8 +128,8 @@
     request.onsuccess = e => { db = e.target.result; loadLocalData(); };
 
     function loadLocalData() {
-        const transaction = db.transaction(["contacts"], "readonly");
-        const store = transaction.objectStore("contacts");
+        const tx = db.transaction(["contacts"], "readonly");
+        const store = tx.objectStore("contacts");
         const getAll = store.getAll();
         getAll.onsuccess = () => {
             allData = getAll.result;
@@ -131,18 +138,33 @@
         };
     }
 
+    // [복구] 구글 시트 동기화
     async function syncWithGoogleSheet(isAuto = false) {
+        if (!isAuto && !confirm("구글 시트의 데이터로 덮어쓰시겠습니까?")) return;
         try {
             const response = await fetch(SHEET_URL);
             const csvText = await response.text();
-            const lines = csvText.split(/\r?\n/).filter(l => l.trim());
-            allData = lines.slice(1).map(line => {
-                const c = splitCSVLine(line);
-                return { cat: c[0]||"", dept: c[1]||"", name: c[2]||"", tel: c[3]||"", hp: c[4]||"", work: c[5]||"", keyword: c[6]||"" };
-            });
-            await performSave();
-            renderList();
-        } catch (e) { console.error(e); }
+            processCSV(csvText);
+        } catch (e) { alert("동기화 실패"); }
+    }
+
+    // [복구] PC 파일 업로드
+    function uploadCSV(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => processCSV(e.target.result);
+        reader.readAsText(file, "EUC-KR"); // 한글 깨짐 방지
+    }
+
+    function processCSV(text) {
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        allData = lines.slice(1).map(line => {
+            const c = splitCSVLine(line);
+            return { cat: c[0]||"", dept: c[1]||"", name: c[2]||"", tel: c[3]||"", hp: c[4]||"", work: c[5]||"", keyword: c[6]||"" };
+        });
+        renderList();
+        if (document.getElementById('admin-view').style.display === 'block') renderAdminTable();
     }
 
     function splitCSVLine(line) {
@@ -158,6 +180,7 @@
         return result.map(v => v.replace(/^"|"$/g, '').trim());
     }
 
+    // 검색 및 렌더링 (가변 폰트 로직 포함)
     function renderList() {
         const query = document.getElementById('search-input').value.toLowerCase().trim();
         const deptOnly = document.getElementById('dept-only').checked;
@@ -169,52 +192,31 @@
             const tabMatch = (currentTab === "전체") || (item.cat && item.cat.includes(currentTab));
             if (!tabMatch) return false;
             if (!query) return true;
-
-            const name = (item.name || "").toLowerCase();
-            const dept = (item.dept || "").toLowerCase();
-            const work = (item.work || "").toLowerCase();
-            const keyword = (item.keyword || "").toLowerCase();
-            const queryCho = getChosung(query);
-
-            const textMatch = name.includes(query) || dept.includes(query) || work.includes(query) || keyword.includes(query);
-            if (textMatch) return true;
-
-            const nameCho = getChosung(name).includes(queryCho);
-            const workCho = getChosung(work).includes(queryCho);
-            const keyCho = getChosung(keyword).includes(queryCho);
-            const deptCho = getChosung(dept).includes(queryCho);
-
-            if (deptOnly) return deptCho;
-            return nameCho || workCho || keyCho;
+            const name = (item.name||"").toLowerCase();
+            const dept = (item.dept||"").toLowerCase();
+            const work = (item.work||"").toLowerCase();
+            const keyword = (item.keyword||"").toLowerCase();
+            const qCho = getChosung(query);
+            if (name.includes(query) || dept.includes(query) || work.includes(query) || keyword.includes(query)) return true;
+            const nCho = getChosung(name).includes(qCho), wCho = getChosung(work).includes(qCho), kCho = getChosung(keyword).includes(qCho), dCho = getChosung(dept).includes(qCho);
+            return deptOnly ? dCho : (nCho || wCho || kCho);
         });
 
         filtered.sort((a, b) => {
-            const getRank = (c) => { 
-                for(let k in tabPriority) { if(c.includes(k)) return tabPriority[k]; } 
-                return 99; 
-            };
+            const getRank = c => { for(let k in tabPriority) { if(c.includes(k)) return tabPriority[k]; } return 99; };
             const rA = getRank(a.cat), rB = getRank(b.cat);
             if (rA !== rB) return rA - rB;
-
-            const numA = parseInt(a.cat.replace(/[^0-9]/g, "")) || 999;
-            const numB = parseInt(b.cat.replace(/[^0-9]/g, "")) || 999;
-            if (numA !== numB) return numA - numB;
-
-            return new Intl.Collator('ko', {numeric: true}).compare(a.dept, b.dept);
+            const nA = parseInt(a.cat.replace(/[^0-9]/g, "")) || 999;
+            const nB = parseInt(b.cat.replace(/[^0-9]/g, "")) || 999;
+            return nA !== nB ? nA - nB : new Intl.Collator('ko', {numeric: true}).compare(a.dept, b.dept);
         });
 
         filtered.forEach(r => {
-            let displayName = r.name ? r.dept + ' ' + r.name : r.dept;
-            
-            // [수정] 글자 수에 따른 동적 폰트 크기 계산 (12자 이상일 때 축소)
-            let fontSize = "15px";
-            if (displayName.length > 15) fontSize = "12px";
-            else if (displayName.length > 12) fontSize = "13.5px";
-
-            let displayNum = (r.tel||"").replace('02-3147-','').replace('02-2258-','');
-            const rawHp = (r.hp || "").replace(/[^0-9/]/g, "");
-            if (!displayNum && rawHp) displayNum = r.hp;
-            const getStyled = (s) => (s.includes('*1') || s.includes('2258')) ? `<span class="highlight-num">${s}</span>` : s;
+            let dName = r.name ? r.dept + ' ' + r.name : r.dept;
+            let fSize = dName.length > 15 ? "12px" : (dName.length > 12 ? "13.5px" : "15px");
+            let dNum = (r.tel||"").replace('02-3147-','').replace('02-2258-','');
+            if (!dNum && r.hp) dNum = r.hp;
+            const getStyled = s => (s.includes('*1') || s.includes('2258')) ? `<span class="highlight-num">${s}</span>` : s;
             
             let callT = "";
             const rawT = (r.tel||"").replace(/[^0-9*]/g,'');
@@ -224,14 +226,14 @@
                 else callT = (rawT.length >= 7 && !rawT.startsWith('0')) ? "02" + rawT : rawT;
             }
             const tBtn = callT ? `<a href="tel:${callT}" class="btn-icon">T</a>` : `<div class="btn-placeholder"></div>`;
-            const mBtn = rawHp.length > 5 ? `<a href="tel:${rawHp}" class="btn-icon btn-m">M</a>` : `<div class="btn-placeholder"></div>`;
+            const mBtn = (r.hp||"").length > 5 ? `<a href="tel:${r.hp.replace(/[^0-9]/g,"")}" class="btn-icon btn-m">M</a>` : `<div class="btn-placeholder"></div>`;
 
             container.insertAdjacentHTML('beforeend', `
                 <div class="phone-item">
                     <div class="info-area">
                         <div class="top-row">
-                            <div class="name-area" style="font-size: ${fontSize};">${displayName}</div>
-                            <div class="num-area">${getStyled(displayNum)}</div>
+                            <div class="name-area" style="font-size:${fSize}">${dName}</div>
+                            <div class="num-area">${getStyled(dNum)}</div>
                         </div>
                         ${r.work ? `<div class="work-text">${r.work}</div>` : ''}
                     </div>
@@ -240,19 +242,32 @@
         });
     }
 
-    async function performSave() {
-        return new Promise(res => {
-            const tx = db.transaction(["contacts"], "readwrite");
-            const store = tx.objectStore("contacts");
-            store.clear();
-            allData.forEach(d => { const {id, ...rest} = d; store.add(rest); });
-            tx.oncomplete = () => res();
-        });
+    // 초성 변환
+    function getChosung(str) {
+        const cho = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+        let result = "";
+        for (let i = 0; i < str.length; i++) {
+            const code = str.charCodeAt(i) - 44032;
+            result += (code > -1 && code < 11172) ? cho[Math.floor(code / 588)] : str.charAt(i);
+        }
+        return result;
     }
-    function clearSearch() { document.getElementById('search-input').value = ""; renderList(); }
-    function filterTab(t) { currentTab = t; document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.innerText === t)); renderList(); }
-    document.getElementById('search-input').addEventListener('input', renderList);
-    function checkAdminPw() { if (prompt("비밀번호") === "1234") { document.getElementById('user-view').style.display='none'; document.getElementById('admin-view').style.display='block'; renderAdminTable(); } }
+
+    // 관리자 기능
+    function loginAdmin() {
+        const savedPw = localStorage.getItem("adminPw") || "1234";
+        if (prompt("비밀번호") === savedPw) {
+            document.getElementById('user-view').style.display='none';
+            document.getElementById('admin-view').style.display='block';
+            renderAdminTable();
+        }
+    }
+    function openPwModal() { document.getElementById('pw-modal').style.display = 'flex'; }
+    function closePwModal() { document.getElementById('pw-modal').style.display = 'none'; }
+    function changePassword() {
+        const newPw = document.getElementById('new-pw').value;
+        if (newPw) { localStorage.setItem("adminPw", newPw); alert("비밀번호가 변경되었습니다."); closePwModal(); }
+    }
     function renderAdminTable() {
         const tbody = document.getElementById('admin-table-body');
         tbody.innerHTML = "";
@@ -269,7 +284,16 @@
             </tr>`);
         });
     }
-    async function saveAll() { await performSave(); alert("저장되었습니다."); location.reload(); }
+    async function saveAll() {
+        const tx = db.transaction(["contacts"], "readwrite");
+        const store = tx.objectStore("contacts");
+        store.clear();
+        allData.forEach(d => { const {id, ...rest} = d; store.add(rest); });
+        tx.oncomplete = () => { alert("저장되었습니다."); location.reload(); };
+    }
+    function filterTab(t) { currentTab = t; document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.innerText === t)); renderList(); }
+    function clearSearch() { document.getElementById('search-input').value = ""; renderList(); }
+    document.getElementById('search-input').addEventListener('input', renderList);
 </script>
 </body>
 </html>
