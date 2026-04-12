@@ -8,268 +8,132 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
-    <!-- Firebase SDK -->
+    
+    <!-- Firebase SDK (최적화된 연동 로직) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, onSnapshot, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'sungui-duty-app';
+        let config = null;
+        try { if (typeof __firebase_config !== 'undefined' && __firebase_config) config = JSON.parse(__firebase_config); } catch (e) {}
 
-        // 실시간 공지사항 연동 (권한 오류 해결 버전)
-        async function initNoticeSync() {
-            try {
-                // RULE 3: 인증을 먼저 수행하고 완료될 때까지 기다림
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+        if (config && config.apiKey) {
+            const app = initializeApp(config);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'sungui-duty-app';
 
-                // 인증 상태 변경 감지 후 데이터 로드 시작
-                onAuthStateChanged(auth, (user) => {
-                    if (!user) return;
+            const initAuth = async () => {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (e) { console.error("Auth Error", e); }
+            };
 
-                    const noticesCol = collection(db, 'artifacts', appId, 'public', 'data', 'notices');
-                    
-                    // 실시간 리스너 설정 (에러 콜백 포함 필수)
-                    onSnapshot(noticesCol, (snapshot) => {
-                        const posts = snapshot.docs.map(doc => doc.data());
-                        // RULE 2: 자바스크립트 메모리에서 정렬
-                        posts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-                        
-                        const latestNotice = posts[0];
-                        const noticeContainer = document.getElementById('latest-notice-container');
-                        
-                        if (latestNotice) {
-                            noticeContainer.innerHTML = `
-                                <div class="text-[14px] font-black text-red-600 mb-1 line-clamp-1">${latestNotice.content}</div>
-                                <div class="text-[12px] font-bold text-slate-400">
-                                    [${latestNotice.category}] ${latestNotice.author} · ${latestNotice.createdAt ? new Date(latestNotice.createdAt.seconds * 1000).toLocaleDateString() : '방금 전'}
-                                </div>
-                            `;
-                        } else {
-                            noticeContainer.innerHTML = `<div class="text-[12px] font-bold text-slate-300">등록된 공지사항이 없습니다.</div>`;
-                        }
-                    }, (error) => {
-                        console.error("Firestore Permission/Sync Error:", error);
-                        document.getElementById('latest-notice-container').innerHTML = 
-                            `<div class="text-[10px] text-red-400 font-bold">공지 로드 권한 오류</div>`;
-                    });
+            onAuthStateChanged(auth, (user) => {
+                if (!user) return;
+                const noticeCol = collection(db, 'artifacts', appId, 'public', 'data', 'notices');
+                onSnapshot(noticeCol, (snap) => {
+                    const noticeEl = document.getElementById('latest-notice-container');
+                    if (snap.empty) {
+                        noticeEl.innerHTML = `<div class="text-[12px] font-bold text-slate-300">등록된 공지사항이 없습니다.</div>`;
+                        return;
+                    }
+                    const posts = snap.docs.map(doc => doc.data());
+                    posts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                    const latest = posts[0];
+                    noticeEl.innerHTML = `
+                        <div class="text-[14px] font-black text-red-600 mb-0.5 line-clamp-1">${latest.content || ''}</div>
+                        <div class="text-[11px] font-bold text-slate-400">
+                            [${latest.category || '알림'}] ${latest.author || '관리자'} · ${latest.createdAt ? new Date(latest.createdAt.seconds * 1000).toLocaleDateString() : ''}
+                        </div>
+                    `;
+                }, (err) => {
+                    document.getElementById('latest-notice-container').innerHTML = `<div class="text-[10px] text-red-400">연결 권한 오류</div>`;
                 });
-            } catch (e) {
-                console.error("Authentication failed:", e);
-                document.getElementById('latest-notice-container').innerHTML = 
-                    `<div class="text-[10px] text-red-400 font-bold">인증 실패</div>`;
-            }
+            });
+            initAuth();
         }
-
-        window.addEventListener('load', initNoticeSync);
     </script>
+
     <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-        
-        :root {
-            --brand-navy: #2d3e75;
-            --brand-yellow: #facc15;
-        }
-
+        :root { --brand-navy: #2d3e75; --brand-yellow: #facc15; }
         body { 
-            font-family: 'Pretendard', sans-serif; 
-            background-color: #f1f5f9; 
-            color: #1e293b;
-            letter-spacing: -0.05em;
-            margin: 0; padding: 0;
-            line-height: 1.2;
-            -webkit-tap-highlight-color: transparent;
+            font-family: 'Pretendard', sans-serif; background-color: #f1f5f9; color: #1e293b;
+            letter-spacing: -0.05em; margin: 0; padding: 0; line-height: 1.2; -webkit-tap-highlight-color: transparent;
         }
-
-        .app-container {
-            width: 100%; max-width: 480px; margin: 0 auto;
-            min-height: 100vh; display: flex; flex-direction: column; gap: 12px;
-            padding-bottom: 20px;
-        }
-
-        .brand-header {
-            background-color: var(--brand-navy);
-            padding: 25px 20px 45px 20px;
-            color: white;
-            border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .header-top { 
-            width: 100%;
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-        }
-        
-        .brand-title { 
-            font-size: 1.4rem; 
-            font-weight: 900; 
-            letter-spacing: -0.02em;
-        }
-
-        .date-picker-container {
-            margin-top: 8px;
-        }
-
-        .flatpickr-input-custom { 
-            background-color: white; 
-            border: none;
-            border-radius: 4px; 
-            height: 2.2rem; 
-            width: 150px; 
-            text-align: center; 
-            font-weight: 800; 
-            font-size: 1rem;
-            color: var(--brand-navy); 
-            cursor: pointer; 
-            outline: none;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .day-sun { color: #EF4444 !important; } 
-        .day-sat { color: #3B82F6 !important; }
-
-        .quick-btn { 
-            background: white; 
-            padding: 12px; 
-            border-radius: 8px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            gap: 8px; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
-            border: 1px solid #e2e8f0;
-            cursor: pointer;
-            text-decoration: none;
-            transition: transform 0.1s;
-        }
-        .quick-btn:active { transform: scale(0.95); }
-        .quick-btn span { font-weight: 800; font-size: 13px; color: #334155; }
-
-        .table-card {
-            background: white; 
-            border-radius: 8px; 
-            overflow: hidden;
-            display: flex; 
-            margin: 0 16px; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            border: 1px solid #eef2f6;
-            text-decoration: none;
-            color: inherit;
-        }
-
-        .table-header {
-            width: 60px; display: flex; align-items: center; justify-content: center;
-            font-weight: 900; font-size: 0.85rem; flex-shrink: 0; text-align: center;
-        }
-
+        .app-container { width: 100%; max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px; }
+        .brand-header { background-color: var(--brand-navy); padding: 25px 20px 45px 20px; color: white; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .table-card { background: white; border-radius: 8px; overflow: hidden; display: flex; margin: 0 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #eef2f6; text-decoration: none; color: inherit; }
+        .table-header { width: 60px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.85rem; flex-shrink: 0; text-align: center; }
         .label-duty { color: #3b82f6; border-right: 2px solid #3b82f6; background-color: #f8faff; }
         .label-event { color: #22c55e; border-right: 2px solid #22c55e; background-color: #f0fdf4; }
         .label-notice { color: #ef4444; border-right: 2px solid #ef4444; background-color: #fef2f2; }
         .label-meal { color: #f59e0b; border-right: 2px solid #f59e0b; background-color: #fffbeb; }
-
         .table-body { flex-grow: 1; padding: 12px; min-width: 0; }
-
         .duty-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: center; }
         .duty-table th { color: #94a3b8; font-weight: 700; padding-bottom: 8px; font-size: 0.75rem; }
         .duty-table td { padding: 10px 4px; font-weight: 800; border-top: 1px solid #f1f5f9; }
-
         .col-name-1 { background-color: #eff6ff; color: #1e40af; }
         .col-name-2 { background-color: #f0fdf4; color: #166534; }
         .col-name-3 { background-color: #fffbeb; color: #92400e; }
         .col-name-4 { background-color: #f5f3ff; color: #5b21b6; }
-
-        .badge-yellow { 
-            background-color: var(--brand-yellow); 
-            color: #422006; 
-            padding: 4px 10px; 
-            border-radius: 4px; 
-            font-weight: 900; 
-            font-size: 0.75rem; 
-        }
-
-        .building-group { margin-bottom: 12px; }
-        .building-group:last-child { margin-bottom: 0; }
-        
-        .building-badge { 
-            font-size: 10px; 
-            font-weight: 900; 
-            padding: 2px 8px; 
-            border-radius: 99px; 
-            display: inline-block; 
-            margin-bottom: 6px;
-        }
+        .building-badge { font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 99px; display: inline-block; margin-bottom: 6px; }
         .badge-hall { background-color: #e0e7ff; color: #4338ca; }
         .badge-research { background-color: #f3e8ff; color: #7e22ce; }
-
-        .event-item { margin-bottom: 4px; line-height: 1.4; }
-        .event-text { font-size: 13px; font-weight: 700; color: #334155; }
         .event-place { color: #3b82f6; font-weight: 900; margin-right: 4px; }
-        .no-data { font-size: 12px; color: #cbd5e1; font-weight: 700; text-align: left; padding: 2px 0; }
+        .day-sun { color: #EF4444 !important; } 
+        .day-sat { color: #3B82F6 !important; }
+        .quick-btn { background: white; padding: 12px; border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; cursor: pointer; text-decoration: none; transition: transform 0.1s; }
+        .quick-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
-
     <div class="app-container">
-        <!-- Header -->
         <div class="brand-header">
-            <div class="header-top">
-                <span class="brand-title">성의교정 통합근무</span>
-                <div id="shift-badge" class="badge-yellow">--조 근무</div>
+            <div class="flex justify-between items-center w-full mb-2">
+                <span class="text-xl font-black">성의교정 통합근무</span>
+                <div id="shift-badge" class="bg-[#facc15] text-[#422006] px-3 py-1 rounded font-black text-xs">--조 근무</div>
             </div>
-            
-            <div class="date-picker-container">
-                <input type="text" id="datePicker" class="flatpickr-input-custom" readonly>
-            </div>
+            <input type="text" id="datePicker" class="w-32 bg-white border-none rounded px-2 py-1 text-navy-900 font-black text-center outline-none cursor-pointer text-sm" readonly>
         </div>
 
-        <!-- Quick Buttons -->
         <div class="px-4 -mt-8 relative z-10">
             <div class="grid grid-cols-3 gap-2">
                 <a href="calendar.html" class="quick-btn">
                     <img src="https://img.icons8.com/fluency/48/calendar.png" width="20">
-                    <span>근무달력</span>
+                    <span class="text-xs font-black">근무달력</span>
                 </a>
                 <a href="yellowpage.html" class="quick-btn">
                     <img src="https://img.icons8.com/fluency/48/phone.png" width="20">
-                    <span>주요연락처</span>
+                    <span class="text-xs font-black">주요연락처</span>
                 </a>
                 <a href="https://m.catholic.ac.kr/html/intro/map_01.jsp" target="_blank" class="quick-btn">
                     <img src="https://img.icons8.com/fluency/48/hospital.png" width="20">
-                    <span>시설안내</span>
+                    <span class="text-xs font-black">시설안내</span>
                 </a>
             </div>
         </div>
 
-        <!-- Duty Table Card -->
+        <!-- 근무 현황 -->
         <a href="team.html" class="table-card mt-2">
             <div class="table-header label-duty">근무<br>현황</div>
             <div class="table-body">
                 <table class="duty-table">
                     <thead>
-                        <tr>
-                            <th style="width: 25%;">날짜</th>
-                            <th>조장</th><th>회관</th><th>의산A</th><th>의산B</th>
-                        </tr>
+                        <tr><th style="width: 25%;">날짜</th><th>조장</th><th>회관</th><th>의산A</th><th>의산B</th></tr>
                     </thead>
-                    <tbody id="duty-preview-body">
-                    </tbody>
+                    <tbody id="duty-preview-body"></tbody>
                 </table>
             </div>
         </a>
 
-        <!-- Today Events Card -->
+        <!-- 오늘 행사 -->
         <a href="rentalm.html" class="table-card">
             <div class="table-header label-event">오늘<br>행사</div>
             <div id="event-list" class="table-body">
@@ -277,15 +141,15 @@
             </div>
         </a>
 
-        <!-- Notice Card (Firebase 연동) -->
-        <a href="./notice.jsx" class="table-card">
+        <!-- 공지사항 -->
+        <a href="notice.html" class="table-card">
             <div class="table-header label-notice">최신<br>공지</div>
-            <div class="table-body" id="latest-notice-container">
+            <div id="latest-notice-container" class="table-body">
                 <div class="text-[12px] text-slate-400 font-bold py-2">최신 공지를 확인 중...</div>
             </div>
         </a>
 
-        <!-- Meal Card -->
+        <!-- 식단 -->
         <a href="meal.html" class="table-card">
             <div class="table-header label-meal">오늘<br>식단</div>
             <div class="table-body flex p-0 min-h-[60px]">
@@ -306,86 +170,62 @@
     </div>
 
     <script>
-        const HOLIDAYS = ["2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-01", "2026-05-05", "2026-05-24", "2026-06-06", "2026-08-15", "2026-09-24", "2026-09-25", "2026-09-26", "2026-10-03", "2026-10-09", "2026-12-25"];
-        let currentDate = getKSTNow();
-        let fp;
-
-        function getKSTNow() {
-            const now = new Date();
-            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-            return new Date(utc + (9 * 60 * 60000));
-        }
-
-        const config = { baseDate: '2026-03-09', patterns: ['C', 'A', 'B'] };
+        const HOLIDAYS = ["2026-01-01", "2026-03-01", "2026-05-05", "2026-06-06", "2026-08-15", "2026-10-03", "2026-10-09", "2026-12-25"];
+        const baseDate = '2026-03-09';
+        const patterns = ['C', 'A', 'B'];
         const workersPattern = [
             ["황재업", "김태언", "이태원", "이정석"], ["황재업", "김태언", "이정석", "이태원"], 
             ["황재업", "이정석", "김태언", "이태원"], ["황재업", "이정석", "이태원", "김태언"], 
             ["황재업", "이태원", "김태언", "이정석"], ["황재업", "이태원", "이정석", "김태언"]
         ];
 
+        let currentDate = getKSTNow();
+        function getKSTNow() { const now = new Date(); return new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (9 * 60 * 60000)); }
+
         function getShiftName(d) {
-            let base = new Date(config.baseDate); base.setHours(0,0,0,0);
+            let base = new Date(baseDate); base.setHours(0,0,0,0);
             let target = new Date(d); target.setHours(0,0,0,0);
             let diff = Math.round((target - base) / 86400000);
-            return config.patterns[((diff % 3) + 3) % 3];
+            return patterns[((diff % 3) + 3) % 3];
         }
 
         function getWorkers(d) {
-            let base = new Date(config.baseDate); base.setHours(0,0,0,0);
+            let base = new Date(baseDate); base.setHours(0,0,0,0);
             let target = new Date(d); target.setHours(0,0,0,0);
             let diff = Math.round((target - base) / 86400000);
             let idx = Math.floor(((diff % 18) + 18) % 18 / 3);
             return workersPattern[idx];
         }
 
-        function updateDisplay() {
-            const yyyy = currentDate.getFullYear();
-            const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
-            const dd = String(currentDate.getDate()).padStart(2, '0');
-            const dateStr = `${yyyy}-${mm}-${dd}`;
-            
-            if(fp) fp.setDate(currentDate, false);
-            
-            const pickerInput = document.getElementById('datePicker');
-            pickerInput.classList.remove('day-sun', 'day-sat');
-            const day = currentDate.getDay();
-            if(day === 0 || HOLIDAYS.includes(dateStr)) pickerInput.classList.add('day-sun');
-            else if(day === 6) pickerInput.classList.add('day-sat');
+        async function updateDisplay() {
+            const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(currentDate.getDate()).padStart(2,'0')}`;
+            const picker = document.getElementById('datePicker');
+            picker.classList.toggle('day-sun', currentDate.getDay() === 0 || HOLIDAYS.includes(dateStr));
+            picker.classList.toggle('day-sat', currentDate.getDay() === 6);
             
             document.getElementById('shift-badge').innerText = `${getShiftName(currentDate)}조 근무`;
             
-            renderDutyPreview(currentDate);
-            updateEvents(currentDate);
-            updateMeal(currentDate);
-        }
-
-        function renderDutyPreview(startDate) {
+            // 근무 현황 프리뷰
             const tbody = document.getElementById('duty-preview-body');
             let results = [];
-            let d = new Date(startDate); d.setHours(12,0,0,0);
             const days = ['일','월','화','수','목','금','토'];
-
             for(let i=0; results.length < 2 && i < 30; i++) {
-                let temp = new Date(d);
-                temp.setDate(d.getDate() + i);
+                let temp = new Date(currentDate); temp.setDate(currentDate.getDate() + i);
                 if(getShiftName(temp) === 'C') {
+                    const ymd = `${temp.getFullYear()}-${String(temp.getMonth()+1).padStart(2,'0')}-${String(temp.getDate()).padStart(2,'0')}`;
                     results.push({
                         dateStr: `${temp.getMonth()+1}/${temp.getDate()}(${days[temp.getDay()]})`,
-                        dayClass: (temp.getDay()===0 || HOLIDAYS.includes(`${temp.getFullYear()}-${String(temp.getMonth()+1).padStart(2,'0')}-${String(temp.getDate()).padStart(2,'0')}`) ? 'day-sun' : temp.getDay()===6 ? 'day-sat' : ''),
+                        dayClass: (temp.getDay()===0 || HOLIDAYS.includes(ymd) ? 'day-sun' : temp.getDay()===6 ? 'day-sat' : ''),
                         workers: getWorkers(temp)
                     });
                 }
             }
-
             tbody.innerHTML = results.map(item => `
-                <tr>
-                    <td class="${item.dayClass}">${item.dateStr}</td>
-                    <td class="col-name-1">${item.workers[0]}</td>
-                    <td class="col-name-2">${item.workers[1]}</td>
-                    <td class="col-name-3">${item.workers[2]}</td>
-                    <td class="col-name-4">${item.workers[3]}</td>
-                </tr>
+                <tr><td class="${item.dayClass}">${item.dateStr}</td><td class="col-name-1">${item.workers[0]}</td><td class="col-name-2">${item.workers[1]}</td><td class="col-name-3">${item.workers[2]}</td><td class="col-name-4">${item.workers[3]}</td></tr>
             `).join('');
+
+            updateEvents(currentDate);
+            updateMeal(currentDate);
         }
 
         async function updateEvents(date) {
@@ -397,13 +237,14 @@
                 const data = await res.json();
                 const hallEvents = data.filter(r => r.rawDate === dateStr && r.bu.includes("성의회관"));
                 const researchEvents = data.filter(r => r.rawDate === dateStr && r.bu.includes("의산연"));
-                let html = `<div class="building-group"><span class="building-badge badge-hall">성의회관</span>`;
-                html += hallEvents.length === 0 ? `<div class="no-data">대관 내역이 없습니다.</div>` : hallEvents.map(i => `<div class="event-item"><span class="event-text"><span class="event-place">[${i.place}]</span>${i.event}</span></div>`).join('');
-                html += `</div><div class="building-group"><span class="building-badge badge-research">의산연</span>`;
-                html += researchEvents.length === 0 ? `<div class="no-data">대관 내역이 없습니다.</div>` : researchEvents.map(i => `<div class="event-item"><span class="event-text"><span class="event-place">[${i.place}]</span>${i.event}</span></div>`).join('');
+                
+                let html = `<div class="mb-2"><span class="building-badge badge-hall">성의회관</span>`;
+                html += hallEvents.length ? hallEvents.map(i => `<div class="text-[13px] font-bold"><span class="event-place">[${i.place}]</span>${i.event}</div>`).join('') : `<div class="text-[12px] text-slate-300">내역 없음</div>`;
+                html += `</div><div><span class="building-badge badge-research">의산연</span>`;
+                html += researchEvents.length ? researchEvents.map(i => `<div class="text-[13px] font-bold"><span class="event-place">[${i.place}]</span>${i.event}</div>`).join('') : `<div class="text-[12px] text-slate-300">내역 없음</div>`;
                 html += `</div>`;
                 container.innerHTML = html;
-            } catch(e) { container.innerHTML = `<div class="text-[10px] text-red-400 text-center">정보 수신 실패</div>`; }
+            } catch(e) { container.innerHTML = `<div class="text-xs text-red-400">행사 로드 실패</div>`; }
         }
 
         async function updateMeal(date) {
@@ -418,16 +259,13 @@
             } catch(e) { }
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            fp = flatpickr("#datePicker", {
-                locale: "ko", 
-                dateFormat: "Y.m.d (D)", 
-                defaultDate: currentDate, 
-                disableMobile: "true",
-                onChange: (selectedDates) => { if(selectedDates.length > 0) { currentDate = selectedDates[0]; updateDisplay(); } }
+        window.onload = () => {
+            flatpickr("#datePicker", {
+                locale: "ko", dateFormat: "Y.m.d (D)", defaultDate: currentDate,
+                onChange: (dates) => { if(dates.length) { currentDate = dates[0]; updateDisplay(); } }
             });
             updateDisplay();
-        });
+        };
     </script>
 </body>
 </html>
