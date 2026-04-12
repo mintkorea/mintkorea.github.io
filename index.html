@@ -11,313 +11,238 @@
         :root {
             --brand-navy: #2d3e75;
             --brand-yellow: #facc15;
-            --bg-light: #eef2f7;
         }
 
         body { 
-            font-family: 'Pretendard', -apple-system, sans-serif; 
-            background-color: var(--bg-light); 
+            font-family: 'Pretendard', sans-serif; 
+            background-color: #f1f5f9; 
             color: #1e293b;
             letter-spacing: -0.05em;
             word-break: keep-all;
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             line-height: 1.1;
             -webkit-tap-highlight-color: transparent;
         }
 
         .app-container {
-            width: 100%;
-            max-width: 480px;
-            margin: 0 auto;
-            min-height: 100vh;
-            background-color: var(--bg-light);
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+            width: 100%; max-width: 480px; margin: 0 auto;
+            min-height: 100vh; display: flex; flex-direction: column; gap: 8px;
         }
 
-        /* 헤더 디자인 */
+        /* 헤더 섹션 */
         .brand-header {
             background-color: var(--brand-navy);
-            padding: 16px 16px 42px 16px;
+            padding: 16px 16px 40px 16px;
             color: white;
-            border-bottom-left-radius: 24px;
-            border-bottom-right-radius: 24px;
+            border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
         }
 
-        .header-top {
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 
-        /* 컴팩트 달력 박스 */
         .calendar-box {
-            background: white;
-            border: 1px solid rgba(45, 62, 117, 0.2);
-            border-radius: 8px;
-            padding: 5px 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: fit-content;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            position: relative;
+            background: white; border-radius: 4px; padding: 4px 10px;
+            display: flex; align-items: center; width: fit-content;
+            position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .calendar-box .date-text {
-            color: var(--brand-navy);
-            font-size: 0.95rem;
-            font-weight: 800;
-        }
+        .calendar-box .date-text { color: var(--brand-navy); font-size: 0.85rem; font-weight: 800; }
+        .hidden-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 
-        .hidden-input {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            opacity: 0;
-            cursor: pointer;
-        }
-
-        /* 카드 공통 레이아웃 */
+        /* 카드 스타일 (곡률 축소) */
         .table-card {
-            background: white;
-            border-radius: 16px;
-            overflow: hidden;
-            display: flex;
-            margin: 0 12px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+            background: white; border-radius: 8px; overflow: hidden;
+            display: flex; margin: 0 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
         }
 
+        /* 좌측 레이블 및 구분선 (두께 강화) */
         .table-header {
-            width: 52px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 900;
-            font-size: 0.75rem;
-            flex-shrink: 0;
-            text-align: center;
-            line-height: 1.2;
+            width: 50px; display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 0.75rem; flex-shrink: 0; text-align: center;
         }
 
-        .label-duty { color: #3b82f6; border-right: 1.5px solid #3b82f6; background-color: #f0f7ff; }
-        .label-event { color: #22c55e; border-right: 1.5px solid #22c55e; background-color: #f0fdf4; }
-        .label-notice { color: #ef4444; border-right: 1.5px solid #ef4444; background-color: #fef2f2; }
-        .label-meal { color: #f59e0b; border-right: 1.5px solid #f59e0b; background-color: #fffbeb; }
+        .label-duty { color: #2563eb; border-right: 4px solid #2563eb; background-color: #f8faff; }
+        .label-event { color: #16a34a; border-right: 4px solid #16a34a; background-color: #f0fdf4; }
+        .label-notice { color: #dc2626; border-right: 4px solid #dc2626; background-color: #fef2f2; }
+        .label-meal { color: #d97706; border-right: 4px solid #d97706; background-color: #fffbeb; }
 
-        .table-body { flex-grow: 1; min-width: 0; padding: 4px 0px; }
+        .table-body { flex-grow: 1; padding: 8px 10px; min-width: 0; }
 
-        /* 근무표 스타일 (첫 번째 소스 감성 반영) */
-        .duty-table { width: 100%; border-collapse: collapse; }
-        .duty-table th { color: #64748b; font-size: 0.65rem; font-weight: 700; padding: 4px 0; text-align: center; background: #f8fafc; }
-        .duty-table td { padding: 8px 2px; text-align: center; font-weight: 800; font-size: 0.85rem; border: 1px solid #f1f5f9; }
+        /* 근무편성 테이블 */
+        .duty-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; text-align: center; table-layout: fixed; }
+        .duty-table th { color: #64748b; font-weight: 700; padding-bottom: 6px; border-bottom: 1px solid #f1f5f9; }
+        .duty-table td { padding: 8px 2px; font-weight: 800; border-bottom: 1px solid #f8fafc; }
 
-        /* 개인별 컬러 고정 (첫 번째 소스 배색) */
-        .user-황재업 { background-color: #eff6ff !important; color: #1e40af !important; }
-        .user-김태언 { background-color: #f0fdf4 !important; color: #166534 !important; }
-        .user-이태원 { background-color: #fffbeb !important; color: #9a3412 !important; }
-        .user-이정석 { background-color: #f5f3ff !important; color: #5b21b6 !important; }
+        /* 파스텔톤 배경색 정의 */
+        .bg-황재업 { background-color: #E3F2FD; color: #1e3a8a; } /* 연한 네이비/블루 */
+        .bg-김태언 { background-color: #ECFDF5; color: #064e3b; } /* 연한 그린 */
+        .bg-이태원 { background-color: #FFFBEB; color: #78350f; } /* 연한 옐로우/오렌지 */
+        .bg-이정석 { background-color: #F5F3FF; color: #4c1d95; } /* 연한 퍼플 */
 
-        .sat { color: #3b82f6 !important; }
-        .sun { color: #ef4444 !important; }
+        .sat { color: #2563eb !important; }
+        .sun { color: #dc2626 !important; }
 
-        .badge-yellow {
-            background-color: var(--brand-yellow);
-            color: #1e293b;
-            padding: 3px 8px;
-            border-radius: 8px;
-            font-weight: 900;
-            font-size: 0.7rem;
-        }
+        .badge-yellow { background-color: var(--brand-yellow); color: #1e293b; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 0.65rem; }
 
-        /* 퀵 메뉴 버튼 */
-        .quick-btn {
-            background: white;
-            padding: 8px 4px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            cursor: pointer;
-        }
-        .quick-btn span { font-weight: 900; font-size: 13px; color: #334155; }
+        .quick-btn { background: white; padding: 10px 4px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .quick-btn span { font-weight: 800; font-size: 11px; color: #334155; }
 
-        /* 행사 리스트 */
-        .event-item { display: flex; align-items: flex-start; gap: 5px; padding: 4px 10px; border-bottom: 1px dashed #f1f5f9; }
-        .place-tag { color: #2d3e75; font-weight: 900; font-size: 10px; background: #eff6ff; padding: 1px 4px; border-radius: 4px; white-space: nowrap; }
-        .event-name { font-size: 13px; font-weight: 700; color: #1e293b; line-height: 1.3; }
+        .event-item { display: flex; align-items: center; gap: 4px; padding: 4px 0; border-bottom: 1px dashed #f1f5f9; }
+        .place-tag { color: #2d3e75; font-weight: 900; font-size: 9px; background: #eff6ff; padding: 1px 4px; border-radius: 2px; border: 1px solid #dbeafe; }
+        .event-name { font-size: 12px; font-weight: 700; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </style>
 </head>
 <body>
 
     <div class="app-container">
-        
         <div class="brand-header">
             <div class="header-top">
-                <h1 class="text-xl font-black tracking-tight">성의교정 통합근무</h1>
+                <h1 class="text-xl font-black">성의교정 통합근무</h1>
                 <div id="shift-badge" class="badge-yellow">--조 근무</div>
             </div>
-            
-            <div class="custom-calendar-container">
-                <div class="calendar-box">
-                    <span id="selected-date-text" class="date-text">----.--.-- (-)</span>
-                    <input type="date" id="target-date" class="hidden-input" onchange="handleDateChange()">
-                </div>
+            <div class="calendar-box">
+                <span id="selected-date-text" class="date-text">----.--.-- (-)</span>
+                <input type="date" id="target-date" class="hidden-input" onchange="handleDateChange()">
             </div>
         </div>
 
-        <div class="grid grid-cols-3 gap-2 px-3 -mt-7 mb-2">
-            <div class="quick-btn" onclick="location.href='calendar.html'">
-                <img src="https://img.icons8.com/color/48/calendar--v1.png" width="18" height="18">
+        <div class="grid grid-cols-3 gap-3 px-3 -mt-6">
+            <div class="quick-btn">
+                <img src="https://img.icons8.com/color/48/calendar--v1.png" width="22">
                 <span>근무달력</span>
             </div>
-            <div class="quick-btn" onclick="location.href='yellowpage.html'">
-                <img src="https://img.icons8.com/color/48/phone.png" width="18" height="18">
+            <div class="quick-btn">
+                <img src="https://img.icons8.com/color/48/phone.png" width="22">
                 <span>연락처</span>
             </div>
-            <div class="quick-btn" onclick="location.href='info.html'">
-                <img src="https://img.icons8.com/color/48/hospital-sign.png" width="18" height="18">
+            <div class="quick-btn">
+                <img src="https://img.icons8.com/color/48/hospital-sign.png" width="22">
                 <span>시설안내</span>
             </div>
         </div>
 
-        <div class="table-card" onclick="location.href='team.html'">
-            <div class="table-header label-duty">근무<br>현황</div>
+        <!-- 근무편성 (탭2 로직 연동) -->
+        <div class="table-card">
+            <div class="table-header label-duty">근무<br>편성</div>
             <div class="table-body">
                 <table class="duty-table">
                     <thead>
                         <tr>
-                            <th style="width: 24%;">날짜</th>
-                            <th>조장</th>
-                            <th>회관</th>
-                            <th>의산A</th>
-                            <th>의산B</th>
+                            <th style="width: 23%;">날짜</th>
+                            <th>조장</th><th>회관</th><th>의산A</th><th>의산B</th>
                         </tr>
                     </thead>
                     <tbody id="duty-preview-body">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
         </div>
 
-        <div class="table-card" onclick="location.href='rentalm.html'">
+        <!-- 오늘행사 -->
+        <div class="table-card">
             <div class="table-header label-event">오늘<br>행사</div>
-            <div id="event-list" class="table-body py-2">
-                <div class="text-[12px] text-slate-400 text-center py-2 font-bold italic">정보를 불러오고 있습니다...</div>
+            <div id="event-list" class="table-body">
+                <div class="text-[11px] text-slate-400 font-bold text-center py-2">조회 중...</div>
             </div>
         </div>
 
-        <div class="table-card" onclick="location.href='notice.html'">
+        <!-- 최신공지 -->
+        <div class="table-card">
             <div class="table-header label-notice">최신<br>공지</div>
-            <div class="table-body px-3 py-2">
+            <div class="table-body">
                 <div class="text-[13px] font-black text-red-600">시신기증 접수증 전송후 반드시 통화</div>
-                <div class="text-[11px] font-bold text-red-400 opacity-80">(즉시모심, 삼일장 모두 해당)</div>
+                <div class="text-[11px] font-bold text-red-400">(즉시모심, 삼일장 모두 해당)</div>
             </div>
         </div>
 
-        <div class="table-card" onclick="location.href='meal.html'">
+        <!-- 오늘식단 -->
+        <div class="table-card">
             <div class="table-header label-meal">오늘<br>식단</div>
-            <div class="table-body flex divide-x divide-slate-100 p-0">
-                <div class="flex-1 p-2 text-center">
-                    <span class="block text-[9px] font-bold text-slate-400 mb-0.5">중식</span>
-                    <span id="lunch-menu" class="text-[14px] font-black text-slate-800">--</span>
+            <div class="table-body flex divide-x divide-slate-100 p-0 h-14">
+                <div class="flex-1 flex flex-col justify-center items-center">
+                    <span class="text-[9px] font-bold text-slate-400 mb-1">중식</span>
+                    <span id="lunch-menu" class="text-[13px] font-black text-slate-800">--</span>
                 </div>
-                <div class="flex-1 p-2 text-center">
-                    <span class="block text-[9px] font-bold text-slate-400 mb-0.5">야식</span>
-                    <span id="night-menu" class="text-[14px] font-black text-indigo-600">--</span>
+                <div class="flex-1 flex flex-col justify-center items-center">
+                    <span class="text-[9px] font-bold text-slate-400 mb-1">야식</span>
+                    <span id="night-menu" class="text-[13px] font-black text-blue-700">--</span>
                 </div>
             </div>
         </div>
 
-        <footer class="mt-auto py-4 text-center">
-            <p class="text-[9px] text-slate-400 font-bold tracking-[0.2em]">CATHOLIC MEDICAL CAMPUS</p>
+        <footer class="mt-auto py-6 text-center">
+            <p class="text-[9px] text-slate-400 font-bold tracking-widest opacity-60">CATHOLIC MEDICAL CAMPUS</p>
         </footer>
     </div>
 
     <script>
-        const CONFIG = {
-            baseDate: '2026-03-09',
-            patterns: ['C', 'A', 'B'],
-            workersPattern: [
-                ["황재업", "김태언", "이태원", "이정석"],
-                ["황재업", "김태언", "이정석", "이태원"],
-                ["황재업", "이정석", "김태언", "이태원"],
-                ["황재업", "이정석", "이태원", "김태언"],
-                ["황재업", "이태원", "김태언", "이정석"],
-                ["황재업", "이태원", "이정석", "김태언"]
-            ],
-            holidays: ['01-01', '03-01', '05-05', '06-06', '08-15', '10-03', '10-09', '12-25'], 
-            eventUrl: "https://script.google.com/macros/s/AKfycbzKtqrzNK11rX4sCdDFv0lcgUcdVwsNiUnlXYc8Zjm0dJNlNV8ThwKrtqOgKBeVrP3g/exec",
-            mealUrl: "https://script.google.com/macros/s/AKfycbxZkcn8EEcGcxMaT98l_CKJTCM_0Ual_S2JefpHptm_dbEtQ5tjM00TEhU2XdqTObLh/exec"
-        };
-
-        function isHoliday(date) {
-            const mmdd = `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-            return CONFIG.holidays.includes(mmdd);
+        function getKSTNow() {
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            return new Date(utc + (9 * 60 * 60000));
         }
 
-        function getDayClass(date) {
-            if (date.getDay() === 0 || isHoliday(date)) return "sun";
-            if (date.getDay() === 6) return "sat";
-            return "";
+        const config = {
+            baseDate: '2026-03-09',
+            patterns: ['C', 'A', 'B']
+        };
+        const workersPattern = [
+            ["황재업", "김태언", "이태원", "이정석"], 
+            ["황재업", "김태언", "이정석", "이태원"], 
+            ["황재업", "이정석", "김태언", "이태원"], 
+            ["황재업", "이정석", "이태원", "김태언"], 
+            ["황재업", "이태원", "김태언", "이정석"], 
+            ["황재업", "이태원", "이정석", "김태언"]
+        ];
+
+        function getShiftName(d) {
+            let base = new Date(config.baseDate); base.setHours(0,0,0,0);
+            let target = new Date(d); target.setHours(0,0,0,0);
+            let diff = Math.round((target - base) / 86400000);
+            return config.patterns[((diff % 3) + 3) % 3];
         }
 
         function getWorkers(d) {
-            const base = new Date(CONFIG.baseDate); base.setHours(0,0,0,0);
-            const target = new Date(d); target.setHours(0,0,0,0);
-            const diff = Math.round((target - base) / 86400000);
-            const idx = Math.floor(((diff % 18) + 18) % 18 / 3);
-            return CONFIG.workersPattern[idx];
-        }
-
-        function getShift(d) {
-            const base = new Date(CONFIG.baseDate); base.setHours(0,0,0,0);
-            const target = new Date(d); target.setHours(0,0,0,0);
-            const diff = Math.round((target - base) / 86400000);
-            return CONFIG.patterns[((diff % 3) + 3) % 3];
+            let base = new Date(config.baseDate); base.setHours(0,0,0,0);
+            let target = new Date(d); target.setHours(0,0,0,0);
+            let diff = Math.round((target - base) / 86400000);
+            let idx = Math.floor(((diff % 18) + 18) % 18 / 3);
+            return workersPattern[idx];
         }
 
         function handleDateChange() {
-            const selectedStr = document.getElementById('target-date').value;
-            if(!selectedStr) return;
-            const date = new Date(selectedStr);
+            const val = document.getElementById('target-date').value;
+            if(!val) return;
+            const date = new Date(val);
+            date.setHours(12,0,0,0);
+            
             const days = ['일','월','화','수','목','금','토'];
-            
             const textEl = document.getElementById('selected-date-text');
-            textEl.innerText = `${date.getFullYear()}.${String(date.getMonth()+1).padStart(2,'0')}.${String(date.getDate()).padStart(2,'0')} (${days[date.getDay()]})`;
             
-            textEl.classList.remove('sat', 'sun');
-            const dayClass = getDayClass(date);
-            if(dayClass) textEl.classList.add(dayClass);
-
-            updateUI(date);
+            textEl.innerText = `${date.getFullYear()}.${String(date.getMonth()+1).padStart(2,'0')}.${String(date.getDate()).padStart(2,'0')} (${days[date.getDay()]})`;
+            textEl.className = 'date-text ' + (date.getDay()===0?'sun':date.getDay()===6?'sat':'');
+            
+            document.getElementById('shift-badge').innerText = `${getShiftName(date)}조 근무`;
+            
+            renderDutyPreview(date);
             updateEvents(date);
             updateMeal(date);
         }
 
-        function updateUI(date) {
-            document.getElementById('shift-badge').innerText = `${getShift(date)}조 근무`;
+        function renderDutyPreview(startDate) {
             const tbody = document.getElementById('duty-preview-body');
-            const results = [];
-            const d = new Date(date); d.setHours(0,0,0,0);
-            
-            // C조(index 0) 기준 다음 근무일 2개 추출 로직
-            for (let i = 0; results.length < 2 && i < 15; i++) {
-                const temp = new Date(d); temp.setDate(d.getDate() + i);
-                const diff = Math.round((temp - new Date(CONFIG.baseDate)) / 86400000);
-                if (((diff % 3) + 3) % 3 === 0) {
-                    const days = ['일','월','화','수','목','금','토'];
+            let results = [];
+            let d = new Date(startDate); d.setHours(12,0,0,0);
+            const days = ['일','월','화','수','목','금','토'];
+
+            for(let i=0; results.length < 2 && i < 30; i++) {
+                let temp = new Date(d);
+                temp.setDate(d.getDate() + i);
+                if(getShiftName(temp) === 'C') {
                     results.push({
-                        date: `${temp.getMonth() + 1}/${temp.getDate()}(${days[temp.getDay()]})`,
-                        dayClass: getDayClass(temp),
+                        dateStr: `${temp.getMonth()+1}/${temp.getDate()}(${days[temp.getDay()]})`,
+                        dayClass: (temp.getDay()===0?'sun':temp.getDay()===6?'sat':''),
                         workers: getWorkers(temp)
                     });
                 }
@@ -325,63 +250,53 @@
 
             tbody.innerHTML = results.map(item => `
                 <tr>
-                    <td class="${item.dayClass}" style="background-color:#fcfcfc; font-weight:800;">${item.date}</td>
-                    <td class="user-${item.workers[0]}">${item.workers[0]}</td>
-                    <td class="user-${item.workers[1]}">${item.workers[1]}</td>
-                    <td class="user-${item.workers[2]}">${item.workers[2]}</td>
-                    <td class="user-${item.workers[3]}">${item.workers[3]}</td>
+                    <td class="${item.dayClass}">${item.dateStr}</td>
+                    <td class="bg-${item.workers[0]}">${item.workers[0]}</td>
+                    <td class="bg-${item.workers[1]}">${item.workers[1]}</td>
+                    <td class="bg-${item.workers[2]}">${item.workers[2]}</td>
+                    <td class="bg-${item.workers[3]}">${item.workers[3]}</td>
                 </tr>
             `).join('');
         }
 
         async function updateEvents(date) {
-            const eventContainer = document.getElementById('event-list');
+            const container = document.getElementById('event-list');
+            const url = "https://script.google.com/macros/s/AKfycbzKtqrzNK11rX4sCdDFv0lcgUcdVwsNiUnlXYc8Zjm0dJNlNV8ThwKrtqOgKBeVrP3g/exec";
             try {
                 const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                const res = await fetch(`${CONFIG.eventUrl}?t=${new Date().getTime()}`);
+                const res = await fetch(`${url}?t=${Date.now()}`);
                 const data = await res.json();
+                const filtered = data.filter(r => r.rawDate === dateStr && r.bu.includes("성의회관"));
                 
-                // 성의회관 및 의산연 통합 필터링
-                const filtered = data.filter(r => r.rawDate === dateStr && (r.bu.includes("성의회관") || r.bu.includes("의생명")));
-                
-                if (filtered.length === 0) {
-                    eventContainer.innerHTML = `<div class="text-[13px] text-slate-400 py-2 font-bold text-center">대관 내역 없음</div>`;
+                if(filtered.length === 0) {
+                    container.innerHTML = `<div class="text-[11px] text-slate-400 font-bold text-center py-2">행사 없음</div>`;
                     return;
                 }
-                
-                eventContainer.innerHTML = filtered.map(item => `
+                container.innerHTML = filtered.map(item => `
                     <div class="event-item">
                         <span class="place-tag">${item.place}</span>
                         <span class="event-name">${item.event}</span>
                     </div>
                 `).join('');
-            } catch (e) {
-                eventContainer.innerHTML = `<div class="text-[12px] text-red-400 text-center py-2">정보 로드 실패</div>`;
-            }
+            } catch(e) { container.innerHTML = `<div class="text-[10px] text-red-400 text-center">연동 실패</div>`; }
         }
 
         async function updateMeal(date) {
-            const lunchEl = document.getElementById('lunch-menu');
-            const nightEl = document.getElementById('night-menu');
+            const url = "https://script.google.com/macros/s/AKfycbxZkcn8EEcGcxMaT98l_CKJTCM_0Ual_S2JefpHptm_dbEtQ5tjM00TEhU2XdqTObLh/exec";
             try {
                 const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-                const res = await fetch(CONFIG.mealUrl);
+                const res = await fetch(url);
                 const data = await res.json();
                 const day = data[key];
-                if(day) {
-                    lunchEl.innerText = (day["중식"] || day["중 식"])?.menu.split('(')[0] || "미등록";
-                    nightEl.innerText = (day["야식"] || day["야 식"])?.menu.split('(')[0] || "미등록";
-                } else {
-                    lunchEl.innerText = "정보없음"; nightEl.innerText = "정보없음";
-                }
-            } catch(e) {
-                lunchEl.innerText = "오류"; nightEl.innerText = "오류";
-            }
+                document.getElementById('lunch-menu').innerText = day ? (day["중식"] || day["중 식"])?.menu.split('(')[0] : "-";
+                document.getElementById('night-menu').innerText = day ? (day["야식"] || day["야 식"])?.menu.split('(')[0] : "-";
+            } catch(e) { }
         }
 
         window.onload = () => {
-            const today = new Date();
-            document.getElementById('target-date').value = today.toISOString().split('T')[0];
+            const today = getKSTNow();
+            const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            document.getElementById('target-date').value = dateString;
             handleDateChange();
         };
     </script>
