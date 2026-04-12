@@ -11,7 +11,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, query, onSnapshot, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = JSON.parse(__firebase_config);
@@ -20,31 +20,52 @@
         const db = getFirestore(app);
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'sungui-duty-app';
 
-        // 실시간 공지사항 연동
+        // 실시간 공지사항 연동 (권한 오류 해결 버전)
         async function initNoticeSync() {
-            await signInAnonymously(auth);
-            const noticesCol = collection(db, 'artifacts', appId, 'public', 'data', 'notices');
-            
-            // 실시간 리스너 (RULE 2: 복합 쿼리 대신 간단한 쿼리 후 JS 처리)
-            onSnapshot(noticesCol, (snapshot) => {
-                const posts = snapshot.docs.map(doc => doc.data());
-                // 최신순 정렬
-                posts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-                
-                const latestNotice = posts[0];
-                const noticeContainer = document.getElementById('latest-notice-container');
-                
-                if (latestNotice) {
-                    noticeContainer.innerHTML = `
-                        <div class="text-[14px] font-black text-red-600 mb-1 line-clamp-1">${latestNotice.content}</div>
-                        <div class="text-[12px] font-bold text-slate-400">
-                            [${latestNotice.category}] ${latestNotice.author} · ${latestNotice.createdAt ? new Date(latestNotice.createdAt.seconds * 1000).toLocaleDateString() : '방금 전'}
-                        </div>
-                    `;
+            try {
+                // RULE 3: 인증을 먼저 수행하고 완료될 때까지 기다림
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
-                    noticeContainer.innerHTML = `<div class="text-[12px] font-bold text-slate-300">등록된 공지사항이 없습니다.</div>`;
+                    await signInAnonymously(auth);
                 }
-            }, (error) => console.error("Notice Sync Error:", error));
+
+                // 인증 상태 변경 감지 후 데이터 로드 시작
+                onAuthStateChanged(auth, (user) => {
+                    if (!user) return;
+
+                    const noticesCol = collection(db, 'artifacts', appId, 'public', 'data', 'notices');
+                    
+                    // 실시간 리스너 설정 (에러 콜백 포함 필수)
+                    onSnapshot(noticesCol, (snapshot) => {
+                        const posts = snapshot.docs.map(doc => doc.data());
+                        // RULE 2: 자바스크립트 메모리에서 정렬
+                        posts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                        
+                        const latestNotice = posts[0];
+                        const noticeContainer = document.getElementById('latest-notice-container');
+                        
+                        if (latestNotice) {
+                            noticeContainer.innerHTML = `
+                                <div class="text-[14px] font-black text-red-600 mb-1 line-clamp-1">${latestNotice.content}</div>
+                                <div class="text-[12px] font-bold text-slate-400">
+                                    [${latestNotice.category}] ${latestNotice.author} · ${latestNotice.createdAt ? new Date(latestNotice.createdAt.seconds * 1000).toLocaleDateString() : '방금 전'}
+                                </div>
+                            `;
+                        } else {
+                            noticeContainer.innerHTML = `<div class="text-[12px] font-bold text-slate-300">등록된 공지사항이 없습니다.</div>`;
+                        }
+                    }, (error) => {
+                        console.error("Firestore Permission/Sync Error:", error);
+                        document.getElementById('latest-notice-container').innerHTML = 
+                            `<div class="text-[10px] text-red-400 font-bold">공지 로드 권한 오류</div>`;
+                    });
+                });
+            } catch (e) {
+                console.error("Authentication failed:", e);
+                document.getElementById('latest-notice-container').innerHTML = 
+                    `<div class="text-[10px] text-red-400 font-bold">인증 실패</div>`;
+            }
         }
 
         window.addEventListener('load', initNoticeSync);
@@ -257,7 +278,7 @@
         </a>
 
         <!-- Notice Card (Firebase 연동) -->
-        <a href="notice.jsx" class="table-card">
+        <a href="./notice.jsx" class="table-card">
             <div class="table-header label-notice">최신<br>공지</div>
             <div class="table-body" id="latest-notice-container">
                 <div class="text-[12px] text-slate-400 font-bold py-2">최신 공지를 확인 중...</div>
