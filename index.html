@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>성의교정 통합근무 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
     <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
         
@@ -18,118 +21,189 @@
             background-color: #f1f5f9; 
             color: #1e293b;
             letter-spacing: -0.05em;
-            word-break: keep-all;
             margin: 0; padding: 0;
-            line-height: 1.1;
+            line-height: 1.2;
             -webkit-tap-highlight-color: transparent;
         }
 
         .app-container {
             width: 100%; max-width: 480px; margin: 0 auto;
-            min-height: 100vh; display: flex; flex-direction: column; gap: 8px;
+            min-height: 100vh; display: flex; flex-direction: column; gap: 12px;
+            padding-bottom: 20px;
         }
 
-        /* 헤더 섹션 */
+        /* Header Section */
         .brand-header {
             background-color: var(--brand-navy);
-            padding: 16px 16px 40px 16px;
+            padding: 25px 20px 45px 20px;
             color: white;
-            border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
         }
 
-        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-
-        .calendar-box {
-            background: white; border-radius: 4px; padding: 4px 10px;
-            display: flex; align-items: center; width: fit-content;
-            position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        .header-top { 
+            width: 100%;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        
+        .brand-title { 
+            font-size: 1.4rem; 
+            font-weight: 900; 
+            letter-spacing: -0.02em;
         }
 
-        .calendar-box .date-text { color: var(--brand-navy); font-size: 0.85rem; font-weight: 800; }
-        .hidden-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        /* Date Picker */
+        .date-picker-container {
+            margin-top: 8px;
+        }
 
-        /* 카드 스타일 (곡률 축소) */
-        .table-card {
-            background: white; border-radius: 8px; overflow: hidden;
-            display: flex; margin: 0 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        .flatpickr-input-custom { 
+            background-color: white; 
+            border: none;
+            border-radius: 4px; 
+            height: 2.2rem; 
+            width: 150px; 
+            text-align: center; 
+            font-weight: 800; 
+            font-size: 1rem;
+            color: var(--brand-navy); 
+            cursor: pointer; 
+            outline: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .day-sun { color: #EF4444 !important; } 
+        .day-sat { color: #3B82F6 !important; }
+
+        /* Quick Buttons */
+        .quick-btn { 
+            background: white; 
+            padding: 12px; 
+            border-radius: 8px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 8px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
             border: 1px solid #e2e8f0;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.1s;
+        }
+        .quick-btn:active { transform: scale(0.95); }
+        .quick-btn span { font-weight: 800; font-size: 13px; color: #334155; }
+
+        /* Card Styles */
+        .table-card {
+            background: white; 
+            border-radius: 8px; 
+            overflow: hidden;
+            display: flex; 
+            margin: 0 16px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border: 1px solid #eef2f6;
+            text-decoration: none;
+            color: inherit;
         }
 
-        /* 좌측 레이블 및 구분선 (두께 강화) */
         .table-header {
-            width: 50px; display: flex; align-items: center; justify-content: center;
-            font-weight: 900; font-size: 0.75rem; flex-shrink: 0; text-align: center;
+            width: 60px; display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 0.85rem; flex-shrink: 0; text-align: center;
         }
 
-        .label-duty { color: #2563eb; border-right: 4px solid #2563eb; background-color: #f8faff; }
-        .label-event { color: #16a34a; border-right: 4px solid #16a34a; background-color: #f0fdf4; }
-        .label-notice { color: #dc2626; border-right: 4px solid #dc2626; background-color: #fef2f2; }
-        .label-meal { color: #d97706; border-right: 4px solid #d97706; background-color: #fffbeb; }
+        .label-duty { color: #3b82f6; border-right: 2px solid #3b82f6; background-color: #f8faff; }
+        .label-event { color: #22c55e; border-right: 2px solid #22c55e; background-color: #f0fdf4; }
+        .label-notice { color: #ef4444; border-right: 2px solid #ef4444; background-color: #fef2f2; }
+        .label-meal { color: #f59e0b; border-right: 2px solid #f59e0b; background-color: #fffbeb; }
 
-        .table-body { flex-grow: 1; padding: 8px 10px; min-width: 0; }
+        .table-body { flex-grow: 1; padding: 12px; min-width: 0; }
 
-        /* 근무편성 테이블 */
-        .duty-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; text-align: center; table-layout: fixed; }
-        .duty-table th { color: #64748b; font-weight: 700; padding-bottom: 6px; border-bottom: 1px solid #f1f5f9; }
-        .duty-table td { padding: 8px 2px; font-weight: 800; border-bottom: 1px solid #f8fafc; }
+        /* Duty Table */
+        .duty-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: center; }
+        .duty-table th { color: #94a3b8; font-weight: 700; padding-bottom: 8px; font-size: 0.75rem; }
+        .duty-table td { padding: 10px 4px; font-weight: 800; border-top: 1px solid #f1f5f9; }
 
-        /* 파스텔톤 배경색 정의 */
-        .bg-황재업 { background-color: #E3F2FD; color: #1e3a8a; } /* 연한 네이비/블루 */
-        .bg-김태언 { background-color: #ECFDF5; color: #064e3b; } /* 연한 그린 */
-        .bg-이태원 { background-color: #FFFBEB; color: #78350f; } /* 연한 옐로우/오렌지 */
-        .bg-이정석 { background-color: #F5F3FF; color: #4c1d95; } /* 연한 퍼플 */
+        .col-name-1 { background-color: #eff6ff; color: #1e40af; }
+        .col-name-2 { background-color: #f0fdf4; color: #166534; }
+        .col-name-3 { background-color: #fffbeb; color: #92400e; }
+        .col-name-4 { background-color: #f5f3ff; color: #5b21b6; }
 
-        .sat { color: #2563eb !important; }
-        .sun { color: #dc2626 !important; }
+        .badge-yellow { 
+            background-color: var(--brand-yellow); 
+            color: #422006; 
+            padding: 4px 10px; 
+            border-radius: 4px; 
+            font-weight: 900; 
+            font-size: 0.75rem; 
+        }
 
-        .badge-yellow { background-color: var(--brand-yellow); color: #1e293b; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 0.65rem; }
+        /* Event Styles */
+        .building-group { margin-bottom: 12px; }
+        .building-group:last-child { margin-bottom: 0; }
+        
+        .building-badge { 
+            font-size: 10px; 
+            font-weight: 900; 
+            padding: 2px 8px; 
+            border-radius: 99px; 
+            display: inline-block; 
+            margin-bottom: 6px;
+        }
+        .badge-hall { background-color: #e0e7ff; color: #4338ca; }
+        .badge-research { background-color: #f3e8ff; color: #7e22ce; }
 
-        .quick-btn { background: white; padding: 10px 4px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .quick-btn span { font-weight: 800; font-size: 11px; color: #334155; }
-
-        .event-item { display: flex; align-items: center; gap: 4px; padding: 4px 0; border-bottom: 1px dashed #f1f5f9; }
-        .place-tag { color: #2d3e75; font-weight: 900; font-size: 9px; background: #eff6ff; padding: 1px 4px; border-radius: 2px; border: 1px solid #dbeafe; }
-        .event-name { font-size: 12px; font-weight: 700; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .event-item { margin-bottom: 4px; line-height: 1.4; }
+        .event-text { font-size: 13px; font-weight: 700; color: #334155; }
+        .event-place { color: #3b82f6; font-weight: 900; margin-right: 4px; }
+        .no-data { font-size: 12px; color: #cbd5e1; font-weight: 700; text-align: left; padding: 2px 0; }
     </style>
 </head>
 <body>
 
     <div class="app-container">
+        <!-- Header -->
         <div class="brand-header">
             <div class="header-top">
-                <h1 class="text-xl font-black">성의교정 통합근무</h1>
+                <span class="brand-title">성의교정 통합근무</span>
                 <div id="shift-badge" class="badge-yellow">--조 근무</div>
             </div>
-            <div class="calendar-box">
-                <span id="selected-date-text" class="date-text">----.--.-- (-)</span>
-                <input type="date" id="target-date" class="hidden-input" onchange="handleDateChange()">
+            
+            <div class="date-picker-container">
+                <input type="text" id="datePicker" class="flatpickr-input-custom" readonly>
             </div>
         </div>
 
-        <div class="grid grid-cols-3 gap-3 px-3 -mt-6">
-            <div class="quick-btn">
-                <img src="https://img.icons8.com/color/48/calendar--v1.png" width="22">
-                <span>근무달력</span>
-            </div>
-            <div class="quick-btn">
-                <img src="https://img.icons8.com/color/48/phone.png" width="22">
-                <span>연락처</span>
-            </div>
-            <div class="quick-btn">
-                <img src="https://img.icons8.com/color/48/hospital-sign.png" width="22">
-                <span>시설안내</span>
+        <!-- Quick Buttons -->
+        <div class="px-4 -mt-8 relative z-10">
+            <div class="grid grid-cols-3 gap-2">
+                <a href="calendar.html" class="quick-btn">
+                    <img src="https://img.icons8.com/fluency/48/calendar.png" width="20">
+                    <span>근무달력</span>
+                </a>
+                <a href="yellowpage.html" class="quick-btn">
+                    <img src="https://img.icons8.com/fluency/48/phone.png" width="20">
+                    <span>주요연락처</span>
+                </a>
+                <a href="https://m.catholic.ac.kr/html/intro/map_01.jsp" target="_blank" class="quick-btn">
+                    <img src="https://img.icons8.com/fluency/48/hospital.png" width="20">
+                    <span>시설안내</span>
+                </a>
             </div>
         </div>
 
-        <!-- 근무편성 (탭2 로직 연동) -->
-        <div class="table-card">
-            <div class="table-header label-duty">근무<br>편성</div>
+        <!-- Duty Table Card -->
+        <a href="team.html" class="table-card mt-2">
+            <div class="table-header label-duty">근무<br>현황</div>
             <div class="table-body">
                 <table class="duty-table">
                     <thead>
                         <tr>
-                            <th style="width: 23%;">날짜</th>
+                            <th style="width: 25%;">날짜</th>
                             <th>조장</th><th>회관</th><th>의산A</th><th>의산B</th>
                         </tr>
                     </thead>
@@ -137,63 +211,61 @@
                     </tbody>
                 </table>
             </div>
-        </div>
+        </a>
 
-        <!-- 오늘행사 -->
-        <div class="table-card">
+        <!-- Today Events Card -->
+        <a href="rentalm.html" class="table-card">
             <div class="table-header label-event">오늘<br>행사</div>
             <div id="event-list" class="table-body">
-                <div class="text-[11px] text-slate-400 font-bold text-center py-2">조회 중...</div>
+                <div class="text-[12px] text-slate-400 font-bold text-center py-2">행사를 불러오는 중...</div>
             </div>
-        </div>
+        </a>
 
-        <!-- 최신공지 -->
-        <div class="table-card">
+        <!-- Notice Card -->
+        <a href="notice.html" class="table-card">
             <div class="table-header label-notice">최신<br>공지</div>
             <div class="table-body">
-                <div class="text-[13px] font-black text-red-600">시신기증 접수증 전송후 반드시 통화</div>
-                <div class="text-[11px] font-bold text-red-400">(즉시모심, 삼일장 모두 해당)</div>
+                <div class="text-[14px] font-black text-red-600 mb-1">시신기증 접수증 전송후 반드시 통화</div>
+                <div class="text-[12px] font-bold text-red-400">(즉시모심, 삼일장 모두 해당)</div>
             </div>
-        </div>
+        </a>
 
-        <!-- 오늘식단 -->
-        <div class="table-card">
+        <!-- Meal Card -->
+        <a href="meal.html" class="table-card">
             <div class="table-header label-meal">오늘<br>식단</div>
-            <div class="table-body flex divide-x divide-slate-100 p-0 h-14">
-                <div class="flex-1 flex flex-col justify-center items-center">
-                    <span class="text-[9px] font-bold text-slate-400 mb-1">중식</span>
-                    <span id="lunch-menu" class="text-[13px] font-black text-slate-800">--</span>
+            <div class="table-body flex p-0 min-h-[60px]">
+                <div class="flex-1 flex flex-col justify-center items-center border-r border-slate-100">
+                    <span class="text-[10px] font-bold text-slate-400">중식</span>
+                    <span id="lunch-menu" class="text-[14px] font-black text-slate-800">--</span>
                 </div>
                 <div class="flex-1 flex flex-col justify-center items-center">
-                    <span class="text-[9px] font-bold text-slate-400 mb-1">야식</span>
-                    <span id="night-menu" class="text-[13px] font-black text-blue-700">--</span>
+                    <span class="text-[10px] font-bold text-slate-400">야식</span>
+                    <span id="night-menu" class="text-[14px] font-black text-blue-700">--</span>
                 </div>
             </div>
-        </div>
+        </a>
 
-        <footer class="mt-auto py-6 text-center">
-            <p class="text-[9px] text-slate-400 font-bold tracking-widest opacity-60">CATHOLIC MEDICAL CAMPUS</p>
+        <footer class="mt-4 pb-8 text-center">
+            <p class="text-[10px] text-slate-400 font-bold tracking-widest uppercase">CATHOLIC MEDICAL CAMPUS</p>
         </footer>
     </div>
 
     <script>
+        const HOLIDAYS = ["2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-01", "2026-05-05", "2026-05-24", "2026-06-06", "2026-08-15", "2026-09-24", "2026-09-25", "2026-09-26", "2026-10-03", "2026-10-09", "2026-12-25"];
+        let currentDate = getKSTNow();
+        let fp;
+
         function getKSTNow() {
             const now = new Date();
             const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
             return new Date(utc + (9 * 60 * 60000));
         }
 
-        const config = {
-            baseDate: '2026-03-09',
-            patterns: ['C', 'A', 'B']
-        };
+        const config = { baseDate: '2026-03-09', patterns: ['C', 'A', 'B'] };
         const workersPattern = [
-            ["황재업", "김태언", "이태원", "이정석"], 
-            ["황재업", "김태언", "이정석", "이태원"], 
-            ["황재업", "이정석", "김태언", "이태원"], 
-            ["황재업", "이정석", "이태원", "김태언"], 
-            ["황재업", "이태원", "김태언", "이정석"], 
-            ["황재업", "이태원", "이정석", "김태언"]
+            ["황재업", "김태언", "이태원", "이정석"], ["황재업", "김태언", "이정석", "이태원"], 
+            ["황재업", "이정석", "김태언", "이태원"], ["황재업", "이정석", "이태원", "김태언"], 
+            ["황재업", "이태원", "김태언", "이정석"], ["황재업", "이태원", "이정석", "김태언"]
         ];
 
         function getShiftName(d) {
@@ -211,23 +283,31 @@
             return workersPattern[idx];
         }
 
-        function handleDateChange() {
-            const val = document.getElementById('target-date').value;
-            if(!val) return;
-            const date = new Date(val);
-            date.setHours(12,0,0,0);
+        function updateDisplay() {
+            const yyyy = currentDate.getFullYear();
+            const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(currentDate.getDate()).padStart(2, '0');
+            const dateStr = `${yyyy}-${mm}-${dd}`;
             
-            const days = ['일','월','화','수','목','금','토'];
-            const textEl = document.getElementById('selected-date-text');
+            if(fp) fp.setDate(currentDate, false);
             
-            textEl.innerText = `${date.getFullYear()}.${String(date.getMonth()+1).padStart(2,'0')}.${String(date.getDate()).padStart(2,'0')} (${days[date.getDay()]})`;
-            textEl.className = 'date-text ' + (date.getDay()===0?'sun':date.getDay()===6?'sat':'');
+            const pickerInput = document.getElementById('datePicker');
+            pickerInput.classList.remove('day-sun', 'day-sat');
+            const day = currentDate.getDay();
+            if(day === 0 || HOLIDAYS.includes(dateStr)) pickerInput.classList.add('day-sun');
+            else if(day === 6) pickerInput.classList.add('day-sat');
             
-            document.getElementById('shift-badge').innerText = `${getShiftName(date)}조 근무`;
+            document.getElementById('shift-badge').innerText = `${getShiftName(currentDate)}조 근무`;
             
-            renderDutyPreview(date);
-            updateEvents(date);
-            updateMeal(date);
+            renderDutyPreview(currentDate);
+            updateEvents(currentDate);
+            updateMeal(currentDate);
+        }
+
+        function moveDate(offset) {
+            if (offset === 0) currentDate = getKSTNow();
+            else currentDate.setDate(currentDate.getDate() + offset);
+            updateDisplay();
         }
 
         function renderDutyPreview(startDate) {
@@ -242,7 +322,7 @@
                 if(getShiftName(temp) === 'C') {
                     results.push({
                         dateStr: `${temp.getMonth()+1}/${temp.getDate()}(${days[temp.getDay()]})`,
-                        dayClass: (temp.getDay()===0?'sun':temp.getDay()===6?'sat':''),
+                        dayClass: (temp.getDay()===0 || HOLIDAYS.includes(`${temp.getFullYear()}-${String(temp.getMonth()+1).padStart(2,'0')}-${String(temp.getDate()).padStart(2,'0')}`) ? 'day-sun' : temp.getDay()===6 ? 'day-sat' : ''),
                         workers: getWorkers(temp)
                     });
                 }
@@ -251,10 +331,10 @@
             tbody.innerHTML = results.map(item => `
                 <tr>
                     <td class="${item.dayClass}">${item.dateStr}</td>
-                    <td class="bg-${item.workers[0]}">${item.workers[0]}</td>
-                    <td class="bg-${item.workers[1]}">${item.workers[1]}</td>
-                    <td class="bg-${item.workers[2]}">${item.workers[2]}</td>
-                    <td class="bg-${item.workers[3]}">${item.workers[3]}</td>
+                    <td class="col-name-1">${item.workers[0]}</td>
+                    <td class="col-name-2">${item.workers[1]}</td>
+                    <td class="col-name-3">${item.workers[2]}</td>
+                    <td class="col-name-4">${item.workers[3]}</td>
                 </tr>
             `).join('');
         }
@@ -262,23 +342,50 @@
         async function updateEvents(date) {
             const container = document.getElementById('event-list');
             const url = "https://script.google.com/macros/s/AKfycbzKtqrzNK11rX4sCdDFv0lcgUcdVwsNiUnlXYc8Zjm0dJNlNV8ThwKrtqOgKBeVrP3g/exec";
+            
             try {
                 const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                 const res = await fetch(`${url}?t=${Date.now()}`);
                 const data = await res.json();
-                const filtered = data.filter(r => r.rawDate === dateStr && r.bu.includes("성의회관"));
                 
-                if(filtered.length === 0) {
-                    container.innerHTML = `<div class="text-[11px] text-slate-400 font-bold text-center py-2">행사 없음</div>`;
-                    return;
+                const hallEvents = data.filter(r => r.rawDate === dateStr && r.bu.includes("성의회관"));
+                const researchEvents = data.filter(r => r.rawDate === dateStr && r.bu.includes("의산연"));
+                
+                let html = "";
+
+                // 성의회관 배지 섹션
+                html += `<div class="building-group">`;
+                html += `<span class="building-badge badge-hall">성의회관</span>`;
+                if(hallEvents.length === 0) {
+                    html += `<div class="no-data">대관 내역이 없습니다.</div>`;
+                } else {
+                    html += hallEvents.map(item => `
+                        <div class="event-item">
+                            <span class="event-text"><span class="event-place">[${item.place}]</span>${item.event}</span>
+                        </div>
+                    `).join('');
                 }
-                container.innerHTML = filtered.map(item => `
-                    <div class="event-item">
-                        <span class="place-tag">${item.place}</span>
-                        <span class="event-name">${item.event}</span>
-                    </div>
-                `).join('');
-            } catch(e) { container.innerHTML = `<div class="text-[10px] text-red-400 text-center">연동 실패</div>`; }
+                html += `</div>`;
+
+                // 의산연 배지 섹션
+                html += `<div class="building-group">`;
+                html += `<span class="building-badge badge-research">의산연</span>`;
+                if(researchEvents.length === 0) {
+                    html += `<div class="no-data">대관 내역이 없습니다.</div>`;
+                } else {
+                    html += researchEvents.map(item => `
+                        <div class="event-item">
+                            <span class="event-text"><span class="event-place">[${item.place}]</span>${item.event}</span>
+                        </div>
+                    `).join('');
+                }
+                html += `</div>`;
+
+                container.innerHTML = html;
+
+            } catch(e) { 
+                container.innerHTML = `<div class="text-[10px] text-red-400 text-center">정보 수신 실패</div>`; 
+            }
         }
 
         async function updateMeal(date) {
@@ -288,16 +395,25 @@
                 const res = await fetch(url);
                 const data = await res.json();
                 const day = data[key];
-                document.getElementById('lunch-menu').innerText = day ? (day["중식"] || day["중 식"])?.menu.split('(')[0] : "-";
-                document.getElementById('night-menu').innerText = day ? (day["야식"] || day["야 식"])?.menu.split('(')[0] : "-";
+                document.getElementById('lunch-menu').innerText = day ? (day["중식"] || day["중 식"])?.menu.split('(')[0] : "없음";
+                document.getElementById('night-menu').innerText = day ? (day["야식"] || day["야 식"])?.menu.split('(')[0] : "없음";
             } catch(e) { }
         }
 
         window.onload = () => {
-            const today = getKSTNow();
-            const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-            document.getElementById('target-date').value = dateString;
-            handleDateChange();
+            fp = flatpickr("#datePicker", {
+                locale: "ko", 
+                dateFormat: "Y.m.d (D)", 
+                defaultDate: currentDate, 
+                disableMobile: "true",
+                onChange: (selectedDates) => { 
+                    if(selectedDates.length > 0) { 
+                        currentDate = selectedDates[0]; 
+                        updateDisplay(); 
+                    } 
+                }
+            });
+            updateDisplay();
         };
     </script>
 </body>
