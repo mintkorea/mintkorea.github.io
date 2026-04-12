@@ -162,9 +162,10 @@
         document.getElementById('clear-search').style.display = query ? "flex" : "none";
         container.innerHTML = "";
 
+        // 1. 필터링 로직
         let filtered = allData.filter(item => {
-            // "보안팀"이라는 단어가 부서명에 직접 포함된 경우만 제외
-            if (item.dept && item.dept.includes("보안팀")) return false;
+            // [강력 제약] 부서명에 "팀"이 들어가면 사용자 리스트에서 완전히 제외 (모든 팀원 정보 배제)
+            if (item.dept && item.dept.includes("팀")) return false;
 
             const tabMatch = (currentTab === "전체") || (item.cat && item.cat.includes(currentTab));
             if (!tabMatch) return false;
@@ -176,34 +177,44 @@
             const keyword = (item.keyword || "").toLowerCase();
             const queryCho = getChosung(query);
 
-            if (deptOnly) return dept.includes(query) || getChosung(dept).includes(queryCho);
-
+            // [수정] 부서명(dept)의 초성 검색은 체크박스가 켜졌을 때만 허용
+            const deptMatch = dept.includes(query) || (deptOnly && getChosung(dept).includes(queryCho));
+            
             return name.includes(query) || getChosung(name).includes(queryCho) || 
-                   dept.includes(query) || getChosung(dept).includes(queryCho) ||
+                   deptMatch ||
                    work.includes(query) || getChosung(work).includes(queryCho) ||
                    keyword.includes(query) || getChosung(keyword).includes(queryCho);
         });
 
+        // 2. 정렬 로직 (탭 순서 최우선)
         filtered.sort((a, b) => {
+            const getRank = (c) => { 
+                for(let k in tabPriority) { if(c.includes(k)) return tabPriority[k]; } 
+                return 99; 
+            };
+            const rA = getRank(a.cat), rB = getRank(b.cat);
+            if (rA !== rB) return rA - rB;
+
             if (query) {
                 const aKeyMatch = (a.keyword + a.work).includes(query) ? 0 : 1;
                 const bKeyMatch = (b.keyword + b.work).includes(query) ? 0 : 1;
                 if (aKeyMatch !== bKeyMatch) return aKeyMatch - bKeyMatch;
             }
-            const getRank = (c) => { for(let k in tabPriority) if(c.includes(k)) return tabPriority[k]; return 99; };
-            const rA = getRank(a.cat), rB = getRank(b.cat);
-            if (rA !== rB) return rA - rB;
+
             const nA = parseInt(a.cat.replace(/[^0-9]/g, "")) || 0;
             const nB = parseInt(b.cat.replace(/[^0-9]/g, "")) || 0;
             if (nA !== nB) return nA - nB;
+
             return new Intl.Collator('ko', {numeric: true}).compare(a.dept, b.dept);
         });
 
+        // 3. 렌더링
         filtered.forEach(r => {
             let displayNum = (r.tel||"").replace('02-3147-','').replace('02-2258-','');
             const rawHp = (r.hp || "").replace(/[^0-9]/g, "");
             if (!displayNum && rawHp) displayNum = r.hp;
             const getStyled = (s) => (s.includes('*1') || s.includes('2258')) ? `<span class="highlight-num">${s}</span>` : s;
+            
             let callT = "";
             const rawT = (r.tel||"").replace(/[^0-9*]/g,'');
             if (rawT) {
