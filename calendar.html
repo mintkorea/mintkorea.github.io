@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>성의교정 커스텀 근무달력</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f1f5f9;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 캘린더 그리드 공통 */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            border-top: 1px solid #e2e8f0;
+            border-left: 1px solid #e2e8f0;
+        }
+
+        .calendar-cell {
+            border-right: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            transition: background-color 0.2s;
+        }
+
+        .detail-view .calendar-cell { aspect-ratio: 1 / 1.35; }
+        .multi-view .calendar-cell { min-height: 75px; aspect-ratio: 1 / 1.15; }
+
+        .date-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .shift-area {
+            flex: 1.3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+        }
+
+        .detail-view .date-area { font-size: 1rem; }
+        .detail-view .shift-area { font-size: 1.4rem; }
+        .multi-view .date-area { font-size: 0.85rem; }
+        .multi-view .shift-area { font-size: 1.1rem; }
+
+        .is-selected-day {
+            outline: 3px solid #1e293b;
+            outline-offset: -3px;
+            z-index: 10;
+        }
+
+        .sunday { color: #ef4444; }
+        .saturday { color: #3b82f6; }
+
+        .cell-highlighted .date-area,
+        .cell-highlighted .shift-area {
+            color: #ffffff !important;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 800;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        /* 모달 디자인 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal-card {
+            background: white;
+            width: 100%;
+            max-width: 380px;
+            max-height: 90vh;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow-y: auto;
+            animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalSlideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .pattern-item-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 16px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .color-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        .color-dot input[type="color"] {
+            width: 150%; height: 150%;
+            transform: translate(-25%, -25%);
+            cursor: pointer;
+            border: none;
+        }
+
+        .admin-input {
+            width: 100%;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .admin-input:focus { border-color: #3b82f6; background: #ffffff; }
+
+        .multi-container {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        @media (max-width: 1100px) { .multi-container { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 700px) { .multi-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body class="p-3 md:p-6">
+
+    <div id="appContainer" class="max-w-md mx-auto transition-all duration-300">
+        <!-- 상단 헤더 -->
+        <header class="bg-white rounded-2xl shadow-sm border border-gray-200 mb-5 p-4">
+            <div class="flex items-center justify-between mb-3 border-b border-gray-50 pb-2">
+                <div class="flex items-center gap-2">
+                    <span id="displayAppIcon" class="text-xl">🎯</span>
+                    <h1 id="displayAppTitle" class="text-xl font-black text-gray-800 tracking-tight">근무달력</h1>
+                </div>
+                <button id="openAuthBtn" class="text-[11px] font-extrabold bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg active:scale-95 transition-all">⚙️ 설정</button>
+            </div>
+            
+            <div class="flex items-center justify-between mb-4 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                <span class="text-xs font-bold text-slate-500 ml-1">강조 표시:</span>
+                <select id="shiftSelect" class="text-xs p-1.5 bg-white text-gray-700 rounded-lg font-bold outline-none w-32 border border-gray-200"></select>
+            </div>
+
+            <div id="singleNav" class="flex items-center justify-between bg-white p-1 rounded-xl border border-gray-100">
+                <div class="flex gap-1">
+                    <button id="prevYear" class="nav-btn">≪</button>
+                    <button id="prevMonth" class="nav-btn">＜</button>
+                </div>
+                <h2 id="currentDisplayTitle" class="text-[17px] font-black text-slate-800 tracking-tighter whitespace-nowrap px-1">2026년 3월</h2>
+                <div class="flex gap-1">
+                    <button id="nextMonth" class="nav-btn">＞</button>
+                    <button id="nextYear" class="nav-btn">≫</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 달력 영역 -->
+        <div id="calendarArea">
+            <div id="singleCalendar" class="detail-view bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
+                <div class="grid grid-cols-7 text-center font-bold text-[11px] py-3 bg-slate-50/50 border-b border-gray-100 text-slate-400">
+                    <div class="sunday">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="saturday">토</div>
+                </div>
+                <div id="singleCalendarBody" class="calendar-grid"></div>
+            </div>
+            <div id="multiCalendar" class="hidden multi-view multi-container"></div>
+        </div>
+
+        <div class="flex flex-col items-center gap-6 mt-10 mb-16">
+            <button id="toggleModeBtn" class="bg-slate-800 text-white px-10 py-3.5 rounded-full font-black text-lg shadow-lg active:scale-95 transition-all">
+                6개월 몰아보기
+            </button>
+            <div id="multiControl" class="hidden flex gap-3 w-full max-w-sm">
+                <button id="prevHalf" class="nav-btn flex-1 py-4 bg-white border border-gray-200 shadow-sm text-sm h-auto w-auto font-bold">≪ 이전</button>
+                <button id="nextHalf" class="nav-btn flex-1 py-4 bg-white border border-gray-200 shadow-sm text-sm h-auto w-auto font-bold">다음 ≫</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 인증 모달 -->
+    <div id="authModal" class="modal-overlay">
+        <div class="modal-card max-w-[300px] text-center">
+            <div class="text-3xl mb-2">🔒</div>
+            <h3 class="text-lg font-black mb-1">인증 확인</h3>
+            <p class="text-xs text-gray-400 mb-6">설정을 변경하려면 비밀번호를 입력하세요.</p>
+            <input type="password" id="authPasswordInput" class="admin-input text-center tracking-[8px]" placeholder="••••">
+            <div id="authErrorMsg" class="text-[11px] text-red-500 mt-3 hidden font-bold">비밀번호가 올바르지 않습니다.</div>
+            <div class="flex gap-2 mt-8">
+                <button id="closeAuthBtn" class="flex-1 py-3.5 bg-slate-100 text-slate-500 font-bold rounded-xl text-sm">취소</button>
+                <button id="confirmAuthBtn" class="flex-1 py-3.5 bg-slate-800 text-white font-bold rounded-xl text-sm shadow-lg">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 관리자 설정 모달 -->
+    <div id="adminModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="flex items-center gap-2 mb-6">
+                <span class="text-xl">⚙️</span>
+                <h3 class="text-lg font-black text-gray-800">전체 설정</h3>
+            </div>
+            
+            <!-- [추가] 타이틀 및 아이콘 수정 영역 -->
+            <div class="mb-6 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                <label class="block text-xs font-bold text-blue-400 mb-3 ml-1">앱 타이틀 및 아이콘</label>
+                <div class="flex gap-2">
+                    <input type="text" id="appIconInput" class="admin-input w-16 text-center text-xl" placeholder="🎯">
+                    <input type="text" id="appTitleInput" class="admin-input flex-1" placeholder="앱 이름 입력">
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-xs font-bold text-gray-400 mb-2 ml-1">기준일 (패턴 시작일)</label>
+                <input type="date" id="baseDateInput" class="admin-input">
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-xs font-bold text-gray-400 mb-2 ml-1">근무 루틴 관리</label>
+                <div id="patternList" class="space-y-2"></div>
+                <button id="addPatternBtn" class="w-full mt-3 py-3 border-2 border-dashed border-slate-200 text-slate-400 text-xs font-bold rounded-xl hover:bg-slate-50 transition-all">+ 항목 추가</button>
+            </div>
+
+            <div class="mb-8 pt-4 border-t border-slate-100">
+                <label class="block text-xs font-bold text-gray-400 mb-2 ml-1">비밀번호 설정</label>
+                <input type="text" id="adminPasswordInput" class="admin-input" placeholder="비밀번호 변경">
+            </div>
+
+            <div class="flex gap-3">
+                <button id="closeAdminBtn" class="flex-1 py-4 bg-slate-100 text-slate-500 font-bold rounded-xl">닫기</button>
+                <button id="saveAdminBtn" class="flex-[1.5] py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-all">저장 및 적용</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 초기 데이터 로드 및 기본값 설정
+        let config = JSON.parse(localStorage.getItem('shift_config_v2')) || {
+            appTitle: '근무달력',
+            appIcon: '🎯',
+            baseDate: '2026-03-01',
+            adminPassword: '0000',
+            pattern: [
+                { name: 'A', color: '#fee2e2', highlight: '#ef4444' },
+                { name: 'B', color: '#fef3c7', highlight: '#f59e0b' },
+                { name: 'C', color: '#dbeafe', highlight: '#3b82f6' }
+            ]
+        };
+
+        const today = new Date();
+        let viewMode = 'single';
+        let currentYear = today.getFullYear();
+        let currentMonth = today.getMonth();
+
+        const displayAppTitle = document.getElementById('displayAppTitle');
+        const displayAppIcon = document.getElementById('displayAppIcon');
+        const appTitleInput = document.getElementById('appTitleInput');
+        const appIconInput = document.getElementById('appIconInput');
+        
+        const shiftSelect = document.getElementById('shiftSelect');
+        const patternList = document.getElementById('patternList');
+        const baseDateInput = document.getElementById('baseDateInput');
+        const adminPasswordInput = document.getElementById('adminPasswordInput');
+        
+        const adminModal = document.getElementById('adminModal');
+        const authModal = document.getElementById('authModal');
+
+        // UI에 저장된 설정값 반영
+        function initAppUI() {
+            displayAppTitle.textContent = config.appTitle || '근무달력';
+            displayAppIcon.textContent = config.appIcon || '🎯';
+            document.title = config.appTitle;
+
+            const currentHighlight = shiftSelect.value || 'none';
+            shiftSelect.innerHTML = '<option value="none">강조 없음</option>';
+            config.pattern.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.name;
+                opt.textContent = `${p.name}조 강조`;
+                if(p.name === currentHighlight) opt.selected = true;
+                shiftSelect.appendChild(opt);
+            });
+        }
+
+        // 관리자 모달에 설정값 채우기
+        function initAdminUI() {
+            appTitleInput.value = config.appTitle;
+            appIconInput.value = config.appIcon;
+            baseDateInput.value = config.baseDate;
+            adminPasswordInput.value = config.adminPassword;
+            patternList.innerHTML = '';
+            config.pattern.forEach(p => addPatternRow(p));
+        }
+
+        function addPatternRow(p = { name: '', color: '#f1f5f9', highlight: '#334155' }) {
+            const div = document.createElement('div');
+            div.className = 'pattern-item-card';
+            div.innerHTML = `
+                <input type="text" value="${p.name}" placeholder="조" class="w-14 p-2 text-sm bg-white border border-slate-200 rounded-lg font-bold text-center outline-none">
+                <div class="flex gap-3 ml-2">
+                    <div class="flex flex-col items-center gap-1">
+                        <span class="text-[8px] font-bold text-slate-400">배경</span>
+                        <div class="color-dot" style="background:${p.color}"><input type="color" value="${p.color}"></div>
+                    </div>
+                    <div class="flex flex-col items-center gap-1">
+                        <span class="text-[8px] font-bold text-slate-400">강조</span>
+                        <div class="color-dot" style="background:${p.highlight}"><input type="color" value="${p.highlight}"></div>
+                    </div>
+                </div>
+                <button class="ml-auto text-red-300 p-1" onclick="this.parentElement.remove()">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            `;
+            
+            div.querySelectorAll('input[type="color"]').forEach(input => {
+                input.oninput = (e) => e.target.parentElement.style.background = e.target.value;
+            });
+            patternList.appendChild(div);
+        }
+
+        function saveConfig() {
+            const rows = patternList.querySelectorAll('.pattern-item-card');
+            const newPattern = Array.from(rows).map(row => ({
+                name: row.querySelector('input[type="text"]').value.trim().toUpperCase(),
+                color: row.querySelectorAll('input[type="color"]')[0].value,
+                highlight: row.querySelectorAll('input[type="color"]')[1].value
+            })).filter(p => p.name !== "");
+
+            if(newPattern.length === 0) return alert("근무 패턴을 입력하세요.");
+
+            config = {
+                appTitle: appTitleInput.value.trim() || '근무달력',
+                appIcon: appIconInput.value.trim() || '🎯',
+                baseDate: baseDateInput.value,
+                adminPassword: adminPasswordInput.value || '0000',
+                pattern: newPattern
+            };
+
+            localStorage.setItem('shift_config_v2', JSON.stringify(config));
+            initAppUI();
+            render();
+            adminModal.classList.remove('active');
+        }
+
+        function renderGrid(container, year, month, targetShift) {
+            container.innerHTML = '';
+            const base = new Date(config.baseDate);
+            base.setHours(0,0,0,0);
+            
+            if (viewMode === 'multi') {
+                ['일','월','화','수','목','금','토'].forEach((d, i) => {
+                    const div = document.createElement('div');
+                    div.className = `text-[10px] font-bold text-center py-1.5 bg-white border-b border-gray-50 ${i===0?'sunday':i===6?'saturday':'text-slate-300'}`;
+                    div.textContent = d;
+                    container.appendChild(div);
+                });
+            }
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const lastDate = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) container.appendChild(Object.assign(document.createElement('div'), { className: 'calendar-cell bg-gray-50/30' }));
+
+            for (let d = 1; d <= lastDate; d++) {
+                const curr = new Date(year, month, d);
+                curr.setHours(0,0,0,0);
+                const diff = Math.floor((curr - base) / (1000 * 60 * 60 * 24));
+                const pIdx = ((diff % config.pattern.length) + config.pattern.length) % config.pattern.length;
+                const shift = config.pattern[pIdx];
+
+                const cell = document.createElement('div');
+                cell.className = 'calendar-cell';
+                const isH = (targetShift === shift.name);
+                if (isH) { cell.classList.add('cell-highlighted'); cell.style.backgroundColor = shift.highlight; }
+                if (year===today.getFullYear() && month===today.getMonth() && d===today.getDate()) cell.classList.add('is-selected-day');
+
+                const dDiv = document.createElement('div');
+                dDiv.className = `date-area ${curr.getDay()===0?'sunday':curr.getDay()===6?'saturday':''}`;
+                dDiv.textContent = d;
+
+                const sDiv = document.createElement('div');
+                sDiv.className = 'shift-area';
+                if (!isH) { sDiv.style.backgroundColor = shift.color; sDiv.style.color = '#1e293b'; }
+                sDiv.textContent = shift.name;
+
+                cell.append(dDiv, sDiv);
+                container.appendChild(cell);
+            }
+        }
+
+        function render() {
+            const target = shiftSelect.value;
+            const single = document.getElementById('singleCalendar');
+            const multi = document.getElementById('multiCalendar');
+            const app = document.getElementById('appContainer');
+
+            if (viewMode === 'single') {
+                app.style.maxWidth = "448px";
+                single.classList.remove('hidden'); multi.classList.add('hidden');
+                document.getElementById('multiControl').classList.add('hidden');
+                document.getElementById('singleNav').classList.remove('hidden');
+                document.getElementById('toggleModeBtn').textContent = "6개월 몰아보기";
+                document.getElementById('currentDisplayTitle').textContent = `${currentYear}년 ${currentMonth + 1}월`;
+                renderGrid(document.getElementById('singleCalendarBody'), currentYear, currentMonth, target);
+            } else {
+                app.style.maxWidth = "1400px";
+                single.classList.add('hidden'); multi.classList.remove('hidden');
+                document.getElementById('multiControl').classList.remove('hidden');
+                document.getElementById('singleNav').classList.add('hidden');
+                document.getElementById('toggleModeBtn').textContent = "상세 달력 보기";
+                multi.innerHTML = '';
+                for (let i = 0; i < 6; i++) {
+                    const d = new Date(currentYear, currentMonth + i, 1);
+                    const card = document.createElement('div');
+                    card.className = "bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden";
+                    card.innerHTML = `<div class="p-3 bg-slate-50 border-b border-gray-100 font-black text-sm text-center">${d.getFullYear()}년 ${d.getMonth()+1}월</div>`;
+                    const g = document.createElement('div'); g.className = 'calendar-grid';
+                    renderGrid(g, d.getFullYear(), d.getMonth(), target);
+                    card.appendChild(g); multi.appendChild(card);
+                }
+            }
+        }
+
+        // 이벤트 리스너
+        document.getElementById('openAuthBtn').onclick = () => {
+            authPasswordInput.value = ''; authErrorMsg.classList.add('hidden');
+            authModal.classList.add('active'); setTimeout(()=>authPasswordInput.focus(), 100);
+        };
+        document.getElementById('closeAuthBtn').onclick = () => authModal.classList.remove('active');
+        document.getElementById('confirmAuthBtn').onclick = () => {
+            if (authPasswordInput.value === config.adminPassword) {
+                authModal.classList.remove('active'); initAdminUI(); adminModal.classList.add('active');
+            } else { authErrorMsg.classList.remove('hidden'); authPasswordInput.value = ''; }
+        };
+        document.getElementById('saveAdminBtn').onclick = saveConfig;
+        document.getElementById('addPatternBtn').onclick = () => addPatternRow();
+        document.getElementById('closeAdminBtn').onclick = () => adminModal.classList.remove('active');
+        document.getElementById('shiftSelect').onchange = render;
+        document.getElementById('toggleModeBtn').onclick = () => { viewMode = viewMode==='single'?'multi':'single'; render(); window.scrollTo(0,0); };
+        
+        document.getElementById('prevMonth').onclick = () => { currentMonth--; if(currentMonth<0){currentMonth=11;currentYear--;} render(); };
+        document.getElementById('nextMonth').onclick = () => { currentMonth++; if(currentMonth>11){currentMonth=0;currentYear++;} render(); };
+        document.getElementById('prevYear').onclick = () => { currentYear--; render(); };
+        document.getElementById('nextYear').onclick = () => { currentYear++; render(); };
+        
+        window.onload = () => { initAppUI(); render(); };
+    </script>
+</body>
+</html>
