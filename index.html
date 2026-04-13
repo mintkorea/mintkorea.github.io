@@ -17,11 +17,7 @@
             letter-spacing: -0.05em; margin: 0; padding: 0; line-height: 1.2; -webkit-tap-highlight-color: transparent;
         }
         
-        /* [추가] 화면 전환용 스타일 */
-        .page { display: none; width: 100%; max-width: 480px; margin: 0 auto; min-height: 100vh; flex-direction: column; gap: 8px; padding-bottom: 20px; }
-        .page.active { display: flex; }
-        
-        .app-container { width: 100%; max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; gap: 8px; padding-bottom: 20px; }
+        .page { width: 100%; max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; gap: 8px; padding-bottom: 20px; }
         
         .brand-header { 
             background-color: var(--brand-navy); 
@@ -80,17 +76,6 @@
             display: block; 
         }
 
-        /* [추가] 공지사항 상세 페이지 전용 스타일 */
-        .notice-full-header { background: var(--brand-navy); color: white; padding: 18px 20px; display: flex; align-items: center; }
-        .back-btn { margin-right: 12px; cursor: pointer; }
-        .notice-list-item { background: white; padding: 16px; border-radius: 12px; margin: 8px 12px; border: 1px solid #eef2f6; }
-        .tag { font-size: 10px; font-weight: 900; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 6px; }
-        .tag-red { background: #fef2f2; color: #ef4444; }
-        .tag-green { background: #f0fdf4; color: #22c55e; }
-
-        /* [추가] 모달 */
-        #modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
-
         .building-badge { font-size: 10px; font-weight: 900; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 4px; }
         .badge-hall { background-color: #e0e7ff; color: #4338ca; }
         .badge-research { background-color: #f3e8ff; color: #7e22ce; }
@@ -104,8 +89,7 @@
     </style>
 </head>
 <body>
-    <!-- [메인 페이지 섹션] -->
-    <div id="page-main" class="page active">
+    <div id="page-main" class="page">
         <div class="brand-header">
             <div class="flex justify-between items-start w-full">
                 <div class="flex flex-col">
@@ -133,11 +117,13 @@
             </div>
         </div>
 
+        <!-- 근무 편성 카드 -->
         <div class="table-card mt-2">
             <div class="table-header label-duty">근무<br>편성</div>
             <div id="duty-preview-container" class="table-body flex flex-col justify-center"></div>
         </div>
 
+        <!-- 오늘 행사 카드 -->
         <div class="table-card">
             <div class="table-header label-event">오늘<br>행사</div>
             <div id="event-list" class="table-body">
@@ -145,14 +131,15 @@
             </div>
         </div>
 
-        <!-- 공지 클릭 시 showPage('page-notice') 호출 -->
-        <div onclick="showPage('page-notice')" class="table-card">
+        <!-- ⭐ 핵심 수정: 공지사항 클릭 시 리액트 게시판 파일(notice.jsx)로 이동 -->
+        <div onclick="location.href='notice.jsx'" class="table-card">
             <div class="table-header label-notice">최신<br>공지</div>
             <div id="latest-notice-container" class="table-body">
                 <div class="text-[12px] text-slate-300 font-bold py-2">로딩...</div>
             </div>
         </div>
 
+        <!-- 오늘 식단 카드 -->
         <div class="table-card">
             <div class="table-header label-meal">오늘<br>식단</div>
             <div class="table-body flex p-0 min-h-[60px]">
@@ -170,32 +157,6 @@
         <footer class="mt-auto pb-10 text-center opacity-30">
             <p class="text-[10px] text-slate-500 font-bold tracking-widest uppercase">ST. MARY'S CAMPUS INTEGRATED INFO</p>
         </footer>
-    </div>
-
-    <!-- [공지사항 페이지 섹션] -->
-    <div id="page-notice" class="page">
-        <div class="notice-full-header">
-            <div class="back-btn" onclick="showPage('page-main')">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            </div>
-            <span class="text-xl font-black">인수인계 및 공지</span>
-        </div>
-        <div id="notice-list-container" class="mt-2">
-            <!-- 리스트 동적 생성 -->
-        </div>
-    </div>
-
-    <!-- 상세 모달 -->
-    <div id="modal" onclick="closeModal()">
-        <div class="bg-white w-full max-w-[400px] rounded-[24px] overflow-hidden flex flex-col max-h-[80vh]" onclick="event.stopPropagation()">
-            <div class="p-6 overflow-y-auto">
-                <div id="m-tag" class="tag"></div>
-                <h2 id="m-title" class="text-xl font-black mb-2 leading-tight"></h2>
-                <div id="m-meta" class="text-xs text-slate-400 font-bold mb-4 pb-4 border-b"></div>
-                <div id="m-content" class="text-[14px] leading-relaxed text-slate-600 whitespace-pre-wrap"></div>
-            </div>
-            <div class="bg-slate-50 p-4 text-center font-bold text-slate-500 cursor-pointer border-t" onclick="closeModal()">닫기</div>
-        </div>
     </div>
 
     <script>
@@ -216,68 +177,33 @@
         ];
 
         let currentDate = getKSTNow();
-        let allPosts = []; // 공지 데이터 저장용
 
         function getKSTNow() { const now = new Date(); return new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (9 * 60 * 60000)); }
-
-        // [추가] 화면 전환 함수
-        function showPage(pageId) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(pageId).classList.add('active');
-            window.scrollTo(0,0);
-        }
 
         const Cache = {
             get: (key) => { const data = localStorage.getItem(key); return data ? JSON.parse(data) : null; },
             set: (key, val) => localStorage.setItem(key, JSON.stringify(val))
         };
 
-        // 공지 데이터 로드 (프리뷰 + 리스트 동시 업데이트)
-        async function fetchNoticeData() {
+        // 메인 페이지의 '최신 공지' 프리뷰 업데이트
+        async function fetchNoticePreview() {
             const previewContainer = document.getElementById('latest-notice-container');
-            const listContainer = document.getElementById('notice-list-container');
             try {
                 const response = await fetch(`${NOTICE_API_URL}?t=${Date.now()}`);
-                allPosts = await response.json();
+                const allPosts = await response.json();
                 
                 if (!allPosts || allPosts.length === 0) {
                     previewContainer.innerHTML = `<div class="text-[13px] font-bold text-slate-300">공지가 없습니다.</div>`;
                     return;
                 }
-
-                const sorted = [...allPosts].reverse();
-                
-                // 1. 메인 프리뷰 (가장 최신 공지)
-                const latest = sorted[0];
+                const latest = allPosts[allPosts.length - 1];
                 previewContainer.innerHTML = `<div><span class="notice-title-main">${latest[3]}</span><span class="notice-info-sub">[${latest[2]}] ${latest[1]} · ${latest[5].split(' ')[0]}</span></div>`;
-
-                // 2. 전체 리스트 생성
-                listContainer.innerHTML = sorted.map((p, idx) => `
-                    <div class="notice-list-item shadow-sm" onclick="openModal(${allPosts.length - 1 - idx})">
-                        <span class="tag ${p[2]==='공지사항'?'tag-red':'tag-green'}">${p[2]}</span>
-                        <div class="text-[16px] font-black text-slate-800 mb-1 leading-tight">${p[3]}</div>
-                        <div class="text-[11px] text-slate-400 font-bold">${p[1]} · ${p[5].split(' ')[0]}</div>
-                    </div>
-                `).join('');
-
             } catch (e) { 
                 previewContainer.innerHTML = `<div class="text-[11px] text-red-400">로드 실패</div>`; 
             }
         }
 
-        function openModal(idx) {
-            const p = allPosts[idx];
-            document.getElementById('m-tag').innerText = p[2];
-            document.getElementById('m-tag').className = `tag ${p[2]==='공지사항'?'tag-red':'tag-green'}`;
-            document.getElementById('m-title').innerText = p[3];
-            document.getElementById('m-meta').innerText = `${p[1]} · ${p[5]}`;
-            document.getElementById('m-content').innerText = p[4];
-            document.getElementById('modal').style.display = 'flex';
-        }
-
-        function closeModal() { document.getElementById('modal').style.display = 'none'; }
-
-        // 기존 근무 로직 유지
+        // 근무 관련 로직
         function getShiftName(d) {
             let base = new Date(baseDate); base.setHours(0,0,0,0);
             let target = new Date(d); target.setHours(0,0,0,0);
@@ -412,7 +338,7 @@
             updateDutyUI();
             updateEvents(currentDate);
             updateMeal(currentDate);
-            fetchNoticeData();
+            fetchNoticePreview();
         }
 
         window.onload = () => {
