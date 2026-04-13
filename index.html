@@ -159,13 +159,11 @@
         </footer>
     </div>
 
-    <!-- Firebase SDK (기존 스크립트들과 함께 사용) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, query, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global 환경 변수 사용
         const firebaseConfig = JSON.parse(window.__firebase_config);
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -176,7 +174,6 @@
             await signInAnonymously(auth);
             const noticeRef = collection(db, 'artifacts', appId, 'public', 'data', 'notices');
             
-            // 실시간 리스너: 최신 글 1개만 가져와서 메인에 표시
             onSnapshot(noticeRef, (snapshot) => {
                 const previewContainer = document.getElementById('latest-notice-container');
                 const notices = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -186,7 +183,6 @@
                     return;
                 }
 
-                // 날짜순 정렬 (내림차순)
                 notices.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 const latest = notices[0];
                 const dateStr = latest.createdAt?.toDate().toLocaleDateString() || '-';
@@ -199,13 +195,10 @@
                 `;
             });
         }
-
-        // 초기 실행
         initFirestoreNotice();
     </script>
 
     <script>
-        // 기존 렌더링 로직 유지
         const EVENT_API_URL = "https://script.google.com/macros/s/AKfycbzKtqrzNK11rX4sCdDFv0lcgUcdVwsNiUnlXYc8Zjm0dJNlNV8ThwKrtqOgKBeVrP3g/exec";
         const MEAL_API_URL = "https://script.google.com/macros/s/AKfycbxZkcn8EEcGcxMaT98l_CKJTCM_0Ual_S2JefpHptm_dbEtQ5tjM00TEhU2XdqTObLh/exec";
         
@@ -311,39 +304,38 @@
         async function updateEvents(date) {
             const container = document.getElementById('event-list');
             const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-            const cached = Cache.get('events_cache');
-            if (cached && cached.date === dateStr) renderEvents(cached.data);
-
+            
             try {
+                // 실시간성을 위해 타임스탬프 필수 사용
                 const res = await fetch(`${EVENT_API_URL}?t=${Date.now()}`);
                 const data = await res.json();
+                
+                // 해당 날짜 데이터만 필터
                 const filtered = data.filter(r => r.rawDate === dateStr);
+                
+                // 성의회관/의산연 데이터만 추출 (로직 보강)
+                const hallEvents = filtered.filter(r => r.bu.includes("성의회관") || r.place.includes("성의회관"));
+                const researchEvents = filtered.filter(r => r.bu.includes("의산연") || r.place.includes("의산연"));
+                
+                let html = `<div class="mb-2"><span class="building-badge badge-hall">성의회관</span>`;
+                html += hallEvents.length ? hallEvents.map(i => `<div class="text-[13px] font-bold leading-snug"><span class="event-place">[${i.place}]</span>${i.event}</div>`).join('') : `<div class="text-[11px] text-slate-300 ml-1">오늘 행사가 없습니다.</div>`;
+                html += `</div><div><span class="building-badge badge-research">의산연</span>`;
+                html += researchEvents.length ? researchEvents.map(i => `<div class="text-[13px] font-bold leading-snug"><span class="event-place">[${i.place}]</span>${i.event}</div>`).join('') : `<div class="text-[11px] text-slate-300 ml-1">오늘 행사가 없습니다.</div>`;
+                html += `</div>`;
+                
+                container.innerHTML = html;
                 Cache.set('events_cache', { date: dateStr, data: filtered });
-                renderEvents(filtered);
-            } catch(e) { if(!cached) container.innerHTML = `<div class="text-xs text-red-400">데이터 오류</div>`; }
-        }
-
-        function renderEvents(events) {
-            const container = document.getElementById('event-list');
-            const hallEvents = events.filter(r => r.bu.includes("성의회관"));
-            const researchEvents = events.filter(r => r.bu.includes("의산연"));
-            let html = `<div class="mb-2"><span class="building-badge badge-hall">성의회관</span>`;
-            html += hallEvents.length ? hallEvents.map(i => `<div class="text-[13px] font-bold leading-snug"><span class="event-place">[${i.place}]</span>${i.event}</div>`).join('') : `<div class="text-[11px] text-slate-300 ml-1">대관 내역이 없습니다.</div>`;
-            html += `</div><div><span class="building-badge badge-research">의산연</span>`;
-            html += researchEvents.length ? researchEvents.map(i => `<div class="text-[13px] font-bold leading-snug"><span class="event-place">[${i.place}]</span>${i.event}</div>`).join('') : `<div class="text-[11px] text-slate-300 ml-1">대관 내역이 없습니다.</div>`;
-            html += `</div>`;
-            container.innerHTML = html;
+            } catch(e) { 
+                container.innerHTML = `<div class="text-xs text-red-400">행사 정보를 불러오지 못했습니다.</div>`; 
+            }
         }
 
         async function updateMeal(date) {
             const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-            const cached = Cache.get('meal_cache');
-            if (cached && cached.date === dateStr) renderMeal(cached.data);
             try {
                 const res = await fetch(MEAL_API_URL);
                 const data = await res.json();
                 const dayMeal = data[dateStr];
-                Cache.set('meal_cache', { date: dateStr, data: dayMeal });
                 renderMeal(dayMeal);
             } catch(e) { }
         }
