@@ -2,231 +2,225 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>인수인계 및 공지사항</title>
-    <!-- Tailwind CSS (디자인 프레임워크) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>성의 교정 통합 게시판</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 프리텐다드 폰트 적용 (깔끔한 시스템 폰트) */
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-        
-        :root { --brand-navy: #2d3e75; }
-        
-        body { 
-            font-family: 'Pretendard', sans-serif; 
-            background-color: #f1f5f9; 
-            color: #1e293b; 
-            letter-spacing: -0.02em; 
-            margin: 0; 
-        }
-
-        /* 앱 스타일 컨테이너 */
-        .app-container { 
-            width: 100%; 
-            max-width: 480px; 
-            margin: 0 auto; 
-            min-height: 100vh; 
-            background: #f8fafc; 
-            display: flex; 
-            flex-direction: column; 
-            box-shadow: 0 0 50px rgba(0,0,0,0.05); 
-        }
-
-        /* 상단 헤더 */
-        .header { 
-            background: var(--brand-navy); 
-            color: white; 
-            padding: 20px; 
-            position: sticky; 
-            top: 0; 
-            z-index: 50; 
-            text-align: center;
-        }
-
-        /* 게시글 카드 스타일 */
-        .notice-card { 
-            background: white; 
-            padding: 18px 20px; 
-            border-radius: 20px; 
-            border: 1px solid #e2e8f0; 
-            margin: 0 16px 12px; 
-            cursor: pointer; 
-            transition: all 0.2s ease; 
-        }
-        .notice-card:active { transform: scale(0.98); background: #f1f5f9; }
-
-        /* 말머리 + 제목 한 줄 배치 */
-        .card-top { 
-            display: flex; 
-            align-items: center; 
-            gap: 8px; 
-            margin-bottom: 6px; 
-        }
-        
-        .tag { 
-            font-size: 10px; 
-            font-weight: 800; 
-            padding: 2px 8px; 
-            border-radius: 4px; 
-            flex-shrink: 0; 
-            background: #fef2f2; 
-            color: #ef4444; 
-            border: 1px solid #fee2e2;
-        }
-
-        .title { 
-            font-size: 16px; 
-            font-weight: 800; 
-            color: #0f172a; 
-            white-space: nowrap; 
-            overflow: hidden; 
-            text-overflow: ellipsis; 
-            flex: 1; 
-        }
-
-        /* 상세 보기 모달 */
-        #modal { 
-            display: none; 
-            position: fixed; 
-            inset: 0; 
-            background: rgba(15, 23, 42, 0.85); 
-            backdrop-filter: blur(8px); 
-            z-index: 100; 
-            align-items: center; 
-            justify-content: center; 
-            padding: 16px; 
-        }
-        .modal-box { 
-            background: white; 
-            width: 100%; 
-            max-width: 420px; 
-            border-radius: 32px; 
-            display: flex; 
-            flex-direction: column; 
-            max-height: 85vh; 
-            animation: slideUp 0.3s ease-out; 
-        }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        
-        .modal-body { padding: 32px; overflow-y: auto; }
-        .html-content { line-height: 1.7; color: #334155; }
-        .html-content p { margin-bottom: 1rem; }
-        .close-btn { 
-            margin: 0 24px 24px; 
-            padding: 16px; 
-            background: #f1f5f9; 
-            border-radius: 16px; 
-            text-align: center; 
-            font-weight: 800; 
-            cursor: pointer; 
-            color: #475569; 
-        }
+        body { font-family: 'Pretendard', sans-serif; background-color: #f0f2f5; margin: 0; padding-bottom: 50px; }
+        .header-gradient { background: linear-gradient(180deg, #4272d7 0%, #2d55b3 100%); border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; transition: all 0.2s; }
+        .btn-edit { background-color: #28a745; color: white; }
+        .btn-delete { background-color: #dc3545; color: white; }
+        .tag-notice { background-color: #fff1f0; color: #ff4d4f; border: 1px solid #ffa39e; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 4px; }
+        .search-input { border-radius: 8px; border: 1px solid #d1d5db; padding: 10px 10px 10px 35px; width: 100%; }
+        .write-section { background: white; border-radius: 16px; border: 2px solid #2d55b3; overflow: hidden; }
     </style>
 </head>
 <body>
 
-    <div class="app-container">
-        <header class="header">
-            <h1 class="text-xl font-black">인수인계 및 공지</h1>
-        </header>
+    <!-- 헤더 -->
+    <header class="header-gradient p-6 mb-6">
+        <div class="max-w-3xl mx-auto flex items-center justify-center gap-3 text-white">
+            <span class="text-3xl">🏛️</span>
+            <h1 class="text-2xl font-black tracking-tight">성의 교정 통합 게시판</h1>
+        </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-4">
         
-        <!-- 게시글 리스트 영역 -->
-        <div id="notice-list" class="py-4">
-            <!-- 자바스크립트가 데이터를 채웁니다 -->
-        </div>
-    </div>
-
-    <!-- 상세 보기 모달 -->
-    <div id="modal" onclick="closeModal()">
-        <div class="modal-box" onclick="event.stopPropagation()">
-            <div class="modal-body">
-                <div id="m-tag" class="tag" style="margin-bottom: 12px; font-size: 11px; padding: 4px 10px; display: inline-block;">공지사항</div>
-                <h2 id="m-title" style="font-size: 22px; font-weight: 800; line-height: 1.3; color: #0f172a; margin-bottom: 12px;"></h2>
-                <div class="text-xs text-slate-400 mb-6 font-bold flex justify-between">
-                    <span id="m-author"></span>
-                    <span id="m-date"></span>
-                </div>
-                <hr class="mb-6 border-slate-100">
-                <div id="m-content" class="html-content text-[15px]"></div>
+        <!-- 검색 및 버튼 영역 -->
+        <div class="flex flex-col gap-4 mb-8">
+            <div class="flex justify-end">
+                <button onclick="scrollToWrite()" class="bg-[#1e293b] text-white px-5 py-2 rounded-lg font-bold text-sm shadow-md flex items-center gap-2">
+                    📝 새 글 등록하기
+                </button>
             </div>
-            <div class="close-btn" onclick="closeModal()">닫기</div>
+            <div class="relative">
+                <span class="absolute left-3 top-3 text-gray-400">🔍</span>
+                <input type="text" id="search-input" oninput="searchPosts()" placeholder="제목 또는 작성자 검색..." class="search-input shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
         </div>
-    </div>
 
-    <script>
-        /**
-         * [글쓰기/수정 방법]
-         * 아래의 noticeData 배열에 새로운 객체를 추가하면 글이 등록됩니다.
-         * id는 중복되지 않게 숫자를 키워주세요.
-         */
-        const noticeData = [
+        <!-- 게시글 리스트 -->
+        <div id="post-list" class="space-y-6 mb-12">
+            <!-- 데이터가 여기에 렌더링됩니다 -->
+        </div>
+
+        <!-- 페이지네이션 (사진과 동일하게 장식용으로 추가) -->
+        <div class="flex justify-center gap-2 mb-12">
+            <span class="w-8 h-8 flex items-center justify-center bg-[#2d55b3] text-white rounded font-bold">1</span>
+        </div>
+
+        <!-- 게시글 작성 섹션 (하단 고정형) -->
+        <section class="write-section shadow-xl" id="write-section">
+            <div class="bg-slate-50 p-4 border-b flex items-center justify-between">
+                <h2 class="font-bold text-slate-700 flex items-center gap-2">✍️ 게시글 작성</h2>
+                <span class="text-xs text-slate-400 font-bold">👤 접속자: 관리자</span>
+            </div>
+            <div class="p-6">
+                <div class="flex gap-3 mb-4">
+                    <select id="new-category" class="border rounded-lg p-3 text-sm font-bold bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option>공지사항</option>
+                        <option>성의회관</option>
+                        <option>의생명</option>
+                    </select>
+                    <input type="text" id="new-title" placeholder="제목을 입력하세요" class="flex-1 border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <!-- 툴바 (사진 구현) -->
+                <div class="flex gap-4 p-2 bg-slate-50 border-t border-l border-r rounded-t-lg text-slate-500 text-sm">
+                    <span class="font-bold border-r pr-3 cursor-pointer">B</span>
+                    <span class="italic border-r pr-3 cursor-pointer">I</span>
+                    <span class="underline border-r pr-3 cursor-pointer">U</span>
+                    <span class="border-r pr-3 cursor-pointer">≡</span>
+                    <span class="cursor-pointer">A</span>
+                </div>
+                <textarea id="new-content" rows="8" class="w-full border p-4 text-sm rounded-b-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" placeholder="내용을 입력하세요"></textarea>
+                
+                <div class="mb-6">
+                    <label class="block text-xs font-bold text-slate-500 mb-2">📎 사진 첨부</label>
+                    <input type="file" class="text-xs text-slate-400 border w-full p-2 rounded-lg bg-slate-50">
+                </div>
+
+                <button onclick="addPost()" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-black text-lg transition-all shadow-lg">
+                    게시글 등록 완료
+                </button>
+            </div>
+        </section>
+
+        <!-- 코드 복사 영역 (업데이트용) -->
+        <div id="update-area" class="hidden mt-10 p-6 bg-slate-800 rounded-2xl">
+            <p class="text-emerald-400 text-sm font-bold mb-3">✅ 데이터가 저장되었습니다. 아래 코드를 전체 복사하여 파일을 업데이트 하세요.</p>
+            <textarea id="full-code" class="w-full h-40 bg-slate-900 text-slate-400 text-[10px] p-4 rounded-lg font-mono" readonly onclick="this.select()"></textarea>
+        </div>
+    </main>
+
+    <script id="post-data">
+        // 초기 데이터 (사진에 있는 내용)
+        let posts = [
             {
-                id: 3,
-                author: "관리자",
-                category: "공지사항",
-                title: "시신기증 접수증 전송 후 통화의 건",
-                date: "2026-04-13",
-                content: "<p>시신기증 접수증 전송 후 기존에는 즉시모심에 한하여 담당자와 통화하였으나, 현 담당자인 주상건 차장의 요청에 의하여 모든 건에 대하여 통화를 실시하여야 합니다.</p><p>즉시모심, 삼일장 구분 없이 접수증 전송 후 통화하시기 바랍니다.</p>"
+                id: 1,
+                category: '공지사항',
+                title: '시신기증 접수증 전송 후 통화의 건',
+                author: '관리자',
+                date: '04. 13. 오후 05:57',
+                content: '시신기증 접수증 전송 후 기준에는 즉시모심에 한하여 담당자와 통화하였으나 현 담당자인 주상건 차장의 요청에 의하여 모든 건에 대하여 통화를 실시하여야 합니다.\n\n즉시모심, 삼일장 구분없이 접수증 전송 후 통화하시기 바랍니다.'
             },
             {
                 id: 2,
-                author: "관리자",
-                category: "공지사항",
-                title: "성의회관 옥상 방수공사의 건",
-                date: "2026-04-12",
-                content: "<p>금주 금요일부터 성의회관 옥상 방수공사가 진행될 예정입니다. 소음이 발생할 수 있으니 업무에 참고하시기 바랍니다.</p>"
-            },
-            {
-                id: 1,
-                author: "관리자",
-                category: "공지사항",
-                title: "2월 연차오류에 따른 급여차감 건",
-                date: "2026-04-10",
-                content: "<p>지난 2월 연차 정산 과정에서 발생한 전산 오류로 인해 이번 달 급여에서 일부 차감이 발생할 예정입니다. 상세 내역은 개별 메일을 확인해 주세요.</p>"
+                category: '공지사항',
+                title: '성의회관 옥상 방수공사의 건',
+                author: '관리자',
+                date: '04. 13. 오후 05:51',
+                content: '금주 금요일부터 성의회관 옥상 방수공사가 진행될 예정입니다. 소음이 발생할 수 있으니 양해 부탁드립니다.'
             }
         ];
+    </script>
 
-        // 리스트 그리기 함수
-        function renderList() {
-            const listDiv = document.getElementById('notice-list');
-            listDiv.innerHTML = noticeData.map(post => {
-                // 미리보기 텍스트 (HTML 태그 제거 후 45자)
-                const previewText = post.content.replace(/<[^>]*>?/gm, '').substring(0, 45);
-                return `
-                    <div class="notice-card" onclick="openModal(${post.id})">
-                        <div class="card-top">
-                            <span class="tag">${post.category}</span>
-                            <h2 class="title">${post.title}</h2>
+    <script>
+        function renderPosts(data = posts) {
+            const list = document.getElementById('post-list');
+            list.innerHTML = data.map(post => `
+                <div class="card p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center gap-3">
+                            <span class="tag-notice">${post.category}</span>
+                            <h3 class="text-lg font-bold text-slate-800">${post.title}</h3>
                         </div>
-                        <div class="text-[11px] text-slate-400 font-bold mb-2">${post.author} · ${post.date}</div>
-                        <div class="text-[13px] text-slate-500 overflow-hidden text-ellipsis whitespace-nowrap opacity-80">${previewText}...</div>
+                        <div class="text-xs text-slate-400 font-bold flex items-center gap-1">
+                            ✍️ ${post.author}
+                        </div>
                     </div>
-                `;
-            }).join('');
+                    <div class="text-[11px] text-slate-400 mb-4 flex items-center gap-2">
+                        📅 ${post.date}
+                    </div>
+                    <div class="text-sm text-slate-600 leading-relaxed mb-6 whitespace-pre-wrap">${post.content}</div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="editPost(${post.id})" class="btn-edit py-2 rounded-lg font-bold text-sm shadow-sm opacity-90 hover:opacity-100">수정</button>
+                        <button onclick="deletePost(${post.id})" class="btn-delete py-2 rounded-lg font-bold text-sm shadow-sm opacity-90 hover:opacity-100">삭제</button>
+                    </div>
+                </div>
+            `).join('');
         }
 
-        // 모달 열기
-        function openModal(id) {
-            const post = noticeData.find(p => p.id === id);
-            if (!post) return;
+        function addPost() {
+            const title = document.getElementById('new-title').value;
+            const category = document.getElementById('new-category').value;
+            const content = document.getElementById('new-content').value;
             
-            document.getElementById('m-title').innerText = post.title;
-            document.getElementById('m-author').innerText = post.author;
-            document.getElementById('m-date').innerText = post.date;
-            document.getElementById('m-content').innerHTML = post.content;
+            if(!title || !content) { alert('내용을 입력해주세요.'); return; }
+
+            const now = new Date();
+            const dateStr = `${(now.getMonth()+1).toString().padStart(2, '0')}. ${now.getDate().toString().padStart(2, '0')}. ${now.getHours() >= 12 ? '오후' : '오전'} ${ (now.getHours()%12 || 12).toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+            const newPost = {
+                id: Date.now(),
+                category,
+                title,
+                author: '관리자',
+                date: dateStr,
+                content
+            };
+
+            posts.unshift(newPost);
+            updateFile();
+        }
+
+        function deletePost(id) {
+            if(!confirm('삭제하시겠습니까?')) return;
+            posts = posts.filter(p => p.id !== id);
+            updateFile();
+        }
+
+        function editPost(id) {
+            const post = posts.find(p => p.id === id);
+            document.getElementById('new-title').value = post.title;
+            document.getElementById('new-content').value = post.content;
+            document.getElementById('new-category').value = post.category;
+            document.getElementById('submit-btn').innerText = "수정 완료 (파일 업데이트 필요)";
+            document.getElementById('submit-btn').onclick = function() {
+                post.title = document.getElementById('new-title').value;
+                post.content = document.getElementById('new-content').value;
+                post.category = document.getElementById('new-category').value;
+                updateFile();
+            };
+            scrollToWrite();
+        }
+
+        function searchPosts() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const filtered = posts.filter(p => p.title.toLowerCase().includes(query) || p.author.toLowerCase().includes(query));
+            renderPosts(filtered);
+        }
+
+        function scrollToWrite() {
+            document.getElementById('write-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function updateFile() {
+            renderPosts();
             
-            document.getElementById('modal').style.display = 'flex';
-            document.body.style.overflow = 'hidden';
+            const fullHtml = document.documentElement.outerHTML;
+            const dataMarker = 'let posts = [';
+            const endMarker = '];';
+            const startIndex = fullHtml.indexOf(dataMarker);
+            const endIndex = fullHtml.indexOf(endMarker, startIndex) + 2;
+            
+            const newDataString = `let posts = ${JSON.stringify(posts, null, 12)};`;
+            const newHtml = fullHtml.substring(0, startIndex) + newDataString + fullHtml.substring(endIndex);
+
+            document.getElementById('full-code').value = "<!DOCTYPE html>\n" + newHtml;
+            document.getElementById('update-area').classList.remove('hidden');
+            document.getElementById('update-area').scrollIntoView({ behavior: 'smooth' });
+            
+            // 초기화
+            document.getElementById('new-title').value = "";
+            document.getElementById('new-content').value = "";
+            document.getElementById('submit-btn').innerText = "게시글 등록 완료";
+            document.getElementById('submit-btn').onclick = addPost;
         }
 
-        // 모달 닫기
-        function closeModal() {
-            document.getElementById('modal').style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-
-        // 실행
-        window.onload = renderList;
+        window.onload = renderPosts;
     </script>
 </body>
 </html>
