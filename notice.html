@@ -11,9 +11,18 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+    </style>
 </head>
 <body class="bg-slate-50">
-    <div id="root"></div>
+    <div id="root">
+        <!-- 초기 로딩 화면 -->
+        <div class="flex items-center justify-center h-screen bg-white">
+            <div id="loader-status" class="text-slate-400 font-bold animate-pulse text-lg">시스템 초기화 중...</div>
+        </div>
+    </div>
 
     <!-- Firebase SDK Setup -->
     <script type="module">
@@ -21,8 +30,16 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, doc, addDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // 전역 객체로 노출하여 Babel 스크립트에서 접근 가능하게 함
-        window.FB = { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, collection, onSnapshot, doc, addDoc, deleteDoc, serverTimestamp };
+        // 전역 객체로 노출
+        window.FB = { 
+            initializeApp, getAuth, signInAnonymously, signInWithCustomToken, 
+            onAuthStateChanged, getFirestore, collection, onSnapshot, 
+            doc, addDoc, deleteDoc, serverTimestamp 
+        };
+        
+        // Firebase 준비 완료 표시 및 이벤트 발생
+        window.isFirebaseReady = true;
+        window.dispatchEvent(new Event('firebase-ready'));
     </script>
 
     <script type="text/babel">
@@ -42,16 +59,25 @@
             const [category, setCategory] = useState('공지사항');
             const editorRef = useRef(null);
 
-            // Firebase 인스턴스 참조 (전역 window 객체에서 가져옴)
-            const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, collection, onSnapshot, doc, addDoc, deleteDoc, serverTimestamp } = window.FB;
-
+            // Firebase 설정 (환경변수가 없을 경우 대비한 기본값 포함)
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'sungui-duty-app';
-            const firebaseConfig = JSON.parse(__firebase_config || '{}');
-            const app = initializeApp(firebaseConfig);
-            const auth = getAuth(app);
-            const db = getFirestore(app);
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+                apiKey: "", 
+                authDomain: "",
+                projectId: "",
+                storageBucket: "",
+                messagingSenderId: "",
+                appId: ""
+            };
 
             useEffect(() => {
+                if (!window.FB) return;
+                const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, collection, onSnapshot } = window.FB;
+                
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                const db = getFirestore(app);
+
                 const initAuth = async () => {
                     try {
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -59,29 +85,39 @@
                         } else {
                             await signInAnonymously(auth);
                         }
-                    } catch (e) { console.error("Auth Error", e); }
+                    } catch (e) { 
+                        console.error("Auth Error", e);
+                        setLoading(false);
+                    }
                 };
+
                 initAuth();
-                const unsubscribe = onAuthStateChanged(auth, (u) => {
+
+                const unsubscribeAuth = onAuthStateChanged(auth, (u) => {
                     setUser(u);
-                    if (u) setLoading(false);
+                    if (u) {
+                        setLoading(false);
+                        // 데이터 바인딩
+                        const q = collection(db, 'artifacts', appId, 'public', 'data', 'notices');
+                        const unsubData = onSnapshot(q, (snap) => {
+                            const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                            data.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                            setPosts(data);
+                            setTimeout(() => { if(window.lucide) lucide.createIcons(); }, 100);
+                        }, (err) => {
+                            console.error("Firestore Error", err);
+                        });
+                        return () => unsubData();
+                    }
                 });
-                return () => unsubscribe();
+
+                return () => unsubscribeAuth();
             }, []);
 
-            useEffect(() => {
-                if (!user) return;
-                const q = collection(db, 'artifacts', appId, 'public', 'data', 'notices');
-                const unsub = onSnapshot(q, (snap) => {
-                    const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    data.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-                    setPosts(data);
-                    setTimeout(() => lucide.createIcons(), 100);
-                }, (err) => console.error("Firestore Error", err));
-                return () => unsub();
-            }, [user]);
-
             const handleSave = async () => {
+                const { getFirestore, collection, addDoc, serverTimestamp } = window.FB;
+                const db = getFirestore();
+                
                 if (!title.trim()) return alert("제목을 입력해주세요.");
                 const contentHtml = editorRef.current?.innerText || "";
                 
@@ -97,6 +133,9 @@
             };
 
             const handleDelete = async (id, e) => {
+                const { getFirestore, doc, deleteDoc } = window.FB;
+                const db = getFirestore();
+                
                 e.stopPropagation();
                 if (!confirm("정말 삭제하시겠습니까?")) return;
                 try {
@@ -106,14 +145,16 @@
             };
 
             const filteredPosts = posts.filter(p => {
-                const matchesSearch = p.title.includes(searchQuery) || (p.content && p.content.includes(searchQuery));
+                const titleMatch = p.title && p.title.includes(searchQuery);
+                const contentMatch = p.content && p.content.includes(searchQuery);
+                const matchesSearch = titleMatch || contentMatch;
                 const matchesCategory = activeCategory === '전체' || p.category === activeCategory;
                 return matchesSearch && matchesCategory;
             });
 
             if (loading) return (
                 <div className="flex items-center justify-center h-screen bg-white">
-                    <div className="text-slate-400 font-bold animate-pulse text-lg">데이터 로딩 중...</div>
+                    <div className="text-slate-400 font-bold animate-pulse text-lg">데이터 연결 중...</div>
                 </div>
             );
 
@@ -177,7 +218,7 @@
                                             <h3 className="text-lg font-black text-slate-800 group-hover:text-blue-700 transition-colors mb-2">{post.title}</h3>
                                             <div className="flex items-center gap-3 text-xs font-bold text-slate-400">
                                                 <div className="flex items-center gap-1"><i data-lucide="user" className="w-3 h-3"></i> {post.author}</div>
-                                                <div className="flex items-center gap-1"><i data-lucide="clock" className="w-3 h-3"></i> {post.createdAt?.toDate().toLocaleDateString()}</div>
+                                                <div className="flex items-center gap-1"><i data-lucide="clock" className="w-3 h-3"></i> {post.createdAt?.toDate ? post.createdAt.toDate().toLocaleDateString() : '로딩중...'}</div>
                                             </div>
                                         </div>
                                     )) : (
@@ -194,7 +235,7 @@
                                     <h2 className="text-2xl font-black text-slate-900 leading-tight mb-4">{selectedPost.title}</h2>
                                     <div className="flex items-center gap-4 text-sm font-bold text-slate-400 pb-6 border-b border-slate-100">
                                         <span>작성자: {selectedPost.author}</span>
-                                        <span>날짜: {selectedPost.createdAt?.toDate().toLocaleString()}</span>
+                                        <span>날짜: {selectedPost.createdAt?.toDate ? selectedPost.createdAt.toDate().toLocaleString() : ''}</span>
                                     </div>
                                 </div>
                                 <div className="text-slate-700 leading-relaxed min-h-[300px] whitespace-pre-wrap py-4 font-medium">
@@ -213,7 +254,7 @@
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                                 <div className="space-y-2">
                                     <label className="text-sm font-black text-slate-400 ml-1">카테고리</label>
-                                    <div className="flex gap-2 overflow-x-auto pb-1">
+                                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                                         {['공지사항', '인수인계', '업무연락'].map(cat => (
                                             <button 
                                                 key={cat}
@@ -254,8 +295,17 @@
             );
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        const startApp = () => {
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+        };
+
+        // Firebase 로딩 상태에 따라 즉시 실행 또는 이벤트 리스너 등록
+        if (window.isFirebaseReady) {
+            startApp();
+        } else {
+            window.addEventListener('firebase-ready', startApp);
+        }
     </script>
 </body>
 </html>
