@@ -1,159 +1,182 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
-  <base target="_top">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-  <style>
-    body { background: #f8f9fa; padding: 15px; font-family: sans-serif; }
-    .container { max-width: 650px; margin: auto; }
-    .form-box { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
-    #editor { height: 200px; }
-    .post-card { background: white; border-radius: 10px; margin-bottom: 10px; border-left: 6px solid #007bff; cursor: pointer; }
-    .post-body { display: none; padding: 15px; border-top: 1px solid #eee; background: #fdfdfd; }
-    .img-preview { max-width: 100%; border-radius: 10px; margin-top: 10px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>성의교정 통합 게시판</title>
+    <!-- 외부 라이브러리 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f1f5f9; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        [contenteditable]:empty:before { content: "내용을 입력하세요..."; color: #cbd5e1; font-style: italic; }
+        .prose h3 { font-size: 1.25rem; font-weight: 800; margin-top: 1rem; margin-bottom: 0.5rem; }
+        .prose ul { list-style-type: disc; padding-left: 1.25rem; }
+    </style>
 </head>
 <body>
+    <div id="root"></div>
 
-<div class="container">
-  <div class="form-box">
-    <div class="d-flex justify-content-between mb-3">
-      <small>👤 접속자: <input type="text" id="user" value="관리자" style="border:none; border-bottom:1px solid #ddd; width:70px;"></small>
-      <button id="cancelBtn" class="btn btn-sm btn-secondary" onclick="resetForm()" style="display:none;">취소</button>
-    </div>
-    <div class="row g-2 mb-2">
-      <div class="col-4"><select id="cat" class="form-select"><option>공지사항</option><option>성의회관</option><option>의산연</option></select></div>
-      <div class="col-8"><input type="text" id="ttl" class="form-control" placeholder="제목"></div>
-    </div>
-    <div id="editor"></div>
-    <input type="file" id="file" accept="image/*" class="form-control mt-3">
-    <input type="hidden" id="editId">
-    <input type="hidden" id="oldUrl">
-    <button id="saveBtn" class="btn btn-primary w-100 mt-3 fw-bold" onclick="save()">게시글 등록</button>
-  </div>
-
-  <input type="text" id="search" class="form-control mb-3" placeholder="🔍 검색..." onkeyup="filter()">
-
-  <div id="list"><div class="text-center p-4">불러오는 중...</div></div>
-</div>
-
-<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
-<script>
-  const quill = new Quill('#editor', { theme: 'snow' });
-  let posts = [];
-
-  // 1. 데이터 불러오기
-  function load() {
-    google.script.run.withSuccessHandler(res => {
-      posts = JSON.parse(res);
-      render();
-    }).getPostsJson();
-  }
-
-  // 2. 리스트 그리기
-  function render() {
-    const list = document.getElementById('list');
-    const currUser = document.getElementById('user').value;
-    list.innerHTML = posts.length ? "" : "<div class='text-center p-5 card'>글이 없습니다.</div>";
-    
-    posts.slice().reverse().forEach(p => {
-      const [id, author, cat, title, cont, url, date] = p;
-      const fileId = url ? (url.match(/[-\w]{25,}/) || [])[0] : null;
-      const div = document.createElement('div');
-      div.className = 'post-card shadow-sm';
-      div.innerHTML = `
-        <div class="p-3" onclick="toggle('${id}')">
-          <div class="d-flex justify-content-between mb-1"><span class="badge bg-secondary">${cat}</span><small class="text-muted">${date}</small></div>
-          <div class="fw-bold">${title}</div>
-          <small class="text-muted">작성자: ${author}</small>
-        </div>
-        <div id="det-${id}" class="post-body">
-          <div>${cont}</div>
-          ${fileId ? `<img src="https://drive.google.com/thumbnail?id=${fileId}&sz=w800" class="img-preview">` : ''}
-          ${author === currUser || currUser === '관리자' ? `
-            <div class="mt-3 d-flex gap-2">
-              <button class="btn btn-sm btn-outline-success flex-fill" onclick="edit('${id}','${cat}',\`${title}\`,\`${cont}\`,'${url}')">수정</button>
-              <button class="btn btn-sm btn-outline-danger flex-fill" onclick="del('${id}')">삭제</button>
-            </div>` : ''}
-        </div>`;
-      list.appendChild(div);
-    });
-  }
-
-  // 3. 등록/수정 저장
-  async function save() {
-    const btn = document.getElementById('saveBtn');
-    const f = document.getElementById('file').files[0];
-    btn.disabled = true; btn.innerText = "처리 중...";
-    
-    let imgData = null;
-    if (f) {
-      imgData = await new Promise(r => {
-        const rd = new FileReader();
-        rd.onload = e => r({ base64: e.target.result.split(',')[1], mimeType: f.type, name: f.name });
-        rd.readAsDataURL(f);
-      });
+    <!-- React 및 Firebase SDK -->
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom": "https://esm.sh/react-dom@18.2.0",
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"
+      }
     }
+    </script>
 
-    const payload = {
-      action: document.getElementById('editId').value ? "update" : "insert",
-      id: document.getElementById('editId').value || Date.now().toString(),
-      user: document.getElementById('user').value,
-      category: document.getElementById('cat').value,
-      title: document.getElementById('ttl').value,
-      content: quill.root.innerHTML,
-      imageBtn: imgData,
-      existingFileUrl: document.getElementById('oldUrl').value,
-      date: new Date().toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
-    };
+    <script type="module">
+        import React, { useState, useEffect, useRef } from 'react';
+        import ReactDOM from 'react-dom';
+        import { initializeApp } from 'firebase/app';
+        import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 
-    google.script.run.withSuccessHandler(res => {
-      alert(res); resetForm(); load(); btn.disabled = false; btn.innerText = "게시글 등록";
-    }).processAction(payload);
-  }
+        // 사용자 환경에서 제공된 설정값 (직접 실행 시에는 고정값 사용)
+        const firebaseConfig = JSON.parse(window.__firebase_config || '{}');
+        const appId = window.__app_id || 'sungui-integrated-board';
 
-  function toggle(id) {
-    const d = document.getElementById('det-' + id);
-    const vis = d.style.display === 'block';
-    document.querySelectorAll('.post-body').forEach(el => el.style.display = 'none');
-    d.style.display = vis ? 'none' : 'block';
-  }
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-  function filter() {
-    const q = document.getElementById('search').value.toLowerCase();
-    document.querySelectorAll('.post-card').forEach(item => {
-      item.style.display = item.innerText.toLowerCase().includes(q) ? "" : "none";
-    });
-  }
+        function App() {
+            const [user, setUser] = useState(null);
+            const [posts, setPosts] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            
+            // 입력 폼 상태
+            const [editingId, setEditingId] = useState(null);
+            const [category, setCategory] = useState('공지사항');
+            const [title, setTitle] = useState('');
+            const [content, setContent] = useState('');
+            const [author, setAuthor] = useState('');
+            const editorRef = useRef(null);
 
-  function edit(id, cat, title, cont, url) {
-    document.getElementById('editId').value = id;
-    document.getElementById('cat').value = cat;
-    document.getElementById('ttl').value = title;
-    document.getElementById('oldUrl').value = url;
-    quill.root.innerHTML = cont;
-    document.getElementById('saveBtn').innerText = "수정 완료";
-    document.getElementById('cancelBtn').style.display = "block";
-    window.scrollTo(0,0);
-  }
+            useEffect(() => {
+                // 로그인 없이 바로 사용할 수 있게 익명 인증 실행
+                signInAnonymously(auth).catch(console.error);
+                const unsubscribe = onAuthStateChanged(auth, setUser);
+                return () => unsubscribe();
+            }, []);
 
-  function del(id) {
-    if(!confirm("삭제할까요?")) return;
-    google.script.run.withSuccessHandler(res => { alert(res); load(); }).processAction({action: "delete", id: id});
-  }
+            useEffect(() => {
+                if (!user) return;
+                const postsCol = collection(db, 'artifacts', appId, 'public', 'data', 'notices');
+                const unsubscribe = onSnapshot(postsCol, (snapshot) => {
+                    const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    data.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                    setPosts(data);
+                    setLoading(false);
+                });
+                return () => unsubscribe();
+            }, [user]);
 
-  function resetForm() {
-    document.getElementById('editId').value = "";
-    document.getElementById('ttl').value = "";
-    document.getElementById('oldUrl').value = "";
-    document.getElementById('file').value = "";
-    quill.root.innerHTML = "";
-    document.getElementById('saveBtn').innerText = "게시글 등록";
-    document.getElementById('cancelBtn').style.display = "none";
-  }
+            useEffect(() => {
+                lucide.createIcons();
+            }, [posts, isModalOpen]);
 
-  load();
-</script>
+            const handleSubmit = async () => {
+                const currentHtml = editorRef.current?.innerHTML || "";
+                if (!title || !author) return alert("제목과 작성자를 입력하세요.");
+                
+                setIsSubmitting(true);
+                try {
+                    const postData = { category, title, content: currentHtml, author, updatedAt: serverTimestamp() };
+                    if (editingId) {
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'notices', editingId), postData);
+                    } else {
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'notices'), {
+                            ...postData, createdAt: serverTimestamp(), userId: user.uid
+                        });
+                    }
+                    closeModal();
+                } catch (e) { console.error(e); }
+                finally { setIsSubmitting(false); }
+            };
+
+            const closeModal = () => {
+                setIsModalOpen(false); setEditingId(null); setTitle(''); setAuthor(''); setContent('');
+            };
+
+            return React.createElement('div', { className: 'min-h-screen pb-20' }, [
+                // 헤더
+                React.createElement('header', { className: 'bg-[#0F172A] text-white p-6 shadow-lg flex justify-between items-center sticky top-0 z-50' }, [
+                    React.createElement('h1', { className: 'text-xl font-black' }, '성의교정 통합 게시판'),
+                    React.createElement('div', { className: 'text-[10px] bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/30' }, '실시간 클라우드 연결됨')
+                ]),
+
+                // 메인 리스트
+                React.createElement('main', { className: 'max-w-2xl mx-auto p-4 space-y-4' }, 
+                    loading ? React.createElement('div', { className: 'py-20 text-center text-slate-400 font-bold' }, '데이터 불러오는 중...') :
+                    posts.length === 0 ? React.createElement('div', { className: 'py-20 text-center border-4 border-dashed rounded-[40px] text-slate-300 font-bold' }, '등록된 게시물이 없습니다.') :
+                    posts.map(post => React.createElement('div', { key: post.id, className: 'bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 hover:shadow-md transition-all' }, [
+                        React.createElement('div', { className: 'flex justify-between' }, [
+                            React.createElement('span', { className: 'text-[10px] font-black bg-blue-50 text-blue-600 px-2 py-1 rounded' }, post.category),
+                            user && post.userId === user.uid && React.createElement('button', { onClick: () => {
+                                setEditingId(post.id); setCategory(post.category); setTitle(post.title); setAuthor(post.author); setContent(post.content); setIsModalOpen(true);
+                            }, className: 'text-slate-300 hover:text-blue-500' }, '편집')
+                        ]),
+                        React.createElement('h2', { className: 'text-2xl font-black mt-2 mb-4' }, post.title),
+                        React.createElement('div', { className: 'prose text-slate-600 mb-6', dangerouslySetInnerHTML: { __html: post.content } }),
+                        React.createElement('div', { className: 'pt-4 border-t flex justify-between text-[11px] text-slate-400 font-bold' }, [
+                            React.createElement('span', null, `작성자: ${post.author}`),
+                            React.createElement('span', null, post.createdAt ? new Date(post.createdAt.seconds * 1000).toLocaleString() : '')
+                        ])
+                    ]))
+                ),
+
+                // 플로팅 버튼
+                React.createElement('button', { 
+                    onClick: () => setIsModalOpen(true),
+                    className: 'fixed bottom-8 right-8 w-16 h-16 bg-blue-600 text-white rounded-3xl shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50'
+                }, '+'),
+
+                // 모달 (작성 창)
+                isModalOpen && React.createElement('div', { className: 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4' }, 
+                    React.createElement('div', { className: 'bg-white w-full max-w-lg rounded-[40px] p-8 max-h-[90vh] overflow-y-auto' }, [
+                        React.createElement('div', { className: 'flex justify-between mb-6' }, [
+                            React.createElement('h2', { className: 'text-xl font-black' }, editingId ? '글 수정하기' : '새 글 작성'),
+                            React.createElement('button', { onClick: closeModal }, '닫기')
+                        ]),
+                        React.createElement('input', { 
+                            type: 'text', value: title, onChange: e => setTitle(e.target.value), 
+                            placeholder: '제목을 입력하세요', className: 'w-full p-4 bg-slate-50 rounded-2xl mb-4 font-bold outline-none' 
+                        }),
+                        React.createElement('div', { className: 'border rounded-2xl overflow-hidden mb-4' }, [
+                            React.createElement('div', { className: 'bg-slate-50 p-2 border-b flex gap-2' }, [
+                                React.createElement('button', { onClick: () => document.execCommand('bold'), className: 'px-2 font-bold' }, 'B'),
+                                React.createElement('button', { onClick: () => document.execCommand('foreColor', false, '#ef4444'), className: 'px-2 text-red-500' }, 'A')
+                            ]),
+                            React.createElement('div', { 
+                                ref: editorRef, contentEditable: true, 
+                                className: 'p-4 min-h-[150px] outline-none prose',
+                                dangerouslySetInnerHTML: { __html: editingId ? content : '' }
+                            })
+                        ]),
+                        React.createElement('input', { 
+                            type: 'text', value: author, onChange: e => setAuthor(e.target.value), 
+                            placeholder: '작성자 이름', className: 'w-full p-4 bg-slate-50 rounded-2xl mb-6 outline-none text-sm' 
+                        }),
+                        React.createElement('button', { 
+                            onClick: handleSubmit, disabled: isSubmitting,
+                            className: 'w-full py-5 bg-blue-600 text-white font-black rounded-2xl'
+                        }, isSubmitting ? '처리 중...' : '게시하기')
+                    ])
+                )
+            ]);
+        }
+
+        ReactDOM.render(React.createElement(App), document.getElementById('root'));
+    </script>
 </body>
 </html>
