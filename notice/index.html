@@ -1,369 +1,364 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp, doc, setDoc } from 'firebase/firestore';
 import { 
-  Shield, 
-  Activity, 
-  AlertTriangle, 
-  Lock, 
-  Settings, 
-  Users, 
-  Database, 
-  Menu, 
-  X, 
-  Bell, 
-  Search, 
-  ChevronRight,
-  Monitor,
-  Cpu,
-  Globe,
-  ArrowUpRight,
-  ArrowDownRight,
-  Clock
+  Shield, Activity, AlertTriangle, Lock, Settings, Database, 
+  Clock, Bell, Search, Globe, Monitor, Cpu, Terminal,
+  RefreshCw, Power, Wifi, ShieldAlert
 } from 'lucide-react';
 
-// --- 전역 설정 및 상수 ---
-const APP_TITLE = "SKY-EYE SOC Dashboard";
-const INITIAL_LOGS = [
-  { id: 1, time: "14:20:05", type: "CRITICAL", source: "192.168.0.45", message: "SQL Injection attempt detected", status: "Blocked" },
-  { id: 2, time: "14:19:30", type: "INFO", source: "Admin-PC", message: "Successful login from terminal", status: "Verified" },
-  { id: 3, time: "14:18:12", type: "WARNING", source: "Cloud-DB-02", message: "Unusual traffic spike detected", status: "Monitoring" },
-  { id: 4, time: "14:15:45", type: "CRITICAL", source: "External-IP", message: "Brute force attack on SSH", status: "Blocked" },
-];
-
-const StatCard = ({ title, value, change, icon: Icon, color }) => (
-  <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-lg hover:border-blue-500/50 transition-all duration-300">
-    <div className="flex justify-between items-start">
-      <div>
-        <p className="text-slate-400 text-sm font-medium">{title}</p>
-        <h3 className="text-2xl font-bold text-white mt-1">{value}</h3>
-        <div className={`flex items-center mt-2 text-xs font-semibold ${change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-          {change >= 0 ? <ArrowUpRight size={14} className="mr-1" /> : <ArrowDownRight size={14} className="mr-1" />}
-          {Math.abs(change)}% vs last hour
-        </div>
-      </div>
-      <div className={`p-3 rounded-lg ${color} bg-opacity-10`}>
-        <Icon size={24} className={color.replace('bg-', 'text-')} />
-      </div>
-    </div>
-  </div>
-);
+// --- 전역 설정 및 유틸리티 ---
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'catholic-security-system';
 
 const App = () => {
+  // 상태 관리
+  const [user, setUser] = useState(null);
+  const [db, setDb] = useState(null);
+  const [auth, setAuth] = useState(null);
+  const [view, setView] = useState('booting'); // booting, setup, dashboard
+  const [config, setConfig] = useState(null);
+  const [logs, setLogs] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [logs, setLogs] = useState(INITIAL_LOGS);
-  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
-  const [threatLevel, setThreatLevel] = useState('NORMAL');
 
-  // 실시간 시계 업데이트
+  // 1. 초기 로드 및 로컬 스토리지 확인
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString());
-    }, 1000);
-    return () => clearInterval(timer);
+    const savedConfig = localStorage.getItem('CUK_FIREBASE_CONFIG');
+    if (savedConfig) {
+      try {
+        const parsedConfig = JSON.parse(savedConfig);
+        initFirebase(parsedConfig);
+      } catch (e) {
+        setView('booting');
+      }
+    } else {
+      // 설정값이 없으면 부팅 에러 화면 표시
+      setTimeout(() => setView('booting'), 1500);
+    }
   }, []);
 
-  // 가상 로그 생성 시뮬레이션
+  // 2. Firebase 초기화 함수
+  const initFirebase = async (firebaseConfig) => {
+    try {
+      const app = initializeApp(firebaseConfig);
+      const _auth = getAuth(app);
+      const _db = getFirestore(app);
+      
+      setAuth(_auth);
+      setDb(_db);
+      setConfig(firebaseConfig);
+
+      // 인증 처리 (RULE 3)
+      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+        await signInWithCustomToken(_auth, __initial_auth_token);
+      } else {
+        await signInAnonymously(_auth);
+      }
+
+      onAuthStateChanged(_auth, (user) => {
+        if (user) {
+          setUser(user);
+          setView('dashboard');
+        } else {
+          setView('setup');
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      setView('booting');
+    }
+  };
+
+  // 3. 실시간 데이터 리스너 (RULE 1, 2)
   useEffect(() => {
-    const logInterval = setInterval(() => {
-      const newLog = {
-        id: Date.now(),
-        time: new Date().toLocaleTimeString(),
-        type: Math.random() > 0.8 ? "CRITICAL" : (Math.random() > 0.5 ? "WARNING" : "INFO"),
-        source: `10.0.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}`,
-        message: "Random security scan event triggered",
-        status: "Logged"
-      };
-      setLogs(prev => [newLog, ...prev.slice(0, 9)]);
-    }, 5000);
-    return () => clearInterval(logInterval);
-  }, []);
+    if (!user || !db) return;
 
-  const menuItems = [
-    { id: 'dashboard', label: '대시보드', icon: Activity },
-    { id: 'threats', label: '위협 탐지', icon: Shield },
-    { id: 'assets', label: '자산 관리', icon: Database },
-    { id: 'logs', label: '이벤트 로그', icon: Clock },
-    { id: 'settings', label: '환경 설정', icon: Settings },
-  ];
+    const logsRef = collection(db, 'artifacts', appId, 'public', 'data', 'security_logs');
+    // Simple query (RULE 2: No complex ordering)
+    const unsubscribe = onSnapshot(logsRef, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // 클라이언트 측에서 정렬
+      const sortedData = data.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+      setLogs(sortedData);
+    }, (err) => console.error("Firestore Error:", err));
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return (
-          <div className="space-y-6 animate-in fade-in duration-500">
-            {/* 상단 통계 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard title="총 위협 탐지" value="1,284" change={12} icon={Shield} color="bg-blue-500" />
-              <StatCard title="차단된 공격" value="842" change={5.4} icon={Lock} color="bg-emerald-500" />
-              <StatCard title="활성 취약점" value="23" change={-2} icon={AlertTriangle} color="bg-amber-500" />
-              <StatCard title="네트워크 부하" value="42%" change={8} icon={Activity} color="bg-indigo-500" />
-            </div>
+    return () => unsubscribe();
+  }, [user, db]);
 
-            {/* 메인 섹션 */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* 위협 지도 (시뮬레이션) */}
-              <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6 h-[400px] flex flex-col">
-                <div className="flex justify-between items-center mb-6">
-                  <h4 className="text-white font-bold flex items-center">
-                    <Globe size={18} className="mr-2 text-blue-400" />
-                    글로벌 위협 맵
-                  </h4>
-                  <span className="px-2 py-1 bg-blue-500/10 text-blue-400 text-xs rounded uppercase font-bold tracking-wider">Live</span>
-                </div>
-                <div className="flex-1 bg-slate-950 rounded-lg relative overflow-hidden flex items-center justify-center border border-slate-800/50">
-                   <div className="absolute inset-0 opacity-20 pointer-events-none">
-                     {/* 가짜 그리드 배경 */}
-                     <div className="h-full w-full bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-                   </div>
-                   <div className="text-slate-500 text-center">
-                     <p className="text-sm">위협 지도 렌더링 중...</p>
-                     <div className="mt-4 flex space-x-2 justify-center">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-.3s]"></div>
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-.5s]"></div>
-                     </div>
-                   </div>
-                </div>
-              </div>
+  // 4. 새 로그 생성 함수 (테스트용)
+  const generateAlert = async () => {
+    if (!db || !user) return;
+    const types = ['CRITICAL', 'WARNING', 'INFO'];
+    const msgs = ['SQL Injection attempt', 'Brute force detected', 'Unauthorized access', 'Port scanning detected'];
+    
+    try {
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'security_logs'), {
+        type: types[Math.floor(Math.random() * types.length)],
+        message: msgs[Math.floor(Math.random() * msgs.length)],
+        source: `10.0.0.${Math.floor(Math.random() * 255)}`,
+        timestamp: serverTimestamp(),
+        status: 'Unresolved'
+      });
+    } catch (err) {
+      console.error("Log generation failed:", err);
+    }
+  };
 
-              {/* 최근 긴급 로그 */}
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 h-[400px] overflow-hidden flex flex-col">
-                <h4 className="text-white font-bold mb-4 flex items-center">
-                  <AlertTriangle size={18} className="mr-2 text-rose-400" />
-                  실시간 보안 피드
-                </h4>
-                <div className="flex-1 space-y-4 overflow-y-auto pr-2 custom-scrollbar">
-                  {logs.map((log) => (
-                    <div key={log.id} className="border-l-2 border-slate-700 pl-3 py-1 hover:bg-slate-800/50 transition-colors">
-                      <div className="flex justify-between text-[10px] text-slate-500 mb-1">
-                        <span>{log.time}</span>
-                        <span className={log.type === 'CRITICAL' ? 'text-rose-400 font-bold' : (log.type === 'WARNING' ? 'text-amber-400' : 'text-blue-400')}>
-                          {log.type}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-300 font-medium truncate">{log.message}</p>
-                      <p className="text-[10px] text-slate-500 mt-1 uppercase">{log.source}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+  // --- 컴포넌트: 부팅 화면 ---
+  if (view === 'booting') {
+    return (
+      <div className="min-h-screen bg-[#020d24] flex flex-col items-center justify-center text-white p-6">
+        <div className="max-w-md w-full text-center space-y-8 animate-in fade-in duration-700">
+          <h1 className="text-4xl font-black tracking-tighter italic">SYSTEM BOOTING</h1>
+          <p className="text-slate-400">설정값을 로드할 수 없습니다.</p>
+          
+          <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-6 space-y-2">
+             <p className="text-rose-400 font-bold text-sm tracking-widest uppercase">Warning: ENV_VAR_MISSING</p>
+             <p className="text-slate-400 text-xs leading-relaxed">설정값을 가져오지 못했습니다.<br/>일부 기능이 제한될 수 있습니다.</p>
           </div>
-        );
-      case 'logs':
-        return (
-          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
-            <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-              <h4 className="text-white font-bold">전체 이벤트 로그</h4>
-              <div className="flex space-x-2">
-                <button className="px-3 py-1 bg-slate-800 text-slate-300 text-xs rounded-md hover:bg-slate-700">Export CSV</button>
-                <button className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-500">Refresh</button>
+
+          <button 
+            onClick={() => setView('setup')}
+            className="w-full bg-white text-slate-900 py-4 rounded-2xl font-bold text-lg hover:bg-slate-200 transition-all shadow-xl"
+          >
+            환경 설정으로 이동
+          </button>
+
+          <button onClick={() => window.location.reload()} className="text-slate-500 text-xs underline underline-offset-4 decoration-dotted">
+            시스템 다시 읽기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- 컴포넌트: 설정 화면 ---
+  if (view === 'setup') {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
+        <div className="max-w-lg w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+          <h2 className="text-2xl font-bold text-white mb-2">System Setup</h2>
+          <p className="text-slate-400 text-sm mb-6">외부 환경 설정을 위한 Firebase 설정이 필요합니다.</p>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Firebase Config (JSON)</label>
+              <textarea 
+                id="config-input"
+                className="w-full h-48 bg-slate-950 border border-slate-800 rounded-xl p-4 font-mono text-sm text-blue-400 focus:ring-2 focus:ring-blue-500/50 outline-none"
+                placeholder='{"apiKey": "...", "authDomain": "...", ...}'
+              ></textarea>
+            </div>
+            <button 
+              onClick={() => {
+                const val = document.getElementById('config-input').value;
+                try {
+                  const parsed = JSON.parse(val);
+                  localStorage.setItem('CUK_FIREBASE_CONFIG', val);
+                  initFirebase(parsed);
+                } catch(e) {
+                  alert("올바른 JSON 형식이 아닙니다.");
+                }
+              }}
+              className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-500 transition-all"
+            >
+              설정 저장 및 시스템 시작
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- 컴포넌트: 메인 대시보드 ---
+  return (
+    <div className="min-h-screen bg-slate-950 flex text-slate-300 font-sans">
+      {/* Sidebar */}
+      <aside className={`${isSidebarOpen ? 'w-64' : 'w-20'} bg-slate-900 border-r border-slate-800 transition-all flex flex-col`}>
+        <div className="p-6 flex items-center space-x-3">
+          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20">
+            <ShieldAlert className="text-white" size={24} />
+          </div>
+          {isSidebarOpen && <span className="font-black text-white text-xl tracking-tight">CUK SOC</span>}
+        </div>
+
+        <nav className="flex-1 px-3 space-y-1 mt-4">
+          {[
+            { id: 'dashboard', icon: Activity, label: '관제 현황' },
+            { id: 'logs', icon: Terminal, label: '보안 로그' },
+            { id: 'settings', icon: Settings, label: '시스템 설정' }
+          ].map(item => (
+            <button 
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`w-full flex items-center p-3 rounded-xl transition-all ${activeTab === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:bg-slate-800 hover:text-slate-300'}`}
+            >
+              <item.icon size={20} />
+              {isSidebarOpen && <span className="ml-3 font-bold text-sm">{item.label}</span>}
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-slate-800">
+           <div className="flex items-center space-x-3 px-2 py-3 bg-slate-950/50 rounded-xl border border-slate-800">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+              {isSidebarOpen && <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">{user?.uid}</span>}
+           </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col h-screen overflow-hidden">
+        {/* Header */}
+        <header className="h-16 border-b border-slate-800 flex items-center justify-between px-8 bg-slate-900/30 backdrop-blur-xl">
+          <div className="flex items-center space-x-4">
+            <h2 className="text-white font-black text-sm uppercase tracking-widest">{activeTab}</h2>
+          </div>
+          <div className="flex items-center space-x-4">
+            <button 
+              onClick={generateAlert}
+              className="px-4 py-1.5 bg-rose-500/10 border border-rose-500/30 text-rose-500 text-xs font-bold rounded-lg hover:bg-rose-500 hover:text-white transition-all"
+            >
+              긴급 로그 생성 테스트
+            </button>
+            <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700"></div>
+          </div>
+        </header>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+          {activeTab === 'dashboard' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl">
+                   <p className="text-slate-500 text-xs font-bold uppercase mb-1">Total Threats</p>
+                   <h3 className="text-3xl font-black text-white">{logs.length}</h3>
+                   <div className="mt-4 h-1 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500 w-2/3"></div>
+                   </div>
+                </div>
+                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl">
+                   <p className="text-slate-500 text-xs font-bold uppercase mb-1">Critical Events</p>
+                   <h3 className="text-3xl font-black text-rose-500">{logs.filter(l => l.type === 'CRITICAL').length}</h3>
+                   <div className="mt-4 h-1 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-rose-500 w-1/4"></div>
+                   </div>
+                </div>
+                <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl">
+                   <p className="text-slate-500 text-xs font-bold uppercase mb-1">System Status</p>
+                   <h3 className="text-3xl font-black text-emerald-500 font-mono tracking-tighter">SECURE</h3>
+                   <div className="mt-4 h-1 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 w-full animate-pulse"></div>
+                   </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                 <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 h-96 flex flex-col">
+                    <h4 className="text-white font-bold mb-4 flex items-center">
+                      <Globe size={18} className="mr-2 text-blue-400" />
+                      Global Threat Distribution
+                    </h4>
+                    <div className="flex-1 bg-slate-950 rounded-2xl flex items-center justify-center border border-slate-800/50">
+                       <span className="text-slate-600 text-xs italic">Map Rendering Engine Active...</span>
+                    </div>
+                 </div>
+                 <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 h-96 flex flex-col">
+                    <h4 className="text-white font-bold mb-4 flex items-center">
+                      <Terminal size={18} className="mr-2 text-rose-400" />
+                      Recent Activity Feed
+                    </h4>
+                    <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+                       {logs.length === 0 ? (
+                         <div className="h-full flex items-center justify-center text-slate-700 text-xs">탐지된 로그가 없습니다.</div>
+                       ) : (
+                         logs.map(log => (
+                           <div key={log.id} className="p-3 bg-slate-950 rounded-xl border-l-4 border-slate-800 hover:border-blue-500 transition-all group">
+                              <div className="flex justify-between items-start mb-1">
+                                 <span className={`text-[10px] font-black ${log.type === 'CRITICAL' ? 'text-rose-500' : 'text-blue-500'}`}>
+                                   {log.type}
+                                 </span>
+                                 <span className="text-[10px] text-slate-600 font-mono">{log.timestamp?.toDate().toLocaleTimeString()}</span>
+                              </div>
+                              <p className="text-xs text-slate-300 font-medium group-hover:text-white">{log.message}</p>
+                           </div>
+                         ))
+                       )}
+                    </div>
+                 </div>
               </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-950 text-slate-400 font-medium border-b border-slate-800">
+          )}
+
+          {activeTab === 'logs' && (
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden animate-in fade-in">
+              <table className="w-full text-left">
+                <thead className="bg-slate-950 text-slate-500 text-[10px] font-bold uppercase tracking-widest border-b border-slate-800">
                   <tr>
-                    <th className="px-6 py-4">시간</th>
-                    <th className="px-6 py-4">위험도</th>
-                    <th className="px-6 py-4">출처</th>
-                    <th className="px-6 py-4">상세 내용</th>
-                    <th className="px-6 py-4">상태</th>
+                    <th className="px-6 py-4">TIMESTAMP</th>
+                    <th className="px-6 py-4">SEVERITY</th>
+                    <th className="px-6 py-4">SOURCE IP</th>
+                    <th className="px-6 py-4">EVENT DESCRIPTION</th>
+                    <th className="px-6 py-4">STATUS</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-800/30 text-slate-300">
-                      <td className="px-6 py-4 text-xs font-mono">{log.time}</td>
+                <tbody className="divide-y divide-slate-800/50">
+                  {logs.map(log => (
+                    <tr key={log.id} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="px-6 py-4 text-xs font-mono">{log.timestamp?.toDate().toLocaleString()}</td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          log.type === 'CRITICAL' ? 'bg-rose-500/10 text-rose-500' : 
-                          log.type === 'WARNING' ? 'bg-amber-500/10 text-amber-500' : 
-                          'bg-blue-500/10 text-blue-500'
-                        }`}>
+                        <span className={`px-2 py-1 rounded text-[10px] font-bold ${log.type === 'CRITICAL' ? 'bg-rose-500/10 text-rose-500' : 'bg-blue-500/10 text-blue-500'}`}>
                           {log.type}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-xs">{log.source}</td>
-                      <td className="px-6 py-4">{log.message}</td>
+                      <td className="px-6 py-4 text-xs font-mono">{log.source}</td>
+                      <td className="px-6 py-4 text-sm text-white font-medium">{log.message}</td>
                       <td className="px-6 py-4">
-                        <span className="flex items-center">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2"></span>
-                          {log.status}
-                        </span>
+                         <div className="flex items-center text-[10px] font-bold text-emerald-500">
+                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2 shadow-[0_0_5px_rgba(16,185,129,0.5)]"></div>
+                           SECURED
+                         </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
-        );
-      case 'settings':
-        return (
-          <div className="max-w-2xl bg-slate-900 border border-slate-800 rounded-xl p-8 animate-in zoom-in-95 duration-300">
-            <h4 className="text-xl font-bold text-white mb-6 flex items-center">
-              <Settings className="mr-3 text-blue-400" />
-              시스템 환경 설정
-            </h4>
-            
-            <div className="space-y-6">
-              <section>
-                <label className="block text-sm font-medium text-slate-400 mb-2">관리자 이름</label>
-                <input type="text" placeholder="Admin" className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
-              </section>
+          )}
 
-              <section>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Firebase Configuration (JSON)</label>
-                <div className="relative">
-                  <textarea 
-                    rows={8}
-                    placeholder={`{\n  "apiKey": "...",\n  "authDomain": "...",\n  "projectId": "..."\n}`}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-sm font-mono text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                  ></textarea>
-                  <p className="mt-2 text-xs text-slate-500">클라우드 동기화를 위해 Firebase 설정값을 붙여넣으세요.</p>
-                </div>
-              </section>
-
-              <div className="flex justify-end pt-4">
-                <button className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20">
-                  설정 저장 및 시스템 리부팅
-                </button>
-              </div>
+          {activeTab === 'settings' && (
+            <div className="max-w-xl bg-slate-900 border border-slate-800 rounded-3xl p-8 animate-in zoom-in-95">
+               <h3 className="text-xl font-bold text-white mb-6">시스템 환경 제어</h3>
+               <div className="space-y-6">
+                  <div className="flex items-center justify-between p-4 bg-slate-950 rounded-2xl border border-slate-800">
+                     <div>
+                        <p className="text-sm font-bold text-white">데이터 영속성</p>
+                        <p className="text-xs text-slate-500">브라우저 종료 후에도 설정을 유지합니다.</p>
+                     </div>
+                     <div className="w-12 h-6 bg-blue-600 rounded-full relative p-1">
+                        <div className="w-4 h-4 bg-white rounded-full ml-auto"></div>
+                     </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      localStorage.removeItem('CUK_FIREBASE_CONFIG');
+                      window.location.reload();
+                    }}
+                    className="w-full py-3 bg-rose-500/10 border border-rose-500/30 text-rose-500 font-bold rounded-2xl hover:bg-rose-500 hover:text-white transition-all"
+                  >
+                    데이터베이스 연결 초기화
+                  </button>
+               </div>
             </div>
-          </div>
-        );
-      default:
-        return (
-          <div className="flex flex-col items-center justify-center h-64 text-slate-500 italic">
-            <Activity size={48} className="mb-4 opacity-20" />
-            <p>선택한 모듈이 로드되지 않았습니다.</p>
-          </div>
-        );
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 flex font-sans selection:bg-blue-500/30">
-      {/* 사이드바 */}
-      <aside className={`${isSidebarOpen ? 'w-64' : 'w-20'} bg-slate-900 border-r border-slate-800 transition-all duration-300 flex flex-col z-20`}>
-        <div className="p-6 flex items-center space-x-3 overflow-hidden">
-          <div className="bg-blue-600 p-2 rounded-lg shrink-0 shadow-lg shadow-blue-600/20">
-            <Shield className="text-white" size={20} />
-          </div>
-          <span className={`font-black text-lg tracking-tight text-white transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
-            SKY-EYE
-          </span>
+          )}
         </div>
-
-        <nav className="flex-1 mt-6 px-3 space-y-1">
-          {menuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center px-3 py-3 rounded-lg transition-all duration-200 group ${
-                activeTab === item.id 
-                  ? 'bg-blue-600/10 text-blue-400' 
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <item.icon size={20} className={activeTab === item.id ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-300'} />
-              {isSidebarOpen && <span className="ml-3 font-medium text-sm">{item.label}</span>}
-              {activeTab === item.id && isSidebarOpen && <div className="ml-auto w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>}
-            </button>
-          ))}
-        </nav>
-
-        <div className="p-4 border-t border-slate-800">
-          <button 
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="w-full flex justify-center p-2 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition-colors"
-          >
-            {isSidebarOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
-        </div>
-      </aside>
-
-      {/* 메인 콘텐츠 영역 */}
-      <main className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
-        {/* 헤더 */}
-        <header className="h-16 bg-slate-900/50 backdrop-blur-md border-b border-slate-800 flex items-center justify-between px-8 sticky top-0 z-10">
-          <div className="flex items-center space-x-4">
-            <h2 className="text-white font-bold text-lg uppercase tracking-wider">{activeTab}</h2>
-            <div className="h-4 w-[1px] bg-slate-800 mx-2"></div>
-            <div className="flex items-center text-xs text-slate-500 bg-slate-800/50 px-2 py-1 rounded">
-              <Clock size={14} className="mr-2" />
-              {currentTime}
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-6">
-            <div className="relative hidden md:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-              <input 
-                type="text" 
-                placeholder="검색..." 
-                className="bg-slate-950 border border-slate-800 rounded-full pl-10 pr-4 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50 w-64"
-              />
-            </div>
-            <button className="relative text-slate-400 hover:text-white transition-colors">
-              <Bell size={20} />
-              <span className="absolute top-0 right-0 w-2 h-2 bg-rose-500 rounded-full border-2 border-slate-900"></span>
-            </button>
-            <div className="flex items-center space-x-3 pl-4 border-l border-slate-800">
-              <div className="text-right hidden sm:block">
-                <p className="text-xs font-bold text-white uppercase leading-tight">Admin User</p>
-                <p className="text-[10px] text-emerald-400 leading-tight">System Online</p>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs ring-2 ring-blue-500/20 shadow-lg">
-                AD
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* 대시보드 스크롤 영역 */}
-        <div className="p-8">
-           <div className="flex justify-between items-end mb-8">
-              <div>
-                <h1 className="text-3xl font-black text-white tracking-tight italic">SECURITY MONITORING</h1>
-                <p className="text-slate-500 text-sm mt-1">시스템 위협 탐지 및 실시간 네트워크 모니터링 현황입니다.</p>
-              </div>
-              <div className="flex space-x-3">
-                 <div className="flex items-center px-4 py-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-2"></div>
-                    <span className="text-emerald-400 text-xs font-bold uppercase tracking-widest">Normal Ops</span>
-                 </div>
-              </div>
-           </div>
-
-           {renderContent()}
-        </div>
-
-        {/* 푸터 */}
-        <footer className="mt-auto p-8 border-t border-slate-900 flex justify-between text-[10px] text-slate-600 uppercase tracking-[0.2em]">
-          <span>© 2024 SKY-EYE SOC V2.0</span>
-          <span className="flex items-center">
-            <Monitor size={10} className="mr-2" />
-            Security Node #741-B Active
-          </span>
-        </footer>
       </main>
 
       <style dangerouslySetInnerHTML={{ __html: `
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #1e293b;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #334155;
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
       `}} />
     </div>
   );
