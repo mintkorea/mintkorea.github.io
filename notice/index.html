@@ -10,35 +10,45 @@
         
         body {
             font-family: 'Pretendard', sans-serif;
-            background-color: #f1f5f9;
+            background-color: #f8fafc;
         }
 
-        #editor {
+        .editor-content {
             min-height: 400px;
             outline: none;
             line-height: 1.6;
         }
 
-        #editor table {
+        .editor-content table {
             width: 100%;
             border-collapse: collapse;
             margin: 1rem 0;
         }
 
-        #editor td, #editor th {
+        .editor-content td, .editor-content th {
             border: 1px solid #cbd5e1;
             padding: 10px;
             min-width: 50px;
         }
 
-        #editor img {
+        .editor-content img {
             max-width: 100%;
             height: auto;
             border-radius: 8px;
             margin: 10px 0;
         }
 
-        /* 폰트 크기 매핑 */
+        /* HTML 소스 삽입 시 스타일 */
+        .html-snippet {
+            background: #f1f5f9;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            border-left: 4px solid #6366f1;
+            margin: 10px 0;
+        }
+
         font[size="1"] { font-size: 12px; }
         font[size="2"] { font-size: 14px; }
         font[size="3"] { font-size: 16px; }
@@ -50,91 +60,100 @@
         .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100; }
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 90; }
         
-        .hidden-view { display: none; }
+        .view-section { display: none; }
+        .view-section.active { display: block; }
     </style>
 </head>
 <body class="p-4 md:p-8">
 
     <div class="max-w-5xl mx-auto">
-        <!-- 메인 헤더 -->
+        <!-- 상단 헤더 -->
         <header class="mb-8 flex justify-between items-end">
             <div>
                 <h1 class="text-3xl font-black text-slate-900 tracking-tight">Smart System</h1>
-                <p id="view-subtitle" class="text-slate-500">게시글 목록</p>
+                <p id="view-subtitle" class="text-slate-500 font-medium">게시글 목록</p>
             </div>
-            <div id="header-buttons">
-                <button id="btn-write" onclick="showEditor()" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg flex items-center gap-2">
+            <div id="header-actions">
+                <button id="btn-write-trigger" onclick="showEditor()" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg flex items-center gap-2">
                     새 글 작성
                 </button>
             </div>
         </header>
 
-        <!-- 1. 목록 뷰 (ListView) -->
-        <div id="view-list" class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-slate-50 border-b border-slate-200">
-                        <th class="p-4 pl-8 text-slate-500 font-bold text-sm w-20">번호</th>
-                        <th class="p-4 text-slate-500 font-bold text-sm">제목</th>
-                        <th class="p-4 text-slate-500 font-bold text-sm w-32 text-center">작성일</th>
-                    </tr>
-                </thead>
-                <tbody id="post-list">
-                    <!-- 게시글이 여기에 렌더링됩니다 -->
-                </tbody>
-            </table>
-            <div id="empty-msg" class="p-20 text-center text-slate-400 font-medium">
-                등록된 게시글이 없습니다. 첫 글을 작성해보세요!
-            </div>
-        </div>
-
-        <!-- 2. 글쓰기 뷰 (EditorView) -->
-        <div id="view-editor" class="hidden-view space-y-4">
+        <!-- 1. 목록 화면 (ListView) -->
+        <section id="section-list" class="view-section active">
             <div class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
-                <!-- 제목 입력 -->
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200">
+                            <th class="p-4 pl-8 text-slate-500 font-bold text-sm w-20">번호</th>
+                            <th class="p-4 text-slate-500 font-bold text-sm">제목</th>
+                            <th class="p-4 text-slate-500 font-bold text-sm w-32 text-center">작성일</th>
+                        </tr>
+                    </thead>
+                    <tbody id="post-list-body">
+                        <!-- 게시글 렌더링 영역 -->
+                    </tbody>
+                </table>
+                <div id="empty-msg" class="p-20 text-center text-slate-400 font-medium hidden">
+                    등록된 게시글이 없습니다. 첫 글을 작성해보세요!
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. 글쓰기 화면 (EditorView) -->
+        <section id="section-editor" class="view-section space-y-4">
+            <div class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
                 <div class="p-4 border-b border-slate-200">
-                    <input type="text" id="post-title" placeholder="제목을 입력하세요" class="w-full text-xl font-bold outline-none placeholder:text-slate-300">
+                    <input type="text" id="post-title-input" placeholder="제목을 입력하세요" class="w-full text-xl font-bold outline-none placeholder:text-slate-300">
                 </div>
 
                 <!-- 툴바 -->
                 <div class="bg-slate-50 border-b border-slate-200 p-3 flex flex-wrap gap-2 items-center">
-                    <button onclick="execCmd('bold')" class="p-2 hover:bg-white rounded-lg border border-transparent hover:border-slate-200" title="굵게"><b>B</b></button>
-                    <button onclick="execCmd('italic')" class="p-2 hover:bg-white rounded-lg border border-transparent hover:border-slate-200" title="기울임"><i>I</i></button>
-                    
+                    <button onclick="execCmd('bold')" class="p-2 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 font-bold">B</button>
+                    <button onclick="execCmd('italic')" class="p-2 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 italic">I</button>
                     <div class="w-px h-6 bg-slate-300 mx-1"></div>
-
                     <select onchange="execCmd('fontSize', this.value)" class="bg-white px-2 py-1 rounded-lg border border-slate-200 text-sm font-semibold outline-none">
-                        <option value="3">글자 크기</option>
+                        <option value="3">크기</option>
                         <option value="2">작게</option>
                         <option value="4">크게</option>
                         <option value="6">매우 크게</option>
                     </select>
-
-                    <input type="color" onchange="execCmd('foreColor', this.value)" class="w-8 h-8 p-1 bg-white border border-slate-200 rounded-lg cursor-pointer" title="글자색">
-
+                    <input type="color" onchange="execCmd('foreColor', this.value)" class="w-8 h-8 p-1 bg-white border border-slate-200 rounded-lg cursor-pointer">
                     <div class="w-px h-6 bg-slate-300 mx-1"></div>
-
-                    <button onclick="toggleTableModal()" class="flex items-center gap-1 bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-bold hover:bg-slate-50">
-                        표 삽입
-                    </button>
-
-                    <!-- 파일 첨부 버튼 -->
-                    <label class="flex items-center gap-1 bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-bold hover:bg-slate-50 cursor-pointer">
-                        파일 첨부
-                        <input type="file" id="file-input" class="hidden" accept="image/*" onchange="handleFileUpload(event)">
+                    <button onclick="toggleTableModal()" class="bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-bold hover:bg-slate-50">표 삽입</button>
+                    
+                    <!-- 파일 첨부 (HTML 및 이미지 지원) -->
+                    <label class="flex items-center gap-1 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-200 text-sm font-bold hover:bg-indigo-100 cursor-pointer">
+                        파일 첨부 (HTML/이미지)
+                        <input type="file" id="file-input" class="hidden" accept="image/*, .html" onchange="handleFileUpload(event)">
                     </label>
                 </div>
 
-                <!-- 에디터 본문 -->
-                <div id="editor" contenteditable="true" class="p-8 md:p-10 focus:outline-none"></div>
+                <div id="editor-body" contenteditable="true" class="editor-content p-8 md:p-10 focus:outline-none"></div>
             </div>
-
-            <!-- 하단 버튼 -->
             <div class="flex justify-end gap-3">
                 <button onclick="showList()" class="px-6 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-200 transition-all">취소</button>
-                <button onclick="savePost()" class="bg-indigo-600 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-indigo-700 shadow-lg transition-all">작성 완료</button>
+                <button onclick="savePost()" class="bg-indigo-600 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-indigo-700 shadow-lg transition-all">저장하기</button>
             </div>
-        </div>
+        </section>
+
+        <!-- 3. 상세 보기 화면 (ReadView) -->
+        <section id="section-read" class="view-section space-y-4">
+            <div class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
+                <div class="p-6 md:p-8 border-b border-slate-100">
+                    <h2 id="read-title" class="text-3xl font-black text-slate-900 mb-2"></h2>
+                    <p id="read-date" class="text-slate-400 text-sm font-medium"></p>
+                </div>
+                <div id="read-content" class="editor-content p-8 md:p-10 bg-white">
+                    <!-- 상세 내용이 여기에 표시됩니다 -->
+                </div>
+            </div>
+            <div class="flex justify-between items-center">
+                <button onclick="deleteCurrentPost()" class="text-red-500 font-bold hover:bg-red-50 px-4 py-2 rounded-lg transition-colors">삭제</button>
+                <button onclick="showList()" class="bg-slate-900 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-slate-800 shadow-lg transition-all">목록으로</button>
+            </div>
+        </section>
     </div>
 
     <!-- 표 설정 모달 -->
@@ -158,97 +177,151 @@
     </div>
 
     <script>
-        let posts = []; // 게시글 저장 배열
+        // 게시글 데이터 관리 (인메모리)
+        let posts = [];
+        let currentReadId = null;
 
-        const viewList = document.getElementById('view-list');
-        const viewEditor = document.getElementById('view-editor');
-        const postListContainer = document.getElementById('post-list');
-        const emptyMsg = document.getElementById('empty-msg');
-        const btnWrite = document.getElementById('btn-write');
-        const viewSubtitle = document.getElementById('view-subtitle');
+        // 섹션 요소들
+        const sections = {
+            list: document.getElementById('section-list'),
+            editor: document.getElementById('section-editor'),
+            read: document.getElementById('section-read')
+        };
+        const subtitle = document.getElementById('view-subtitle');
+        const btnWriteTrigger = document.getElementById('btn-write-trigger');
 
-        // 1. 화면 전환: 목록 보기
-        function showList() {
-            viewList.classList.remove('hidden-view');
-            viewEditor.classList.add('hidden-view');
-            btnWrite.classList.remove('hidden-view');
-            viewSubtitle.innerText = "게시글 목록";
-            renderPosts();
+        // 1. 화면 전환 함수
+        function switchView(viewName) {
+            Object.values(sections).forEach(s => s.classList.remove('active'));
+            sections[viewName].classList.add('active');
+
+            if (viewName === 'list') {
+                subtitle.innerText = "게시글 목록";
+                btnWriteTrigger.style.display = "flex";
+                renderPostList();
+            } else if (viewName === 'editor') {
+                subtitle.innerText = "게시글 작성";
+                btnWriteTrigger.style.display = "none";
+            } else if (viewName === 'read') {
+                subtitle.innerText = "게시글 읽기";
+                btnWriteTrigger.style.display = "none";
+            }
         }
 
-        // 2. 화면 전환: 에디터 보기
-        function showEditor() {
-            viewList.classList.add('hidden-view');
-            viewEditor.classList.remove('hidden-view');
-            btnWrite.classList.add('hidden-view');
-            viewSubtitle.innerText = "새 글 작성하기";
-            
-            // 입력창 초기화
-            document.getElementById('post-title').value = "";
-            document.getElementById('editor').innerHTML = "";
-            document.getElementById('editor').focus();
+        function showList() { switchView('list'); }
+        function showEditor() { 
+            document.getElementById('post-title-input').value = "";
+            document.getElementById('editor-body').innerHTML = "";
+            switchView('editor'); 
         }
 
-        // 3. 게시글 저장
+        // 2. 게시글 저장
         function savePost() {
-            const title = document.getElementById('post-title').value;
-            const content = document.getElementById('editor').innerHTML;
+            const title = document.getElementById('post-title-input').value;
+            const content = document.getElementById('editor-body').innerHTML;
 
             if (!title.trim()) {
-                alert("제목을 입력해주세요!");
+                showToast("제목을 입력해주세요!");
                 return;
             }
 
             const newPost = {
-                id: posts.length + 1,
+                id: Date.now(),
                 title: title,
                 content: content,
-                date: new Date().toLocaleDateString()
+                date: new Date().toLocaleString('ko-KR')
             };
 
-            posts.unshift(newPost); // 최신글이 위로
+            posts.unshift(newPost);
             showList();
         }
 
-        // 4. 목록 렌더링
-        function renderPosts() {
-            postListContainer.innerHTML = "";
+        // 3. 목록 렌더링
+        function renderPostList() {
+            const tbody = document.getElementById('post-list-body');
+            const empty = document.getElementById('empty-msg');
+            tbody.innerHTML = "";
+
             if (posts.length === 0) {
-                emptyMsg.style.display = "block";
+                empty.classList.remove('hidden');
                 return;
             }
 
-            emptyMsg.style.display = "none";
-            posts.forEach(post => {
+            empty.classList.add('hidden');
+            posts.forEach((post, index) => {
                 const tr = document.createElement('tr');
                 tr.className = "border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors";
                 tr.innerHTML = `
-                    <td class="p-4 pl-8 text-slate-400 text-sm font-medium">${post.id}</td>
+                    <td class="p-4 pl-8 text-slate-400 text-sm font-medium">${posts.length - index}</td>
                     <td class="p-4 font-bold text-slate-700">${post.title}</td>
-                    <td class="p-4 text-slate-400 text-sm text-center">${post.date}</td>
+                    <td class="p-4 text-slate-400 text-sm text-center">${post.date.split(' ')[0]}</td>
                 `;
-                tr.onclick = () => alert("상세 보기 기능은 구현 준비 중입니다!\n\n제목: " + post.title);
-                postListContainer.appendChild(tr);
+                tr.onclick = () => readPost(post.id);
+                tbody.appendChild(tr);
             });
         }
 
-        // 5. 파일 업로드 처리 (본문에 이미지 삽입)
+        // 4. 글 읽기 (상세 보기)
+        function readPost(id) {
+            const post = posts.find(p => p.id === id);
+            if (!post) return;
+
+            currentReadId = id;
+            document.getElementById('read-title').innerText = post.title;
+            document.getElementById('read-date').innerText = "작성일: " + post.date;
+            document.getElementById('read-content').innerHTML = post.content;
+
+            switchView('read');
+        }
+
+        // 5. 글 삭제
+        function deleteCurrentPost() {
+            if (confirm("정말로 이 글을 삭제하시겠습니까?")) {
+                posts = posts.filter(p => p.id !== currentReadId);
+                showList();
+            }
+        }
+
+        // 6. 파일 업로드 (이미지 및 HTML 처리)
         function handleFileUpload(event) {
             const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
+            if (!file) return;
+
+            const reader = new FileReader();
+
+            // HTML 파일인 경우
+            if (file.name.endsWith('.html')) {
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    // HTML을 시각적으로 구분하여 삽익 (에디터 내부에 코드 블록처럼 삽입)
+                    const htmlBox = `<div class="html-snippet" contenteditable="false"><strong>[첨부된 HTML 파일: ${file.name}]</strong><br><br>${escapeHtml(content)}</div><p><br></p>`;
+                    execCmd('insertHTML', htmlBox);
+                };
+                reader.readAsText(file);
+            } 
+            // 이미지 파일인 경우
+            else if (file.type.startsWith('image/')) {
                 reader.onload = function(e) {
                     const imgHtml = `<img src="${e.target.result}" alt="uploaded-image">`;
                     execCmd('insertHTML', imgHtml);
                 };
                 reader.readAsDataURL(file);
             }
+            
+            // 파일 입력 리셋
+            event.target.value = "";
         }
 
-        // --- 기존 에디터 기능 ---
+        // HTML 이스케이프 함수 (소스 코드를 안전하게 텍스트로 표시)
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        // --- 에디터 코어 기능 ---
         function execCmd(command, value = null) {
             document.execCommand(command, false, value);
-            document.getElementById('editor').focus();
+            document.getElementById('editor-body').focus();
         }
 
         function toggleTableModal() {
@@ -275,7 +348,11 @@
             toggleTableModal();
         }
 
-        // 초기 목록 표시
+        function showToast(msg) {
+            alert(msg); // 간단하게 alert로 처리 (커스텀 가능)
+        }
+
+        // 초기 실행
         showList();
     </script>
 </body>
