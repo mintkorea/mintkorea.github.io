@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
-import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, limit } from 'firebase/firestore';
 import { 
   Shield, Activity, AlertTriangle, Lock, Settings, Database, 
   Clock, Bell, Search, Globe, Monitor, Cpu, Terminal,
   RefreshCw, Power, Wifi, ShieldAlert, ChevronRight, X, Menu,
-  User, BarChart3, Radio, MessageSquare, Sparkles, Send, Bot
+  User, BarChart3, Radio, MessageSquare, Sparkles, Send, Bot,
+  Map as MapIcon, Target, Zap
 } from 'lucide-react';
 
-// --- 전역 설정 ---
+// --- Global Configuration ---
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'catholic-security-system';
-const apiKey = ""; // Gemini API 키 (환경에서 제공됨)
+const apiKey = ""; // Runtime provided
 
 const App = () => {
   const [user, setUser] = useState(null);
@@ -20,10 +21,11 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [logs, setLogs] = useState([]);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [securityScore, setSecurityScore] = useState(100);
   
-  // AI 관련 상태
+  // AI State
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
-  const [aiChat, setAiChat] = useState([{ role: 'assistant', text: '안녕하세요, 보안 분석 비서입니다. 현재 시스템 로그를 실시간으로 분석할 준비가 되었습니다.' }]);
+  const [aiChat, setAiChat] = useState([{ role: 'assistant', text: '시스템 보안 분석가 Gemini입니다. 실시간 위협 감지 및 대응 전략 수립을 지원합니다.' }]);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const chatEndRef = useRef(null);
 
@@ -49,11 +51,14 @@ const App = () => {
       const _db = getFirestore(app);
       setDb(_db);
 
-      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-        await signInWithCustomToken(auth, __initial_auth_token);
-      } else {
-        await signInAnonymously(auth);
-      }
+      const initAuth = async () => {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      };
+      await initAuth();
 
       onAuthStateChanged(auth, (user) => {
         if (user) { setUser(user); setView('dashboard'); }
@@ -65,31 +70,35 @@ const App = () => {
   useEffect(() => {
     if (!user || !db) return;
     const logsRef = collection(db, 'artifacts', appId, 'public', 'data', 'security_logs');
+    // Fetch logs - No complex queries as per Rule 2
     const unsubscribe = onSnapshot(logsRef, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       const sorted = data.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
       setLogs(sorted);
+      
+      // Calculate security score based on logs
+      const criticalCount = sorted.filter(l => l.type === 'CRITICAL').length;
+      const warningCount = sorted.filter(l => l.type === 'WARNING').length;
+      const newScore = Math.max(0, 100 - (criticalCount * 5) - (warningCount * 1));
+      setSecurityScore(newScore);
     }, (error) => console.error("Firestore Error:", error));
     return () => unsubscribe();
   }, [user, db]);
 
-  // --- Gemini AI 통합 로직 ---
   const askGemini = async (userQuery) => {
-    if (!userQuery.trim()) return;
+    if (!userQuery.trim() || isAiLoading) return;
     
-    const newChat = [...aiChat, { role: 'user', text: userQuery }];
-    setAiChat(newChat);
+    setAiChat(prev => [...prev, { role: 'user', text: userQuery }]);
     setIsAiLoading(true);
 
-    // 지수 백오프를 포함한 API 호출 함수
-    const callApiWithRetry = async (prompt, retries = 5, delay = 1000) => {
+    const callApiWithRetry = async (retries = 5, delay = 1000) => {
       try {
-        // 현재 로그 컨텍스트 준비
-        const logContext = logs.slice(0, 10).map(l => `[${l.type}] ${l.message} (From: ${l.source})`).join('\n');
-        const systemPrompt = `You are a professional Cyber Security Analyst. 
-        Current System Logs:\n${logContext}\n
-        Analyze the logs and answer the user's request in Korean. 
-        Focus on identifying patterns of attack and suggesting mitigation strategies.`;
+        const logContext = logs.slice(0, 15).map(l => `[${l.type}] ${l.message} (${l.source})`).join('\n');
+        const systemPrompt = `당신은 가톨릭대학교 보안 관제 센터(CUK AI-SOC)의 수석 보안 분석가입니다. 
+        최신 로그 현황:
+        ${logContext}
+        
+        사용자의 질문에 한국어로 전문적이고 친절하게 답변하세요. 위협 발견 시 구체적인 방어 코드나 설정법을 포함하면 좋습니다.`;
 
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
           method: 'POST',
@@ -106,17 +115,17 @@ const App = () => {
       } catch (err) {
         if (retries > 0) {
           await new Promise(r => setTimeout(r, delay));
-          return callApiWithRetry(prompt, retries - 1, delay * 2);
+          return callApiWithRetry(retries - 1, delay * 2);
         }
         throw err;
       }
     };
 
     try {
-      const answer = await callApiWithRetry(userQuery);
+      const answer = await callApiWithRetry();
       setAiChat(prev => [...prev, { role: 'assistant', text: answer }]);
     } catch (err) {
-      setAiChat(prev => [...prev, { role: 'assistant', text: "AI 분석 엔진 응답 실패. 네트워크 상태를 확인하세요." }]);
+      setAiChat(prev => [...prev, { role: 'assistant', text: "네트워크 오류로 분석 결과가 지연되고 있습니다. 잠시 후 다시 시도해주세요." }]);
     } finally {
       setIsAiLoading(false);
     }
@@ -125,9 +134,10 @@ const App = () => {
   const triggerSimulation = async () => {
     if (!db || !user) return;
     const threats = [
-      { type: 'CRITICAL', msg: 'Brute Force 공격 감지', src: '192.168.1.104' },
-      { type: 'WARNING', msg: '비정상적 API 호출', src: '203.11.45.2' },
-      { type: 'CRITICAL', msg: 'SQL Injection 시도', src: '118.45.2.10' }
+      { type: 'CRITICAL', msg: 'DDoS Traffic Spike Detect', src: '14.21.33.' + Math.floor(Math.random()*255) },
+      { type: 'WARNING', msg: 'Unauthorized Admin Access', src: '192.168.0.21' },
+      { type: 'CRITICAL', msg: 'Ransomware Pattern Found', src: '45.120.2.' + Math.floor(Math.random()*255) },
+      { type: 'CRITICAL', msg: 'Advanced Persistent Threat (APT)', src: '110.12.3.' + Math.floor(Math.random()*255) }
     ];
     const picked = threats[Math.floor(Math.random() * threats.length)];
     await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'security_logs'), {
@@ -141,151 +151,248 @@ const App = () => {
     warning: logs.filter(l => l.type === 'WARNING').length
   }), [logs]);
 
-  if (view === 'booting') return <div className="min-h-screen bg-[#020617] flex items-center justify-center font-mono text-blue-500 animate-pulse">SYSTEM INITIALIZING...</div>;
+  if (view === 'booting') return <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center font-mono text-blue-500"><Zap className="animate-bounce mb-4" />SYSTEM INITIALIZING...</div>;
   
   if (view === 'setup') return (
-    <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-slate-900 p-8 rounded-3xl border border-slate-800">
-        <h2 className="text-xl font-bold text-white mb-4">프로젝트 설정 필요</h2>
-        <textarea id="cfg-in" className="w-full h-40 bg-black p-4 rounded-xl text-emerald-400 font-mono text-xs mb-4" placeholder='Firebase Config JSON...' />
+    <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6 font-sans">
+      <div className="max-w-md w-full bg-slate-900 p-10 rounded-[2.5rem] border border-slate-800 shadow-2xl">
+        <ShieldAlert size={48} className="text-blue-500 mb-6 mx-auto" />
+        <h2 className="text-2xl font-black text-white text-center mb-2">SOC Setup</h2>
+        <p className="text-slate-500 text-center text-sm mb-8">Firebase 구성을 입력하여 관제 시스템을 활성화하십시오.</p>
+        <textarea id="cfg-in" className="w-full h-32 bg-black/50 border border-slate-800 p-4 rounded-2xl text-blue-400 font-mono text-[10px] mb-6 focus:ring-2 focus:ring-blue-600 outline-none" placeholder='{"apiKey": "...", "authDomain": "..."}' />
         <button onClick={() => {
           const val = document.getElementById('cfg-in').value;
-          try { localStorage.setItem('CUK_FIREBASE_CONFIG', val); initFirebase(JSON.parse(val)); } catch(e) { alert("Invalid JSON"); }
-        }} className="w-full bg-blue-600 py-3 rounded-xl font-bold text-white">시스템 가동</button>
+          try { localStorage.setItem('CUK_FIREBASE_CONFIG', val); initFirebase(JSON.parse(val)); } catch(e) { alert("Invalid Configuration JSON"); }
+        }} className="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-bold text-white shadow-lg transition-all">시스템 엔진 시작</button>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-300 flex overflow-hidden">
-      {/* 사이드바 */}
-      <aside className="w-20 lg:w-64 bg-slate-900/50 border-r border-slate-800/50 backdrop-blur-xl flex flex-col">
-        <div className="p-6 flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg"><ShieldAlert className="text-white" size={20} /></div>
-          <span className="hidden lg:block font-black text-white text-lg tracking-tight">CUK AI-SOC</span>
+    <div className="min-h-screen bg-[#020617] text-slate-300 flex font-sans overflow-hidden">
+      {/* Navigation */}
+      <aside className="w-24 lg:w-72 bg-slate-900/80 border-r border-slate-800/50 backdrop-blur-3xl flex flex-col transition-all">
+        <div className="p-8 flex items-center space-x-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center shadow-2xl ring-4 ring-blue-500/20">
+            <ShieldAlert className="text-white" size={24} />
+          </div>
+          <div className="hidden lg:block">
+            <span className="font-black text-white text-xl tracking-tighter">CUK AI-SOC</span>
+            <p className="text-[10px] text-emerald-500 font-bold tracking-widest uppercase">Live Surveillance</p>
+          </div>
         </div>
-        <nav className="flex-1 px-3 space-y-2 mt-10">
-          <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center p-3 rounded-xl ${activeTab === 'dashboard' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}>
-            <Activity size={20} /><span className="hidden lg:block ml-3 font-bold">관제 센터</span>
-          </button>
-          <button onClick={() => setIsAiPanelOpen(!isAiPanelOpen)} className={`w-full flex items-center p-3 rounded-xl ${isAiPanelOpen ? 'bg-emerald-600 text-white' : 'hover:bg-slate-800'}`}>
-            <Sparkles size={20} /><span className="hidden lg:block ml-3 font-bold">AI 분석비서</span>
-          </button>
+
+        <nav className="flex-1 px-4 space-y-3 mt-8">
+          {[
+            { id: 'dashboard', label: '관제 대시보드', icon: Activity },
+            { id: 'map', label: '위협 탐지 지도', icon: MapIcon },
+            { id: 'ai', label: 'AI 분석 센터', icon: Sparkles, color: 'text-emerald-400' }
+          ].map((item) => (
+            <button 
+              key={item.id}
+              onClick={() => {
+                if(item.id === 'ai') setIsAiPanelOpen(true);
+                else { setView(item.id); setActiveTab(item.id); }
+              }}
+              className={`w-full flex items-center p-4 rounded-2xl transition-all group ${activeTab === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'hover:bg-slate-800'}`}
+            >
+              <item.icon size={22} className={item.color || ""} />
+              <span className="hidden lg:block ml-4 font-bold">{item.label}</span>
+            </button>
+          ))}
         </nav>
-        <div className="p-4 border-t border-slate-800/50">
-           <div className="p-3 bg-slate-950/50 rounded-xl border border-slate-800/50 text-[10px] truncate">
-              <p className="text-slate-500 font-bold uppercase">Operator</p>
-              <p className="font-mono text-blue-400">{user?.uid}</p>
-           </div>
+
+        <div className="p-6">
+          <div className="p-4 bg-slate-950 rounded-[1.5rem] border border-slate-800/50">
+            <div className="flex justify-between items-end mb-2">
+              <span className="text-[10px] font-bold text-slate-500 uppercase">System Score</span>
+              <span className={`text-lg font-black ${securityScore > 80 ? 'text-emerald-500' : 'text-rose-500'}`}>{securityScore}</span>
+            </div>
+            <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+              <div className={`h-full transition-all duration-1000 ${securityScore > 80 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: `${securityScore}%` }} />
+            </div>
+          </div>
         </div>
       </aside>
 
-      {/* 메인 영역 */}
-      <main className="flex-1 flex flex-col min-w-0 relative">
-        <header className="h-20 border-b border-slate-800/50 flex items-center justify-between px-8 bg-slate-900/20">
-          <h2 className="text-white font-black text-sm tracking-widest uppercase">{activeTab}</h2>
-          <div className="flex items-center space-x-4">
-            <span className="text-xs font-mono text-slate-500">{currentTime.toLocaleTimeString()}</span>
-            <button onClick={triggerSimulation} className="px-4 py-2 bg-rose-600 text-white text-xs font-bold rounded-lg shadow-lg hover:bg-rose-500 transition-all">
-              공격 시뮬레이션
+      {/* Main Container */}
+      <main className="flex-1 flex flex-col relative min-w-0 bg-[radial-gradient(circle_at_top_right,_#0f172a,_#020617)]">
+        <header className="h-24 flex items-center justify-between px-10 border-b border-white/5">
+          <div className="flex flex-col">
+            <h2 className="text-white font-black text-2xl tracking-tight capitalize">{activeTab}</h2>
+            <p className="text-xs text-slate-500 font-mono uppercase tracking-widest">{currentTime.toDateString()} | {currentTime.toLocaleTimeString()}</p>
+          </div>
+          <div className="flex items-center space-x-6">
+            <div className="hidden xl:flex items-center space-x-3 text-xs bg-slate-900 px-4 py-2 rounded-full border border-slate-800">
+               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+               <span className="text-slate-400 font-bold uppercase tracking-tighter">Engine v3.0 Online</span>
+            </div>
+            <button onClick={triggerSimulation} className="px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white text-xs font-black rounded-xl shadow-xl shadow-rose-900/20 transition-all flex items-center space-x-2">
+              <Target size={14} />
+              <span>위협 시뮬레이션</span>
             </button>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800">
-              <p className="text-[10px] font-black text-slate-500 uppercase mb-1">총 탐지 이벤트</p>
-              <h3 className="text-3xl font-black text-white">{stats.total}</h3>
-            </div>
-            <div className="bg-rose-500/10 p-6 rounded-[2rem] border border-rose-500/20">
-              <p className="text-[10px] font-black text-rose-500 uppercase mb-1">CRITICAL 위협</p>
-              <h3 className="text-3xl font-black text-rose-500">{stats.critical}</h3>
-            </div>
-            <div className="bg-emerald-500/10 p-6 rounded-[2rem] border border-emerald-500/20">
-              <p className="text-[10px] font-black text-emerald-500 uppercase mb-1">시스템 안전도</p>
-              <h3 className="text-3xl font-black text-emerald-500">98.2%</h3>
-            </div>
+        <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar">
+          {/* Top Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            {[
+              { label: 'Total Events', val: stats.total, icon: Radio, color: 'text-blue-500' },
+              { label: 'Critical Threat', val: stats.critical, icon: ShieldAlert, color: 'text-rose-500' },
+              { label: 'Warnings', val: stats.warning, icon: AlertTriangle, color: 'text-amber-500' },
+              { label: 'Active Sessions', val: '42', icon: Globe, color: 'text-emerald-500' }
+            ].map((stat, i) => (
+              <div key={i} className="bg-slate-900/40 backdrop-blur-md p-6 rounded-[2rem] border border-white/5 group hover:border-blue-500/30 transition-all">
+                <div className="flex justify-between items-start mb-4">
+                  <div className={`p-3 rounded-2xl bg-slate-950 border border-slate-800 ${stat.color}`}><stat.icon size={20} /></div>
+                  <span className="text-[10px] font-bold text-slate-600 uppercase">Live</span>
+                </div>
+                <h3 className="text-3xl font-black text-white">{stat.val}</h3>
+                <p className="text-xs text-slate-500 font-bold uppercase mt-1 tracking-tight">{stat.label}</p>
+              </div>
+            ))}
           </div>
 
-          <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8">
-            <h4 className="text-white font-bold mb-6 flex items-center"><Terminal size={18} className="mr-2 text-blue-500" /> 실시간 로그 데이터</h4>
-            <div className="space-y-4">
-              {logs.map(log => (
-                <div key={log.id} className="p-4 bg-black/40 rounded-2xl border border-slate-800/50 flex justify-between items-center group hover:border-blue-500/30 transition-all">
-                  <div className="flex items-center space-x-4">
-                    <span className={`w-2 h-2 rounded-full ${log.type === 'CRITICAL' ? 'bg-rose-500 shadow-[0_0_8px_red]' : 'bg-blue-500'}`}></span>
-                    <div>
-                      <p className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">{log.message}</p>
-                      <p className="text-[10px] text-slate-500 font-mono">IP: {log.source} | {log.timestamp?.toDate().toLocaleString()}</p>
-                    </div>
-                  </div>
-                  <button onClick={() => {
-                    setIsAiPanelOpen(true);
-                    askGemini(`이 로그에 대해 분석해줘: ${log.message} (발신지: ${log.source})`);
-                  }} className="opacity-0 group-hover:opacity-100 p-2 bg-blue-600/20 text-blue-400 rounded-lg text-xs font-bold transition-all">
-                    AI 분석 요청
-                  </button>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
+            {/* Real-time Threat Map (Simulated visual) */}
+            <div className="xl:col-span-2 bg-slate-900/40 rounded-[2.5rem] border border-white/5 p-8 relative overflow-hidden group">
+              <div className="flex items-center justify-between mb-8">
+                <h4 className="text-white font-black flex items-center">
+                  <Globe size={18} className="mr-3 text-blue-500" /> 지능형 위협 탐지 지도
+                </h4>
+                <div className="flex space-x-2">
+                  <span className="px-3 py-1 bg-blue-500/10 text-blue-500 rounded-full text-[10px] font-bold uppercase">Global View</span>
                 </div>
-              ))}
+              </div>
+              
+              <div className="aspect-video bg-slate-950 rounded-3xl border border-slate-800 relative flex items-center justify-center overflow-hidden">
+                {/* SVG Map Background Mockup */}
+                <svg viewBox="0 0 800 400" className="w-full opacity-20 fill-slate-500">
+                   <path d="M100,100 Q150,50 200,100 T300,100 T400,150 T500,100 T700,150" fill="none" stroke="currentColor" strokeWidth="1" strokeDasharray="4 4" />
+                   <circle cx="150" cy="120" r="2" />
+                   <circle cx="450" cy="220" r="2" />
+                   <circle cx="600" cy="150" r="2" />
+                </svg>
+                
+                {/* Animated Attack Lines for Critical Logs */}
+                <div className="absolute inset-0">
+                  {logs.filter(l => l.type === 'CRITICAL').slice(0, 3).map((l, i) => (
+                    <div key={i} className="absolute transition-all duration-1000" style={{ top: `${20 + i*25}%`, left: `${30 + i*15}%` }}>
+                       <div className="relative">
+                          <div className="absolute -inset-4 bg-rose-600/20 rounded-full animate-ping"></div>
+                          <div className="w-3 h-3 bg-rose-600 rounded-full relative z-10 shadow-[0_0_15px_rgba(225,29,72,0.8)]"></div>
+                          <div className="absolute left-6 top-1/2 -translate-y-1/2 bg-rose-950/80 border border-rose-500/30 px-3 py-1 rounded-lg text-[10px] whitespace-nowrap text-white font-mono">
+                            ATTACK FROM: {l.source}
+                          </div>
+                       </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="absolute bottom-6 right-6 flex items-center space-x-4 bg-slate-900/90 px-4 py-2 rounded-xl border border-white/5 text-[10px]">
+                   <div className="flex items-center"><span className="w-2 h-2 bg-rose-500 rounded-full mr-2"></span> High Risk</div>
+                   <div className="flex items-center"><span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span> Low Risk</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Activity */}
+            <div className="bg-slate-900/40 rounded-[2.5rem] border border-white/5 p-8 flex flex-col">
+              <h4 className="text-white font-black mb-8 flex items-center">
+                <Terminal size={18} className="mr-3 text-indigo-500" /> 실시간 로그 브리핑
+              </h4>
+              <div className="flex-1 space-y-4 overflow-y-auto max-h-[500px] pr-2 custom-scrollbar">
+                {logs.length === 0 && <p className="text-center text-slate-600 py-10 text-xs">탐지된 활동이 없습니다.</p>}
+                {logs.map(log => (
+                  <div key={log.id} className="group p-4 bg-black/40 rounded-2xl border border-white/5 hover:border-blue-500/40 transition-all cursor-pointer" onClick={() => { setIsAiPanelOpen(true); askGemini(`이 로그 분석해줘: ${log.message} (${log.source})`); }}>
+                    <div className="flex justify-between items-start mb-2">
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${log.type === 'CRITICAL' ? 'bg-rose-500/20 text-rose-500' : 'bg-blue-500/20 text-blue-500'}`}>{log.type}</span>
+                      <span className="text-[10px] text-slate-600 font-mono">{log.timestamp?.toDate().toLocaleTimeString()}</span>
+                    </div>
+                    <p className="text-sm font-bold text-white mb-1 leading-tight">{log.message}</p>
+                    <p className="text-[10px] text-slate-500 font-mono">Src: {log.source}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* AI 비서 패널 (Overlay) */}
+        {/* AI Side Panel */}
         {isAiPanelOpen && (
-          <div className="absolute right-0 top-0 bottom-0 w-full md:w-96 bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col z-30 animate-in slide-in-from-right duration-300">
-            <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center"><Bot size={18} className="text-white" /></div>
-                <h3 className="text-white font-bold">Gemini AI 보안 분석</h3>
+          <div className="absolute right-0 top-0 bottom-0 w-full md:w-[450px] bg-[#0f172a] border-l border-white/5 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] flex flex-col z-50 animate-in slide-in-from-right duration-500">
+            <div className="p-8 border-b border-white/5 flex justify-between items-center bg-slate-900/50">
+              <div className="flex items-center space-x-4">
+                <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-900/20">
+                  <Bot size={22} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-white font-black">Gemini Security Intelligence</h3>
+                  <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Active Analysis</p>
+                </div>
               </div>
-              <button onClick={() => setIsAiPanelOpen(false)} className="p-2 hover:bg-slate-800 rounded-lg"><X size={18} /></button>
+              <button onClick={() => setIsAiPanelOpen(false)} className="p-3 hover:bg-slate-800 rounded-2xl transition-all"><X size={20} /></button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar bg-[radial-gradient(circle_at_bottom_left,_#1e293b,_transparent)]">
               {aiChat.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] p-4 rounded-2xl text-xs leading-relaxed ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-slate-800 text-slate-200 rounded-tl-none border border-slate-700'}`}>
+                  <div className={`max-w-[90%] p-5 rounded-[1.5rem] text-sm leading-relaxed shadow-xl ${
+                    msg.role === 'user' 
+                    ? 'bg-blue-600 text-white rounded-tr-none' 
+                    : 'bg-slate-800/80 backdrop-blur-sm text-slate-200 rounded-tl-none border border-white/5'
+                  }`}>
                     {msg.text}
                   </div>
                 </div>
               ))}
               {isAiLoading && (
                 <div className="flex justify-start">
-                   <div className="bg-slate-800 p-4 rounded-2xl rounded-tl-none border border-slate-700 flex items-center space-x-2">
-                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce"></div>
-                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                   <div className="bg-slate-800/80 p-5 rounded-[1.5rem] rounded-tl-none border border-white/5 flex items-center space-x-3">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                      </div>
+                      <span className="text-[10px] text-emerald-500 font-black uppercase tracking-tighter">분석 중...</span>
                    </div>
                 </div>
               )}
               <div ref={chatEndRef} />
             </div>
 
-            <div className="p-6 border-t border-slate-800 bg-slate-950/50">
-              <div className="relative">
+            <div className="p-8 border-t border-white/5 bg-slate-900/50">
+              <div className="relative group">
                 <input 
                   type="text"
-                  placeholder="보안 위협에 대해 물어보세요..."
-                  className="w-full bg-black border border-slate-800 rounded-xl py-3 pl-4 pr-12 text-xs text-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="위협 분석 또는 대응 방법 질문..."
+                  className="w-full bg-black/40 border border-slate-800 rounded-2xl py-4 pl-6 pr-14 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 transition-all placeholder:text-slate-600"
                   onKeyDown={(e) => { if(e.key === 'Enter') { askGemini(e.target.value); e.target.value = ''; } }}
                 />
-                <button className="absolute right-3 top-2.5 p-1 text-emerald-500 hover:text-emerald-400">
-                  <Send size={16} />
+                <button className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-emerald-600 text-white rounded-xl shadow-lg hover:bg-emerald-500 transition-all">
+                  <Send size={18} />
                 </button>
               </div>
-              <p className="text-[9px] text-slate-600 mt-3 text-center">Gemini 2.5 Flash가 현재 실시간 로그를 바탕으로 분석합니다.</p>
+              <div className="flex justify-between items-center mt-4">
+                 <p className="text-[10px] text-slate-500 font-medium">Powered by Gemini 2.5 Flash</p>
+                 <div className="flex space-x-2">
+                    <button onClick={() => askGemini("현재 가장 위험한 공격 TOP 3는 뭐야?")} className="text-[9px] bg-slate-800 px-2 py-1 rounded-md hover:bg-slate-700 transition-all">#TOP3위협</button>
+                    <button onClick={() => askGemini("DDoS 대응 절차 알려줘")} className="text-[9px] bg-slate-800 px-2 py-1 rounded-md hover:bg-slate-700 transition-all">#DDoS대응</button>
+                 </div>
+              </div>
             </div>
           </div>
         )}
       </main>
 
       <style dangerouslySetInnerHTML={{ __html: `
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #334155; }
         @keyframes slide-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        .animate-in { animation: slide-in-right 0.3s ease-out; }
+        .animate-in { animation: slide-in-right 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
       `}} />
     </div>
   );
