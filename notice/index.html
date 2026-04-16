@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Board Pro - Persistence Fix</title>
+    <title>Visual HTML Editor Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
@@ -14,276 +14,289 @@
             color: #1e293b;
         }
 
-        .editor-content {
-            min-height: 450px;
+        .editor-container {
+            min-height: 550px;
             outline: none;
-            line-height: 1.8;
+            line-height: 1.6;
         }
 
-        /* Iframe 스타일 최적화 */
-        .html-render-wrapper {
+        /* HTML 블록 스타일 */
+        .html-wrapper {
             border: 2px solid #e2e8f0;
-            border-radius: 1.25rem;
+            border-radius: 1rem;
             margin: 1.5rem 0;
-            overflow: hidden;
-            background: #ffffff;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            background: white;
+            transition: border-color 0.2s;
+            position: relative;
         }
-        
-        .html-render-header {
+
+        .html-wrapper:hover {
+            border-color: #6366f1;
+        }
+
+        .html-toolbar {
             background: #f8fafc;
-            padding: 0.75rem 1.25rem;
-            font-size: 0.875rem;
-            font-weight: 700;
-            color: #475569;
+            padding: 8px 16px;
             border-bottom: 1px solid #e2e8f0;
             display: flex;
-            justify-content: space-between;
+            gap: 8px;
             align-items: center;
+            border-radius: 1rem 1rem 0 0;
         }
 
-        .html-render-frame {
+        /* 실제 HTML이 렌더링되는 영역 */
+        .html-content-render {
+            padding: 20px;
+            overflow: auto;
+        }
+
+        /* 코드 에디터 영역 */
+        .html-raw-editor {
+            display: none;
             width: 100%;
-            height: 500px;
+            height: 300px;
+            background: #1e1e1e;
+            color: #72f1b8;
+            font-family: 'monospace';
+            padding: 15px;
+            font-size: 13px;
             border: none;
-            display: block;
-            background: white;
+            outline: none;
+        }
+
+        .edit-active .html-content-render [contenteditable="true"] {
+            outline: 2px dashed #6366f1;
+            outline-offset: 2px;
         }
 
         .view-section { display: none; }
-        .view-section.active { display: block; animation: slideUp 0.3s ease-out; }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        .view-section.active { display: block; }
+        
+        .badge-mode {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
         }
-
-        .loader {
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #4f46e5;
-            border-radius: 50%;
-            width: 16px;
-            height: 16px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="p-4 md:p-10">
+<body class="p-4 md:p-8">
 
-    <div class="max-w-5xl mx-auto">
-        <!-- 헤더 -->
-        <header class="flex justify-between items-end mb-10">
-            <div>
-                <h1 class="text-4xl font-black text-slate-900 tracking-tighter">BOARD<span class="text-indigo-600">PREVIEW</span></h1>
-                <p class="text-slate-500 mt-1 font-medium">첨부 파일 영구 저장 및 렌더링 시스템</p>
+    <div class="max-w-4xl mx-auto">
+        <!-- 상단 네비게이션 -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">E</div>
+                <h1 class="text-xl font-extrabold tracking-tight">VISUAL EDITOR</h1>
             </div>
-            <button id="btn-create" onclick="openEditor()" class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
-                새 글 작성
-            </button>
-        </header>
+            <button id="btn-new" onclick="openNewEditor()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold shadow-md hover:bg-indigo-700">새 글 작성</button>
+        </div>
 
-        <!-- [1] 목록 -->
+        <!-- 리스트 화면 -->
         <section id="view-list" class="view-section active">
-            <div id="post-container" class="grid gap-4">
-                <!-- 게시글 카드 렌더링 영역 -->
-            </div>
-            <div id="empty-state" class="bg-white rounded-3xl p-20 text-center border-2 border-dashed border-slate-200 hidden">
-                <p class="text-slate-400 font-bold">작성된 게시글이 없습니다.</p>
-            </div>
+            <div id="list-container" class="grid gap-4"></div>
         </section>
 
-        <!-- [2] 에디터 (쓰기/수정) -->
-        <section id="view-editor" class="view-section">
-            <div class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
-                <div class="p-8 border-b border-slate-100">
-                    <input type="text" id="input-title" placeholder="제목을 입력하세요" class="w-full text-3xl font-extrabold outline-none">
+        <!-- 작성/편집 화면 -->
+        <section id="view-write" class="view-section">
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+                <div class="p-4 border-b border-slate-100 flex items-center gap-4">
+                    <input type="text" id="post-title" placeholder="게시글 제목을 입력하세요" class="w-full text-xl font-bold outline-none">
                 </div>
                 
-                <div class="bg-slate-50 p-4 border-b border-slate-200 flex items-center gap-3">
-                    <button onclick="triggerFile()" class="bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-indigo-50 hover:border-indigo-200 transition-all">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
-                        HTML / 이미지 첨부
+                <div class="bg-slate-50 px-4 py-2 border-b border-slate-200 flex flex-wrap gap-2 items-center">
+                    <button onclick="document.getElementById('file-upload').click()" class="bg-white border border-slate-300 px-3 py-1.5 rounded-md text-sm font-semibold hover:bg-slate-100 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        HTML 첨부
                     </button>
-                    <input type="file" id="file-hidden" class="hidden" accept="image/*, .html" onchange="handleFileUpload(event)">
-                    <span id="upload-indicator" class="text-xs text-slate-400 font-bold"></span>
+                    <input type="file" id="file-upload" class="hidden" accept=".html" onchange="handleFileUpload(event)">
+                    <div class="h-4 w-[1px] bg-slate-300 mx-1"></div>
+                    <span class="text-xs text-slate-500 font-medium">팁: 첨부된 HTML 내부 글자를 클릭하면 바로 수정할 수 있습니다.</span>
                 </div>
 
-                <div id="input-body" contenteditable="true" class="editor-content p-8 md:p-12 focus:outline-none bg-white"></div>
+                <div id="editor-body" contenteditable="true" class="editor-container p-6 focus:outline-none">
+                    <p>내용을 입력하거나 HTML 파일을 불러오세요...</p>
+                </div>
             </div>
 
-            <div class="mt-8 flex justify-end gap-4">
-                <button onclick="goList()" class="px-6 py-3 font-bold text-slate-400 hover:text-slate-600">취소</button>
-                <button onclick="savePost()" class="bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold hover:bg-black shadow-xl transition-all">저장하기</button>
+            <div class="mt-6 flex justify-end gap-3">
+                <button onclick="goToList()" class="px-5 py-2 text-slate-500 font-bold">취소</button>
+                <button onclick="savePost()" class="bg-slate-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-black">저장 완료</button>
             </div>
         </section>
 
-        <!-- [3] 상세보기 -->
-        <section id="view-read" class="view-section">
-            <div class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
-                <div class="p-10 border-b border-slate-50 flex justify-between items-start">
-                    <div>
-                        <h2 id="display-title" class="text-4xl font-black text-slate-900 leading-tight"></h2>
-                        <p id="display-date" class="text-slate-400 font-medium mt-2"></p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="editPost()" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                        </button>
-                        <button onclick="deletePost()" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                    </div>
+        <!-- 상세 보기 화면 -->
+        <section id="view-detail" class="view-section">
+            <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200">
+                <h2 id="detail-title" class="text-3xl font-black mb-6"></h2>
+                <div id="detail-content" class="prose max-w-none"></div>
+                <div class="mt-10 pt-6 border-t border-slate-100 flex gap-4">
+                    <button onclick="goToList()" class="text-indigo-600 font-bold">← 목록으로</button>
+                    <button onclick="editCurrentPost()" class="text-slate-400 hover:text-slate-600">수정</button>
                 </div>
-                <div id="display-body" class="p-10 editor-content"></div>
-            </div>
-            <div class="mt-10 text-center">
-                <button onclick="goList()" class="bg-slate-900 text-white px-12 py-4 rounded-2xl font-bold hover:shadow-2xl transition-all">목록으로 돌아가기</button>
             </div>
         </section>
     </div>
 
     <script>
         let posts = [];
-        let activePostId = null;
+        let currentPostId = null;
 
-        function showSection(name) {
+        function showView(id) {
             document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
-            document.getElementById(`view-${name}`).classList.add('active');
-            const btn = document.getElementById('btn-create');
-            btn.style.display = (name === 'list') ? 'flex' : 'none';
-            if(name === 'list') renderList();
-            window.scrollTo(0,0);
+            document.getElementById(`view-${id}`).classList.add('active');
+            document.getElementById('btn-new').style.display = (id === 'list') ? 'block' : 'none';
         }
 
-        function goList() { showSection('list'); }
-        
-        function openEditor() {
-            activePostId = null;
-            document.getElementById('input-title').value = "";
-            document.getElementById('input-body').innerHTML = "";
-            showSection('editor');
+        function goToList() { showView('list'); renderList(); }
+        function openNewEditor() {
+            currentPostId = null;
+            document.getElementById('post-title').value = "";
+            document.getElementById('editor-body').innerHTML = "<p><br></p>";
+            showView('write');
         }
 
-        function triggerFile() { document.getElementById('file-hidden').click(); }
-
-        async function handleFileUpload(e) {
+        // HTML 파일 처리
+        function handleFileUpload(e) {
             const file = e.target.files[0];
             if (!file) return;
 
-            const indicator = document.getElementById('upload-indicator');
-            indicator.innerHTML = `<span class="loader"></span> 분석 중...`;
-
             const reader = new FileReader();
-
-            if (file.name.toLowerCase().endsWith('.html')) {
-                reader.onload = function(event) {
-                    const rawHtml = event.target.result;
-                    // 중요: 저장 시에도 데이터가 유지되도록 srcdoc을 사용한 iframe 구조 삽입
-                    // 특수문자 처리를 위해 base64나 이스케이프가 필요할 수 있으나 여기서는 간단히 처리
-                    const escapedHtml = rawHtml.replace(/"/g, '&quot;'); 
-                    
-                    const iframeWrapper = `
-                        <div class="html-render-wrapper" contenteditable="false">
-                            <div class="html-render-header">
-                                <span>컴포넌트: ${file.name}</span>
-                                <span class="text-indigo-500 text-xs flex items-center gap-1">
-                                    <span class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse"></span> LIVE
-                                </span>
-                            </div>
-                            <iframe class="html-render-frame" srcdoc="${escapedHtml}"></iframe>
-                        </div>
-                        <p><br></p>
-                    `;
-                    insertHtml(iframeWrapper);
-                    indicator.innerText = "HTML 삽입 완료";
-                };
-                reader.readAsText(file);
-            } else if (file.type.startsWith('image/')) {
-                reader.onload = function(event) {
-                    const img = `<img src="${event.target.result}" style="max-width:100%; border-radius:1rem; margin:1rem 0;" alt="Image"> <p><br></p>`;
-                    insertHtml(img);
-                    indicator.innerText = "이미지 삽입 완료";
-                };
-                reader.readAsDataURL(file);
-            }
+            reader.onload = function(event) {
+                const rawHtml = event.target.result;
+                insertHtmlBlock(rawHtml, file.name);
+            };
+            reader.readAsText(file);
             e.target.value = "";
         }
 
-        function insertHtml(html) {
-            const editor = document.getElementById('input-body');
-            editor.focus();
-            document.execCommand('insertHTML', false, html);
-        }
+        function insertHtmlBlock(html, filename) {
+            const blockId = 'block-' + Date.now();
+            
+            // 시각적 수정을 위해 contenteditable 속성 주입 (보안 및 구조 유지하며 텍스트만 수정 가능케 함)
+            const wrapper = document.createElement('div');
+            wrapper.className = 'html-wrapper';
+            wrapper.id = blockId;
+            wrapper.setAttribute('contenteditable', 'false'); // 부모는 편집 불가
 
-        function savePost() {
-            const title = document.getElementById('input-title').value.trim();
-            const body = document.getElementById('input-body').innerHTML;
-
-            if(!title) { alert("제목을 입력해주세요."); return; }
-
-            if(activePostId) {
-                const idx = posts.findIndex(p => p.id === activePostId);
-                posts[idx] = { ...posts[idx], title, body, date: new Date().toLocaleString() };
-            } else {
-                posts.unshift({ id: Date.now(), title, body, date: new Date().toLocaleString() });
-            }
-            goList();
-        }
-
-        function renderList() {
-            const container = document.getElementById('post-container');
-            const empty = document.getElementById('empty-state');
-            container.innerHTML = "";
-
-            if(posts.length === 0) {
-                empty.classList.remove('hidden');
-                return;
-            }
-
-            empty.classList.add('hidden');
-            posts.forEach(p => {
-                const card = document.createElement('div');
-                card.className = "bg-white p-6 rounded-3xl border border-slate-200 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-50 cursor-pointer transition-all group";
-                card.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <h3 class="text-xl font-bold text-slate-800 group-hover:text-indigo-600 mb-1">${p.title}</h3>
-                            <p class="text-sm text-slate-400 font-medium">${p.date}</p>
-                        </div>
-                        <div class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                        </div>
+            wrapper.innerHTML = `
+                <div class="html-toolbar">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${filename}</span>
+                    <div class="ml-auto flex gap-2">
+                        <button onclick="toggleMode('${blockId}', 'visual')" class="btn-v bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-[11px] font-bold">비주얼 편집</button>
+                        <button onclick="toggleMode('${blockId}', 'code')" class="btn-c bg-slate-100 text-slate-600 px-2 py-1 rounded text-[11px] font-bold">코드 수정</button>
+                        <button onclick="this.closest('.html-wrapper').remove()" class="text-red-400 hover:text-red-600 px-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
                     </div>
-                `;
-                card.onclick = () => viewPost(p.id);
-                container.appendChild(card);
+                </div>
+                <div class="html-content-render edit-active">${html}</div>
+                <textarea class="html-raw-editor">${html}</textarea>
+            `;
+
+            // 삽입 전 렌더링된 영역 내의 모든 텍스트 노드를 포함한 엘리먼트에 contenteditable 적용
+            const renderArea = wrapper.querySelector('.html-content-render');
+            makeEditable(renderArea);
+
+            document.getElementById('editor-body').appendChild(wrapper);
+            document.getElementById('editor-body').appendChild(document.createElement('br'));
+        }
+
+        // HTML 내부의 요소들을 편집 가능하게 변환
+        function makeEditable(container) {
+            const elements = container.querySelectorAll('p, span, h1, h2, h3, h4, h5, h6, li, td, th, div, b, i, em, strong');
+            elements.forEach(el => {
+                if (el.children.length === 0 || Array.from(el.childNodes).some(node => node.nodeType === 3 && node.textContent.trim() !== "")) {
+                    el.setAttribute('contenteditable', 'true');
+                    el.addEventListener('input', () => {
+                        const wrapper = el.closest('.html-wrapper');
+                        const raw = wrapper.querySelector('.html-raw-editor');
+                        const render = wrapper.querySelector('.html-content-render');
+                        raw.value = render.innerHTML; // 시각적 편집 내용을 코드 에디터에도 반영
+                    });
+                }
             });
         }
 
-        function viewPost(id) {
-            activePostId = id;
-            const post = posts.find(p => p.id === id);
-            document.getElementById('display-title').innerText = post.title;
-            document.getElementById('display-date').innerText = post.date;
-            document.getElementById('display-body').innerHTML = post.body;
-            showSection('read');
-        }
+        // 모드 전환 (비주얼 vs 코드)
+        function toggleMode(blockId, mode) {
+            const wrapper = document.getElementById(blockId);
+            const render = wrapper.querySelector('.html-content-render');
+            const code = wrapper.querySelector('.html-raw-editor');
+            const btnV = wrapper.querySelector('.btn-v');
+            const btnC = wrapper.querySelector('.btn-c');
 
-        function editPost() {
-            const post = posts.find(p => p.id === activePostId);
-            document.getElementById('input-title').value = post.title;
-            document.getElementById('input-body').innerHTML = post.body;
-            showSection('editor');
-        }
-
-        function deletePost() {
-            if(confirm("정말 삭제하시겠습니까?")) {
-                posts = posts.filter(p => p.id !== activePostId);
-                goList();
+            if (mode === 'code') {
+                render.style.display = 'none';
+                code.style.display = 'block';
+                btnC.classList.replace('bg-slate-100', 'bg-indigo-600');
+                btnC.classList.replace('text-slate-600', 'text-white');
+                btnV.classList.replace('bg-indigo-50', 'bg-slate-100');
+                btnV.classList.replace('text-indigo-600', 'text-slate-600');
+                // 코드 모드일 때는 텍스트 에어리어의 내용 업데이트
+                code.value = render.innerHTML;
+            } else {
+                render.style.display = 'block';
+                code.style.display = 'none';
+                btnV.classList.replace('bg-slate-100', 'bg-indigo-50');
+                btnV.classList.replace('text-slate-600', 'text-indigo-600');
+                btnC.classList.replace('bg-indigo-600', 'bg-slate-100');
+                btnC.classList.replace('text-white', 'text-slate-600');
+                // 코드 수정한 내용을 다시 렌더링 영역에 반영
+                render.innerHTML = code.value;
+                makeEditable(render);
             }
+        }
+
+        function savePost() {
+            const title = document.getElementById('post-title').value;
+            // 저장 전 모든 코드 모드 종료 및 텍스트 데이터 동기화
+            document.querySelectorAll('.html-wrapper').forEach(w => {
+                const render = w.querySelector('.html-content-render');
+                const code = w.querySelector('.html-raw-editor');
+                if (code.style.display === 'block') {
+                    render.innerHTML = code.value;
+                }
+            });
+            
+            const body = document.getElementById('editor-body').innerHTML;
+            if(!title) return alert("제목을 입력하세요.");
+
+            if(currentPostId) {
+                const idx = posts.findIndex(p => p.id === currentPostId);
+                posts[idx] = { ...posts[idx], title, body };
+            } else {
+                posts.push({ id: Date.now(), title, body, date: new Date().toLocaleDateString() });
+            }
+            goToList();
+        }
+
+        function renderList() {
+            const container = document.getElementById('list-container');
+            container.innerHTML = "";
+            posts.forEach(p => {
+                const item = document.createElement('div');
+                item.className = "bg-white p-5 rounded-xl border border-slate-200 cursor-pointer hover:shadow-md";
+                item.innerHTML = `<h3 class="font-bold text-lg">${p.title}</h3><span class="text-xs text-slate-400">${p.date}</span>`;
+                item.onclick = () => {
+                    currentPostId = p.id;
+                    document.getElementById('detail-title').innerText = p.title;
+                    document.getElementById('detail-content').innerHTML = p.body;
+                    // 상세 보기에서는 편집 버튼 비활성화
+                    document.querySelectorAll('#detail-content .html-toolbar, #detail-content .html-raw-editor').forEach(el => el.remove());
+                    showView('detail');
+                };
+                container.appendChild(item);
+            });
+        }
+
+        function editCurrentPost() {
+            const p = posts.find(x => x.id === currentPostId);
+            document.getElementById('post-title').value = p.title;
+            document.getElementById('editor-body').innerHTML = p.body;
+            // 다시 편집 모드용 이벤트 바인딩
+            document.querySelectorAll('.html-content-render').forEach(r => makeEditable(r));
+            showView('write');
         }
     </script>
 </body>
