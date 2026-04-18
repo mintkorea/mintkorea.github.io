@@ -2,13 +2,13 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>연차 관리 시스템 (기존 디자인 완벽 유지본)</title>
+    <title>연차 관리 시스템 (최종 통합본)</title>
     <style>
         /* [기존 디자인 및 인쇄 서식 100% 유지] */
         body, html { margin: 0; padding: 0; height: 100%; font-family: 'Malgun Gothic', sans-serif; background: #f0f2f5; }
         .wrapper { display: flex; height: 100vh; overflow: hidden; }
         
-        /* 왼쪽 프레임 디자인 유지 */
+        /* 왼쪽 프레임 디자인 */
         .left-frame {
             width: 400px; background: #2c3e50; padding: 12px;
             display: flex; flex-direction: column; border-right: 3px solid #000; overflow-y: auto;
@@ -17,12 +17,12 @@
         .menu-container { background: #34495e; padding: 10px; border-radius: 4px; margin-bottom: 12px; border: 1px solid #1a252f; }
         .menu-row { display: flex; gap: 6px; margin-bottom: 8px; align-items: center; }
         
-        .btn { padding: 6px 10px; cursor: pointer; border: 1px solid #000; font-weight: bold; font-size: 12px; border-radius: 2px; flex: 1; text-align: center; }
-        .btn-blue { background: #3498db; color: white; }
-        .btn-orange { background: #e67e22; color: white; }
-        .btn-green { background: #2ecc71; color: white; }
+        .btn { padding: 6px 10px; cursor: pointer; border: 1px solid #000; font-weight: bold; font-size: 12px; border-radius: 2px; flex: 1; text-align: center; color: white; border: none; }
+        .btn-blue { background: #3498db; }
+        .btn-orange { background: #e67e22; }
+        .btn-green { background: #2ecc71; }
         .btn-white { background: #ffffff; color: black; }
-        .btn-print { background: #95a5a6; color: white; }
+        .btn-print { background: #95a5a6; }
         
         table { background: white; border-collapse: collapse; width: 100%; border: 2px solid #000; }
         th, td { border: 1.1px solid #000 !important; text-align: center; font-size: 11px; font-weight: bold; height: 22px; color: #000; padding: 0; }
@@ -31,7 +31,7 @@
         .v-input { background-color: #fff3e0 !important; width: 92%; border: 1px solid #ffcc80; text-align: center; font-weight: bold; }
         .hdr { background: #dee2e6 !important; height: 28px; font-size: 12px; }
 
-        /* 오른쪽 프레임 디자인 유지 */
+        /* 오른쪽 프레임 디자인 */
         .right-frame { flex: 1; background: #7f8c8d; padding: 5px; overflow: auto; display: flex; justify-content: center; }
         #paper { background: white; padding: 15mm 10mm; width: 297mm; box-shadow: 0 0 20px rgba(0,0,0,0.5); box-sizing: border-box; }
         #outputTable { table-layout: fixed; width: 100%; border-collapse: collapse; }
@@ -41,19 +41,18 @@
         .v-mark { background-color: #90ee90 !important; }
         .thick-border { border-bottom: 2.5px solid #000 !important; }
 
-        /* [모바일 전용 탭 전환 로직 - 디자인에 영향 없음] */
+        /* [핵심: 모바일 전체화면 전환용 설정] */
         @media screen and (max-width: 768px) {
-            .wrapper { flex-direction: column; }
-            .left-frame, .right-frame { width: 100% !important; flex: none; height: calc(100vh - 50px); }
-            .right-frame { display: none; padding: 2px; } /* 기본적으로 입력부만 보임 */
-            #paper { width: 100%; padding: 5mm; }
-            .active-tab { display: flex !important; }
+            .wrapper { display: block; overflow: auto; } /* 가로 정렬 해제 */
+            .left-frame, .right-frame { width: 100% !important; min-height: 100vh; display: none; } /* 일단 다 숨김 */
+            .left-frame.active, .right-frame.active { display: block; } /* 선택된 것만 보임 */
+            #paper { width: 100%; padding: 5mm 2mm; box-shadow: none; }
         }
 
         @media print {
             .no-print { display: none !important; }
             .left-frame { display: none !important; }
-            .right-frame { display: block !important; padding: 0; background: white; width: 100%; }
+            .right-frame { display: block !important; width: 100%; background: white; padding: 0; }
             #paper { box-shadow: none; width: 100%; padding: 0; margin: 0; border: none; }
             @page { size: A4 landscape; margin: 10mm; }
         }
@@ -62,11 +61,11 @@
 <body>
 
 <div class="wrapper">
-    <div class="left-frame" id="leftFrame">
-        <div class="menu-container">
+    <div class="left-frame active" id="leftFrame">
+        <div class="menu-container no-print">
             <div class="menu-row">
-                <button class="btn btn-orange" onclick="mobileTab('left')">연차대장(입력)</button>
-                <button class="btn btn-blue" onclick="mobileTab('right')">연차달력(조회)</button>
+                <button class="btn btn-orange" onclick="showTab('left')">연차대장</button>
+                <button class="btn btn-blue" onclick="showTab('right')">연차달력</button>
                 <button class="btn btn-print" onclick="window.print()">인쇄</button>
             </div>
             <div class="menu-row">
@@ -76,7 +75,7 @@
             </div>
             <div class="menu-row">
                 <input type="month" id="targetMonth" value="2026-05" onchange="render()" style="padding:4px; font-weight:bold; width:80%; text-align:center;">
-                <label style="color:white; font-size:10px; white-space:nowrap;">
+                <label style="color:white; font-size:11px; white-space:nowrap; cursor:pointer;">
                     <input type="checkbox" id="hidePast" onchange="render()"> 숨김
                 </label>
             </div>
@@ -90,7 +89,9 @@
 
     <div class="right-frame" id="rightFrame">
         <div id="paper">
-            <button class="no-print btn btn-white" onclick="mobileTab('left')" style="width:100px; margin-bottom:10px; display:none;" id="backBtn">◀ 돌아가기</button>
+            <div class="no-print" style="margin-bottom:10px; display:none;" id="mobileNav">
+                <button class="btn btn-orange" onclick="showTab('left')" style="width:100px;">◀ 대장 입력</button>
+            </div>
             <h2 id="mainTitle" style="text-align:center; margin-top:0;"></h2>
             <table id="outputTable"></table>
         </div>
@@ -98,6 +99,7 @@
 </div>
 
 <script>
+    // 데이터 구조 유지
     let staffData = [
         { g: "성의교정", s: "관리", p: "소장", n: "이규용" },
         { g: "성의교정", s: "관리", p: "부소장", n: "박상현" },
@@ -131,16 +133,17 @@
 
     let vData = JSON.parse(localStorage.getItem('v_data_v34')) || {};
 
-    // [핵심] 모바일에서 화면 전환 로직
-    function mobileTab(side) {
-        if (window.innerWidth > 768) return;
+    // [핵심] 모바일 화면 전환용 함수
+    function showTab(side) {
+        if (window.innerWidth > 768) return; // PC는 그대로
         const left = document.getElementById('leftFrame');
         const right = document.getElementById('rightFrame');
-        const back = document.getElementById('backBtn');
+        const mNav = document.getElementById('mobileNav');
         if (side === 'left') {
-            left.style.display = 'flex'; right.style.display = 'none'; back.style.display = 'none';
+            left.classList.add('active'); right.classList.remove('active');
         } else {
-            left.style.display = 'none'; right.style.display = 'flex'; back.style.display = 'block';
+            left.classList.remove('active'); right.classList.add('active');
+            mNav.style.display = 'block';
         }
     }
 
@@ -153,29 +156,25 @@
         let inH = "";
         staffData.forEach((staff, idx) => {
             const curV = vData[mKey]?.[staff.n] || "";
-            if (hidePast && curV === "") return; // 이전 달 숨김 로직
+            if (hidePast && curV === "") return;
             
             const isLast = (idx === staffData.length - 1) || (staffData[idx+1].s !== staff.s || staffData[idx+1].g !== staff.g);
             inH += `<tr class="${isLast ? 'thick-border' : ''}">`;
-            if(idx===0 || staffData[idx-1].g !== staff.g) {
-                inH += `<td rowspan="${staffData.filter(x=>x.g===staff.g).length}">${staff.g}</td>`;
-            }
-            if(idx===0 || staffData[idx-1].s !== staff.s || staffData[idx-1].g !== staff.g) {
-                inH += `<td rowspan="${staffData.filter(x=>x.g===staff.g && x.s===staff.s).length}">${staff.s}</td>`;
-            }
+            if(idx===0 || staffData[idx-1].g !== staff.g) inH += `<td rowspan="${staffData.filter(x=>x.g===staff.g).length}">${staff.g}</td>`;
+            if(idx===0 || staffData[idx-1].s !== staff.s || staffData[idx-1].g !== staff.g) inH += `<td rowspan="${staffData.filter(x=>x.g===staff.g && x.s===staff.s).length}">${staff.s}</td>`;
             inH += `<td>${staff.p}</td><td class="name-td">${staff.n}</td>`;
-            inH += `<td><input type="text" class="v-input" value="${curV}" onblur="updateV('${staff.n}', this.value)" onkeydown="if(event.keyCode==13) this.blur();"></td></tr>`;
+            inH += `<td><input type="text" class="v-input" value="${curV}" onblur="updateV('${staff.n}', this.value)"></td></tr>`;
         });
         document.getElementById('inputBody').innerHTML = inH;
 
         // 일정표 렌더링
         const lastDay = new Date(y, m, 0).getDate();
         document.getElementById('mainTitle').innerHTML = `<b>${y}년 ${m}월 연차 일정표 (성의교정 보안팀)</b>`;
-        let outH = `<thead><tr class="hdr"><td>구분</td><td>조</td><td>직위</td><td>성명</td>`;
+        let outH = `<thead><tr class="hdr"><td style="width:50px">구분</td><td style="width:30px">조</td><td style="width:40px">직위</td><td style="width:60px">성명</td>`;
         for(let i=1; i<=lastDay; i++) {
             const d = new Date(y, m-1, i);
             const we = d.getDay()===0 ? 'sun' : (d.getDay()===6 ? 'sat' : '');
-            outH += `<td class="${we}">${i}</td>`;
+            outH += `<td class="${we}" style="width:20px">${i}</td>`;
         }
         outH += `</tr></thead><tbody>`;
 
@@ -195,26 +194,23 @@
         });
         document.getElementById('outputTable').innerHTML = outH + `</tbody>`;
         
-        // 근무달력(calendar7.html)과 연동
+        // 근무달력 앱 연동 데이터 업데이트
         localStorage.setItem('v_data_v34_full', JSON.stringify({ staff: staffData, v: vData }));
     }
 
     function updateV(name, val) {
         const mKey = document.getElementById('targetMonth').value;
         if(!vData[mKey]) vData[mKey] = {};
-        if (vData[mKey][name] !== val) {
-            vData[mKey][name] = val;
-            render();
-            localStorage.setItem('v_data_v34', JSON.stringify(vData));
-        }
+        vData[mKey][name] = val;
+        localStorage.setItem('v_data_v34', JSON.stringify(vData));
+        render();
     }
 
     function downloadFile() {
         const dataStr = JSON.stringify({ staff: staffData, v: vData }, null, 2);
         const blob = new Blob([dataStr], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.href = url; a.download = `연차데이터_${document.getElementById('targetMonth').value}.json`;
+        a.href = URL.createObjectURL(blob); a.download = `연차데이터_${document.getElementById('targetMonth').value}.json`;
         a.click();
     }
 
@@ -224,9 +220,8 @@
         const reader = new FileReader();
         reader.onload = (e) => {
             const imported = JSON.parse(e.target.result);
-            if (imported.staff && imported.v) {
-                staffData = imported.staff; vData = imported.v;
-                localStorage.setItem('v_data_v34', JSON.stringify(vData));
+            if (imported.v) {
+                vData = imported.v; localStorage.setItem('v_data_v34', JSON.stringify(vData));
                 render(); alert("데이터를 불러왔습니다!");
             }
         };
