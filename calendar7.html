@@ -10,13 +10,13 @@
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; }
         .calendar-cell { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; display: flex; flex-direction: column; background: white; position: relative; aspect-ratio: 1 / 1.35; cursor: pointer; }
-        .date-area { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; background-color: rgba(255, 255, 255, 0.6); }
+        .date-area { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; }
         .shift-area { flex: 1.3; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; position: relative; }
-        .cell-highlighted .date-area { background-color: rgba(255, 255, 255, 0.2) !important; color: #ffffff !important; }
+        .cell-highlighted .date-area { color: #ffffff !important; }
         .cell-highlighted .shift-area { color: #ffffff !important; }
         .is-today { border: 3.5px solid #ef4444 !important; z-index: 30; }
         .is-today::after { content: 'TODAY'; position: absolute; top: -1px; left: 50%; transform: translateX(-50%); background: #ef4444; color: white; font-size: 8px; font-weight: 900; padding: 1px 4px; border-radius: 0 0 4px 4px; }
-        .v-dot { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; background-color: #a855f7; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.2); }
+        .v-dot { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; background-color: #a855f7; border-radius: 50%; }
         .sunday { color: #ef4444; }
         .saturday { color: #3b82f6; }
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; }
@@ -50,7 +50,7 @@
     <div id="commonModal" class="modal-overlay" onclick="closeModal()">
         <div class="bg-white rounded-3xl w-[90%] max-w-sm overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
             <div id="modalHeader" class="p-4 border-b font-black text-center text-lg"></div>
-            <div id="modalBody" class="p-6 space-y-4 font-bold text-center"></div>
+            <div id="modalBody" class="p-6 space-y-3 font-bold text-center"></div>
             <div id="modalFooter" class="flex border-t">
                 <button onclick="closeModal()" class="flex-1 p-4 bg-slate-100 text-slate-600 font-bold">닫기</button>
                 <button id="modalConfirmBtn" class="flex-1 p-4 bg-blue-600 text-white font-bold hidden">저장</button>
@@ -69,9 +69,6 @@
         const today = new Date(); today.setHours(0,0,0,0);
         let currentYear = today.getFullYear(), currentMonth = today.getMonth();
 
-        // [중요] 연차 모달에서 소속을 함께 보여주기 위해 스태프 정보 로드
-        let staffInfo = []; 
-
         function init() {
             document.getElementById('appTitle').textContent = settings.title;
             const select = document.getElementById('shiftSelect');
@@ -81,16 +78,15 @@
                 opt.value = name; opt.textContent = `${name}조 강조`;
                 select.appendChild(opt);
             });
-
-            // 로컬스토리지에서 스태프 명단 정보 가져오기 시도 (vocation.html에서 저장한 staff 데이터 활용)
-            const rawV = localStorage.getItem('v_data_v34_full'); // vocation.html에서 staff 포함 전체 저장 필요
-            if(rawV) staffInfo = JSON.parse(rawV).staff || [];
-
             render();
         }
 
         function render() {
-            const vData = JSON.parse(localStorage.getItem('v_data_v34')) || {};
+            // [중요] vocation.html에서 저장한 풀데이터 가져오기
+            const fullData = JSON.parse(localStorage.getItem('v_data_v34_full')) || { staff: [], v: {} };
+            const vData = fullData.v;
+            const staffList = fullData.staff;
+            
             const mKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
             document.getElementById('monthTitle').textContent = `${currentYear}년 ${currentMonth + 1}월`;
             const container = document.getElementById('calendarBody');
@@ -104,29 +100,31 @@
             for (let i = 0; i < firstDay; i++) container.appendChild(Object.assign(document.createElement('div'), { className: 'calendar-cell bg-slate-50/30' }));
 
             for (let d = 1; d <= lastDate; d++) {
-                const curr = new Date(currentYear, currentMonth, d); curr.setHours(0,0,0,0);
+                const curr = new Date(currentYear, currentMonth, d);
                 const diff = Math.floor((curr - base) / 86400000);
                 const shiftIdx = ((diff % 3) + 3) % 3;
                 const shiftName = ['C', 'A', 'B'][shiftIdx];
                 const shiftColor = settings.colors[shiftName];
                 
-                let vList = []; // [소속 조 이름] 형태 저장용
+                let vNamesFormatted = []; 
                 const monthV = vData[mKey] || {};
                 
-                // 연차자 정보 구성 (성의회관 A조 김영중 형태)
                 for (let name in monthV) {
                     const daysArr = monthV[name].split(',').map(v => v.trim());
                     if (daysArr.includes(String(d))) {
-                        // staffInfo에서 소속(g)과 조(s) 찾기
-                        const info = staffInfo.find(s => s.n === name);
-                        if(info) vList.push(`${info.g} ${info.s} ${name}`);
-                        else vList.push(name); // 정보 없으면 이름만
+                        // staffList에서 해당 이름의 소속(g)과 조(s) 찾기
+                        const info = staffList.find(s => s.n === name);
+                        if(info) vNamesFormatted.push(`${info.g} ${info.s} ${name}`);
+                        else vNamesFormatted.push(name);
                     }
                 }
 
                 const cell = document.createElement('div');
                 cell.className = 'calendar-cell' + (curr.getTime() === today.getTime() ? ' is-today' : '');
-                if (targetShift === shiftName) { cell.classList.add('cell-highlighted'); cell.style.backgroundColor = shiftColor[1]; }
+                if (targetShift === shiftName) { 
+                    cell.classList.add('cell-highlighted'); 
+                    cell.style.backgroundColor = shiftColor[1]; 
+                }
 
                 const dDiv = document.createElement('div');
                 dDiv.className = `date-area ${curr.getDay()===0?'sunday':curr.getDay()===6?'saturday':''}`;
@@ -137,11 +135,11 @@
                 if (targetShift !== shiftName) sDiv.style.backgroundColor = shiftColor[0];
                 sDiv.textContent = shiftName;
 
-                if (vList.length > 0) {
+                if (vNamesFormatted.length > 0) {
                     const dot = document.createElement('div');
                     dot.className = 'v-dot';
                     sDiv.appendChild(dot);
-                    cell.onclick = () => showVNames(`${currentMonth+1}월 ${d}일 연차자`, vList);
+                    cell.onclick = () => showVNames(`${currentMonth+1}월 ${d}일 연차자`, vNamesFormatted);
                 }
                 cell.append(dDiv, sDiv);
                 container.appendChild(cell);
@@ -150,15 +148,16 @@
 
         function showVNames(title, list) {
             const h = document.getElementById('modalHeader'), b = document.getElementById('modalBody'), f = document.getElementById('modalConfirmBtn');
-            h.textContent = title; 
-            b.innerHTML = list.map(item => `<div class="p-3 bg-purple-50 text-purple-700 rounded-2xl border border-purple-100 mb-2">${item}</div>`).join('');
+            h.textContent = title;
+            b.innerHTML = list.map(item => `<div class="p-3 bg-purple-50 text-purple-800 rounded-xl border border-purple-100">${item}</div>`).join('');
             f.classList.add('hidden');
             document.getElementById('commonModal').classList.add('active');
         }
 
         function openAuthModal() {
             const h = document.getElementById('modalHeader'), b = document.getElementById('modalBody'), f = document.getElementById('modalConfirmBtn');
-            h.textContent = "⚙️ 설정 인증"; b.innerHTML = `<input type="password" id="pwIn" class="w-full p-4 bg-slate-100 rounded-2xl text-center text-2xl outline-none" placeholder="••••">`;
+            h.textContent = "⚙️ 설정 인증"; 
+            b.innerHTML = `<input type="password" id="pwIn" class="w-full p-4 bg-slate-100 rounded-2xl text-center text-2xl outline-none" placeholder="••••">`;
             f.classList.remove('hidden'); f.textContent = "확인";
             f.onclick = () => {
                 if(document.getElementById('pwIn').value === settings.adminPw) openSettings();
@@ -169,14 +168,13 @@
 
         function openSettings() {
             const h = document.getElementById('modalHeader'), b = document.getElementById('modalBody'), f = document.getElementById('modalConfirmBtn');
-            h.textContent = "시스템 설정";
+            h.textContent = "시스템 환경 설정";
             b.innerHTML = `
                 <div class="space-y-3 text-left">
                     <div><label class="text-xs text-slate-400">앱 타이틀</label><input id="set_title" class="w-full p-3 bg-slate-50 border rounded-xl" value="${settings.title}"></div>
                     <div><label class="text-xs text-slate-400">기준일(C조)</label><input type="date" id="set_date" class="w-full p-3 bg-slate-50 border rounded-xl" value="${settings.baseDate}"></div>
                     <div><label class="text-xs text-slate-400">비밀번호 변경</label><input id="set_pw" class="w-full p-3 bg-slate-50 border rounded-xl" value="${settings.adminPw}"></div>
-                    <hr>
-                    <button onclick="if(confirm('데이터를 초기화할까요?')){localStorage.clear();location.reload();}" class="w-full p-3 bg-red-50 text-red-600 rounded-xl border border-red-100">데이터 초기화</button>
+                    <hr><button onclick="if(confirm('데이터를 초기화할까요?')){localStorage.clear();location.reload();}" class="w-full p-3 bg-red-50 text-red-600 rounded-xl border border-red-100 font-bold">⚠️ 데이터 초기화</button>
                 </div>`;
             f.textContent = "저장";
             f.onclick = () => {
