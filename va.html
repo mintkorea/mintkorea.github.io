@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>연차 관리 시스템 (데이터 연동 강화본)</title>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Malgun Gothic', sans-serif; background: #f0f2f5; }
+        .wrapper { display: flex; height: 100vh; overflow: hidden; }
+        .left-frame { width: 400px; background: #2c3e50; padding: 12px; display: flex; flex-direction: column; border-right: 3px solid #000; overflow-y: auto; }
+        .menu-container { background: #34495e; padding: 10px; border-radius: 4px; margin-bottom: 12px; border: 1px solid #1a252f; }
+        .menu-row { display: flex; gap: 6px; margin-bottom: 8px; align-items: center; }
+        .btn { padding: 6px 10px; cursor: pointer; border: 1px solid #000; font-weight: bold; font-size: 12px; border-radius: 2px; flex: 1; text-align: center; }
+        .btn-blue { background: #3498db; color: white; }
+        .btn-orange { background: #e67e22; color: white; }
+        .right-frame { flex: 1; padding: 20px; overflow-y: auto; background: white; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+        th { background: #eee; position: sticky; top: 0; }
+        input[type="text"] { width: 90%; border: 1px solid #ddd; padding: 4px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="left-frame">
+            <div class="menu-container">
+                <div class="menu-row">
+                    <input type="month" id="targetMonth" value="2026-04" style="flex:1.5; padding:5px;">
+                    <button class="btn btn-blue" onclick="render()">조회</button>
+                </div>
+                <div class="menu-row">
+                    <button class="btn btn-orange" onclick="downloadFile()">파일저장(JSON)</button>
+                    <input type="file" id="fileInput" style="display:none" onchange="uploadFile(event)">
+                    <button class="btn btn-blue" onclick="document.getElementById('fileInput').click()">파일열기</button>
+                </div>
+            </div>
+            <div id="staffList" style="color:white; font-size:12px;"></div>
+        </div>
+        <div class="right-frame">
+            <table id="outputTable"></table>
+        </div>
+    </div>
+
+    <script>
+        let staffData = [
+            { "g": "성의교정", "s": "관리", "p": "소장", "n": "이규용" },
+            { "g": "성의교정", "s": "관리", "p": "부소장", "n": "박상현" },
+            { "g": "성의회관", "s": "관리", "p": "반장", "n": "유정수" },
+            { "g": "성의회관", "s": "A조", "p": "조장", "n": "배준용" },
+            { "g": "성의회관", "s": "A조", "p": "조원", "n": "김영중" },
+            { "g": "성의회관", "s": "A조", "p": "조원", "n": "이명구" },
+            { "g": "성의회관", "s": "A조", "p": "조원", "n": "김삼동" },
+            { "g": "성의회관", "s": "B조", "p": "조장", "n": "심규천" },
+            { "g": "성의회관", "s": "B조", "p": "조원", "n": "권영국" },
+            { "g": "성의회관", "s": "B조", "p": "조원", "n": "임종헌" },
+            { "g": "성의회관", "s": "B조", "p": "조원", "n": "전준수" },
+            { "g": "성의회관", "s": "C조", "p": "조장", "n": "황재업" },
+            { "g": "성의회관", "s": "C조", "p": "조원", "n": "김태언" },
+            { "g": "성의회관", "s": "C조", "p": "조원", "n": "이태원" },
+            { "g": "성의회관", "s": "C조", "p": "조원", "n": "이정석" },
+            { "g": "옴니버스", "s": "관리", "p": "반장", "n": "오재준" },
+            { "g": "옴니버스", "s": "A조", "p": "조장", "n": "손병휘" },
+            { "g": "옴니버스", "s": "A조", "p": "조원", "n": "김전식" },
+            { "g": "옴니버스", "s": "A조", "p": "조원", "n": "권순호" },
+            { "g": "옴니버스", "s": "B조", "p": "조장", "n": "황일범" },
+            { "g": "옴니버스", "s": "B조", "p": "조원", "n": "이상길" },
+            { "g": "옴니버스", "s": "B조", "p": "조원", "n": "허용" },
+            { "g": "옴니버스", "s": "C조", "p": "조장", "n": "피재영" },
+            { "g": "옴니버스", "s": "C조", "p": "조원", "n": "남형민" },
+            { "g": "옴니버스", "s": "C조", "p": "조원", "n": "강경훈" },
+            { "g": "기숙사", "s": "관리", "p": "반장", "n": "이강택" },
+            { "g": "기숙사", "s": "관리", "p": "조원", "n": "유시균" },
+            { "g": "기숙사", "s": "관리", "p": "조원", "n": "이상현" }
+        ];
+
+        let vData = JSON.parse(localStorage.getItem('v_data_v34')) || {};
+
+        function render() {
+            const mKey = document.getElementById('targetMonth').value;
+            const currentV = vData[mKey] || {};
+            let h = `<thead><tr><th>소속</th><th>조</th><th>직위</th><th>성명</th><th>연차일자 (쉼표구분)</th></tr></thead><tbody>`;
+            staffData.forEach(p => {
+                const val = currentV[p.n] || "";
+                h += `<tr><td>${p.g}</td><td>${p.s}</td><td>${p.p}</td><td>${p.n}</td>
+                      <td><input type="text" value="${val}" onchange="updateV('${p.n}', this.value)"></td></tr>`;
+            });
+            document.getElementById('outputTable').innerHTML = h + `</tbody>`;
+            // 달력 연동용 전체 데이터 저장
+            saveToStorage();
+        }
+
+        function updateV(name, val) {
+            const mKey = document.getElementById('targetMonth').value;
+            if(!vData[mKey]) vData[mKey] = {};
+            vData[mKey][name] = val;
+            saveToStorage();
+        }
+
+        function saveToStorage() {
+            localStorage.setItem('v_data_v34', JSON.stringify(vData));
+            // [핵심] 달력 앱에서 사용할 소속 정보 포함 풀데이터 저장
+            localStorage.setItem('v_data_v34_full', JSON.stringify({ staff: staffData, v: vData }));
+        }
+
+        function downloadFile() {
+            const dataStr = JSON.stringify({ staff: staffData, v: vData }, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url; a.download = `연차데이터_${document.getElementById('targetMonth').value}.json`;
+            a.click();
+        }
+
+        function uploadFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const imported = JSON.parse(e.target.result);
+                if (imported.staff && imported.v) {
+                    staffData = imported.staff; vData = imported.v;
+                    saveToStorage(); render();
+                }
+            };
+            reader.readAsText(file);
+        }
+        window.onload = render;
+    </script>
+</body>
+</html>
