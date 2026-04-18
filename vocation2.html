@@ -3,85 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>연차 통합 관리 시스템</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>연차 관리 시스템 (디자인 유지본)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
-        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        table { border-collapse: collapse; width: 100%; font-size: 13px; table-layout: fixed; }
-        th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: center; word-break: break-all; }
-        th { background-color: #f8fafc; font-weight: 700; position: sticky; top: 0; z-index: 10; }
-        input[type="text"] { width: 100%; border: none; background: transparent; text-align: center; font-weight: 700; color: #1e293b; padding: 4px 0; }
-        input[type="text"]:focus { outline: 2px solid #3b82f6; background: white; border-radius: 4px; }
-        .row-hidden { display: none; }
-        .v-mark { background-color: #a855f7 !important; color: white !important; font-weight: bold; }
-        .sat { color: #3b82f6; background-color: #eff6ff; }
-        .sun { color: #ef4444; background-color: #fef2f2; }
+        body, html { margin: 0; padding: 0; font-family: 'Malgun Gothic', 'Noto Sans KR', sans-serif; background: #f0f2f5; }
         
-        @media print { 
-            .no-print { display: none !important; } 
-            .print-area { display: block !important; width: 100%; } 
-            body { background: white; padding: 0; }
-            .tab-content { display: none; }
-            #tab-calendar { display: block !important; }
-            table { font-size: 10pt; }
+        /* 탭 메뉴 스타일 (모바일용 가독성 추가) */
+        .no-print { background: #2c3e50; padding: 10px; color: white; }
+        .tab-btn-container { display: flex; gap: 5px; margin-top: 10px; }
+        .tab-btn { flex: 1; padding: 12px; border: 1px solid #000; font-weight: bold; cursor: pointer; text-align: center; border-radius: 4px; }
+        .btn-active { background: #3498db !important; color: white; }
+        .btn-inactive { background: #34495e; color: #bdc3c7; }
+
+        /* 기존 표 디자인 유지 */
+        .content-area { padding: 15px; background: white; min-height: 80vh; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+        th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+        th { background: #eee; position: sticky; top: 0; z-index: 5; }
+        
+        /* 입력부 스타일 */
+        input[type="text"] { width: 95%; border: 1px solid #ddd; padding: 4px; font-weight: bold; text-align: center; }
+        .row-hidden { display: none; }
+
+        /* 인쇄 서식 유지 (기존 틀 그대로) */
+        @media print {
+            .no-print { display: none !important; }
+            .tab-content { display: none !important; }
+            #tab-report { display: block !important; } /* 인쇄 시 대장/일정표만 출력 */
+            body { background: white; }
+            .content-area { padding: 0; }
+            table { font-size: 10pt; width: 100%; }
             @page { size: A4 landscape; margin: 10mm; }
         }
+
+        .tab-content { display: none; }
+        .active { display: block; }
     </style>
 </head>
-<body class="p-0 sm:p-4">
-    <div class="max-w-6xl mx-auto bg-white shadow-2xl min-h-screen flex flex-col sm:rounded-3xl overflow-hidden">
+<body>
+
+    <header class="no-print">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-weight: bold; font-size: 16px;">📊 연차 통합 관리</div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="month" id="targetMonth" value="2026-05" onchange="renderAll()" style="padding: 5px;">
+                <label style="font-size: 12px; cursor: pointer;">
+                    <input type="checkbox" id="hidePast" onchange="renderAll()"> 이전 달 숨김
+                </label>
+            </div>
+        </div>
         
-        <header class="no-print bg-slate-800 text-white p-4">
-            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
-                <div class="flex items-center gap-2">
-                    <span class="text-2xl">📊</span>
-                    <h1 class="text-lg font-black">연차 통합 관리대장</h1>
-                </div>
-                <div class="flex items-center gap-3 bg-slate-700 p-2 rounded-xl border border-slate-600">
-                    <input type="month" id="targetMonth" value="2026-05" onchange="renderAll()" class="bg-transparent border-none text-white font-bold outline-none cursor-pointer">
-                    <label class="flex items-center gap-1.5 text-xs cursor-pointer bg-slate-600 px-3 py-1.5 rounded-lg hover:bg-slate-500 transition-colors">
-                        <input type="checkbox" id="hidePast" onchange="renderAll()" class="w-4 h-4"> 이전 달 숨김
-                    </label>
-                </div>
-            </div>
-            
-            <div class="flex border-t border-slate-600 pt-4 gap-2">
-                <button onclick="switchTab('input')" id="btn-input" class="tab-btn flex-1 py-3 rounded-xl font-bold bg-blue-600 text-white transition-all">📝 입력/대장</button>
-                <button onclick="switchTab('calendar')" id="btn-calendar" class="tab-btn flex-1 py-3 rounded-xl font-bold bg-slate-700 text-slate-300 transition-all">📅 연차일정표</button>
-                <button onclick="window.print()" class="flex-1 py-3 rounded-xl font-bold bg-emerald-600 text-white hover:bg-emerald-500 transition-all">🖨️ 인쇄</button>
-            </div>
-        </header>
+        <div class="tab-btn-container">
+            <div id="btn-input" class="tab-btn btn-active" onclick="switchTab('input')">📝 입력/대장</div>
+            <div id="btn-report" class="tab-btn btn-inactive" onclick="switchTab('report')">📅 일정표/출력</div>
+            <div class="tab-btn btn-inactive" style="background: #27ae60;" onclick="window.print()">🖨️ 인쇄</div>
+        </div>
+    </header>
 
-        <main class="flex-1 p-4 overflow-x-auto">
-            
-            <div id="tab-input" class="tab-content active">
-                <div class="mb-3 flex justify-between items-center">
-                    <span class="text-sm text-slate-500 font-bold">※ 성명 옆 칸에 날짜를 입력하세요 (예: 1, 15, 20)</span>
-                </div>
-                <div class="overflow-hidden border border-slate-200 rounded-2xl">
-                    <table id="inputTable">
-                        </table>
-                </div>
-                <div class="no-print mt-6 flex flex-wrap gap-2">
-                    <button onclick="downloadJSON()" class="flex-1 sm:flex-none bg-slate-100 text-slate-700 px-4 py-3 rounded-xl font-bold border border-slate-200 hover:bg-slate-200 transition-all">💾 파일 저장</button>
-                    <input type="file" id="fileIn" class="hidden" onchange="uploadJSON(event)">
-                    <button onclick="document.getElementById('fileIn').click()" class="flex-1 sm:flex-none bg-slate-100 text-slate-700 px-4 py-3 rounded-xl font-bold border border-slate-200 hover:bg-slate-200 transition-all">📂 파일 열기</button>
-                </div>
+    <div class="content-area">
+        
+        <div id="tab-input" class="tab-content active">
+            <table id="inputTable">
+                </table>
+            <div class="no-print" style="margin-top: 20px; display: flex; gap: 10px;">
+                <button onclick="downloadJSON()" style="padding: 10px; cursor: pointer; border: 1px solid #000;">💾 파일 저장</button>
+                <input type="file" id="fileIn" style="display:none" onchange="uploadJSON(event)">
+                <button onclick="document.getElementById('fileIn').click()" style="padding: 10px; cursor: pointer; border: 1px solid #000;">📂 파일 열기</button>
             </div>
+        </div>
 
-            <div id="tab-calendar" class="tab-content">
-                <div id="calendarArea" class="print-area overflow-x-auto">
-                    </div>
-            </div>
+        <div id="tab-report" class="tab-content">
+            <div id="calendarArea">
+                </div>
+        </div>
 
-        </main>
     </div>
 
     <script>
-        // 초기 데이터 (사용자 제공 staff list 기준)
         let staffData = [
             { g: "성의교정", s: "관리", p: "소장", n: "이규용" },
             { g: "성의교정", s: "관리", p: "부소장", n: "박상현" },
@@ -94,10 +92,10 @@
             { g: "성의회관", s: "B조", p: "조원", n: "권영국" },
             { g: "성의회관", s: "B조", p: "조원", n: "임종헌" },
             { g: "성의회관", s: "B조", p: "조원", n: "전준수" },
-            { g: "성의회관", "s": "C조", "p": "조장", "n": "황재업" },
-            { g: "성의회관", "s": "C조", "p": "조원", "n": "김태언" },
-            { g: "성의회관", "s": "C조", "p": "조원", "n": "이태원" },
-            { g: "성의회관", "s": "C조", "p": "조원", "n": "이정석" },
+            { g: "성의회관", s: "C조", p: "조장", n: "황재업" },
+            { g: "성의회관", s: "C조", p: "조원", n: "김태언" },
+            { g: "성의회관", s: "C조", p: "조원", n: "이태원" },
+            { g: "성의회관", s: "C조", p: "조원", n: "이정석" },
             { g: "옴니버스", s: "관리", p: "반장", n: "오재준" },
             { g: "옴니버스", s: "A조", p: "조장", n: "손병휘" },
             { g: "옴니버스", s: "A조", p: "조원", n: "김전식" },
@@ -105,9 +103,9 @@
             { g: "옴니버스", s: "B조", p: "조장", n: "황일범" },
             { g: "옴니버스", s: "B조", p: "조원", n: "이상길" },
             { g: "옴니버스", s: "B조", p: "조원", n: "허용" },
-            { g: "옴니버스", "s": "C조", "p": "조장", "n": "피재영" },
-            { g: "옴니버스", "s": "C조", "p": "조원", "n": "남형민" },
-            { g: "옴니버스", "s": "C조", "p": "조원", "n": "강경훈" },
+            { g: "옴니버스", s: "C조", p: "조장", n: "피재영" },
+            { g: "옴니버스", s: "C조", p: "조원", n: "남형민" },
+            { g: "옴니버스", s: "C조", p: "조원", n: "강경훈" },
             { g: "기숙사", s: "관리", p: "반장", n: "이강택" },
             { g: "기숙사", s: "관리", p: "조원", n: "유시균" },
             { g: "기숙사", s: "관리", p: "조원", n: "이상현" }
@@ -118,54 +116,49 @@
         function renderAll() {
             renderInputTable();
             renderCalendarTable();
-            syncToCalendarApp();
+            // 근무달력(calendar7.html) 연동용 데이터 저장
+            localStorage.setItem('v_data_v34_full', JSON.stringify({ staff: staffData, v: vData }));
         }
 
-        // 입력부/대장 통합 테이블 생성
+        // 입력/대장 통합 테이블 (기존 디자인 유지)
         function renderInputTable() {
             const mKey = document.getElementById('targetMonth').value;
             const hidePast = document.getElementById('hidePast').checked;
             const currentV = vData[mKey] || {};
             
-            let html = `<thead><tr><th style="width:25%">소속/조</th><th style="width:20%">성명</th><th style="width:55%">연차 날짜</th></tr></thead><tbody>`;
+            let html = `<thead><tr><th style="width:100px">소속/조</th><th style="width:80px">성명</th><th>연차 일자 (숫자만 입력)</th></tr></thead><tbody>`;
             
             staffData.forEach(p => {
                 const val = currentV[p.n] || "";
-                const isHidden = hidePast && val === "" ? "row-hidden" : "";
+                if (hidePast && val === "") return; // 이전 달 숨김 처리
                 
-                html += `<tr class="${isHidden}">
-                    <td class="bg-slate-50 text-[10px] text-slate-500 font-bold">${p.g} ${p.s}</td>
-                    <td class="font-bold text-slate-800">${p.n}</td>
-                    <td class="p-0 bg-amber-50/30"><input type="text" value="${val}" onblur="updateV('${p.n}', this.value)" placeholder="숫자 입력"></td>
+                html += `<tr>
+                    <td style="background:#f9f9f9; font-size:11px;">${p.g} ${p.s}</td>
+                    <td style="font-weight:bold;">${p.n}</td>
+                    <td style="padding:0;"><input type="text" value="${val}" onblur="updateV('${p.n}', this.value)"></td>
                 </tr>`;
             });
             document.getElementById('inputTable').innerHTML = html + `</tbody>`;
         }
 
-        // 가로형 연차 일정표 생성
+        // 일정표/출력 양식 (기존 100% 서식 유지)
         function renderCalendarTable() {
             const [y, m] = document.getElementById('targetMonth').value.split('-').map(Number);
             const mKey = document.getElementById('targetMonth').value;
             const currentV = vData[mKey] || {};
             const lastDay = new Date(y, m, 0).getDate();
             
-            let html = `<h2 class="text-center text-lg font-black mb-4 border-b pb-2">${y}년 ${m}월 연차 일정표</h2>`;
-            html += `<table style="table-layout: auto;"><thead><tr><th>성명</th>`;
-            for(let i=1; i<=lastDay; i++) {
-                const day = new Date(y, m-1, i).getDay();
-                const cls = day === 0 ? 'sun' : (day === 6 ? 'sat' : '');
-                html += `<th class="${cls} text-[10px] p-1">${i}</th>`;
-            }
+            let html = `<h2 style="text-align:center; margin-bottom:10px;">${y}년 ${m}월 연차 일정표</h2>`;
+            html += `<table><thead><tr><th style="width:120px">성명(조)</th>`;
+            for(let i=1; i<=lastDay; i++) html += `<th style="width:25px; font-size:10px;">${i}</th>`;
             html += `</tr></thead><tbody>`;
 
             staffData.forEach(p => {
                 const days = (currentV[p.n] || "").split(',').map(d => d.trim());
-                html += `<tr><td class="font-bold text-[11px] whitespace-nowrap bg-slate-50">${p.n} <small class="text-slate-400">(${p.s})</small></td>`;
+                html += `<tr><td style="font-size:11px; font-weight:bold; background:#f9f9f9;">${p.n}(${p.s})</td>`;
                 for(let i=1; i<=lastDay; i++) {
                     const isV = days.includes(String(i));
-                    const day = new Date(y, m-1, i).getDay();
-                    const weCls = day === 0 ? 'sun' : (day === 6 ? 'sat' : '');
-                    html += `<td class="${weCls} ${isV ? 'v-mark' : ''}">${isV ? 'V' : ''}</td>`;
+                    html += `<td style="${isV ? 'background:#a855f7; color:white; font-weight:bold;' : ''}">${isV ? 'V' : ''}</td>`;
                 }
                 html += `</tr>`;
             });
@@ -177,24 +170,16 @@
             if(!vData[mKey]) vData[mKey] = {};
             vData[mKey][name] = val;
             localStorage.setItem('v_data_v34', JSON.stringify(vData));
-            renderCalendarTable();
-            syncToCalendarApp();
-        }
-
-        // 근무달력(calendar7.html)과 소속 정보를 연동하기 위한 데이터 동기화
-        function syncToCalendarApp() {
+            renderCalendarTable(); // 일정표 자동 갱신
             localStorage.setItem('v_data_v34_full', JSON.stringify({ staff: staffData, v: vData }));
         }
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => {
-                b.classList.remove('bg-blue-600', 'text-white');
-                b.classList.add('bg-slate-700', 'text-slate-300');
-            });
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.replace('btn-active', 'btn-inactive'));
+            
             document.getElementById('tab-' + tabId).classList.add('active');
-            document.getElementById('btn-' + tabId).classList.remove('bg-slate-700', 'text-slate-300');
-            document.getElementById('btn-' + tabId).classList.add('bg-blue-600', 'text-white');
+            document.getElementById('btn-' + tabId).classList.replace('btn-inactive', 'btn-active');
         }
 
         function downloadJSON() {
@@ -209,12 +194,7 @@
             const reader = new FileReader();
             reader.onload = (ev) => {
                 const data = JSON.parse(ev.target.result);
-                if(data.v) { 
-                    vData = data.v; 
-                    if(data.staff) staffData = data.staff;
-                    renderAll(); 
-                    alert("데이터를 성공적으로 불러왔습니다.");
-                }
+                if(data.v) { vData = data.v; if(data.staff) staffData = data.staff; renderAll(); }
             };
             reader.readAsText(e.target.files[0]);
         }
