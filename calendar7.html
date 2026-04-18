@@ -146,3 +146,51 @@
                 cell.append(dDiv, sDiv);
                 container.appendChild(cell);
             }
+        }
+
+        function showVNames(title, list) {
+            const h = document.getElementById('modalHeader'), b = document.getElementById('modalBody'), f = document.getElementById('modalConfirmBtn');
+            h.textContent = title; 
+            b.innerHTML = list.map(item => `<div class="p-3 bg-purple-50 text-purple-700 rounded-2xl border border-purple-100 mb-2">${item}</div>`).join('');
+            f.classList.add('hidden');
+            document.getElementById('commonModal').classList.add('active');
+        }
+
+        function openAuthModal() {
+            const h = document.getElementById('modalHeader'), b = document.getElementById('modalBody'), f = document.getElementById('modalConfirmBtn');
+            h.textContent = "⚙️ 설정 인증"; b.innerHTML = `<input type="password" id="pwIn" class="w-full p-4 bg-slate-100 rounded-2xl text-center text-2xl outline-none" placeholder="••••">`;
+            f.classList.remove('hidden'); f.textContent = "확인";
+            f.onclick = () => {
+                if(document.getElementById('pwIn').value === settings.adminPw) openSettings();
+                else alert('비밀번호가 틀립니다.');
+            };
+            document.getElementById('commonModal').classList.add('active');
+        }
+
+        function openSettings() {
+            const h = document.getElementById('modalHeader'), b = document.getElementById('modalBody'), f = document.getElementById('modalConfirmBtn');
+            h.textContent = "시스템 설정";
+            b.innerHTML = `
+                <div class="space-y-3 text-left">
+                    <div><label class="text-xs text-slate-400">앱 타이틀</label><input id="set_title" class="w-full p-3 bg-slate-50 border rounded-xl" value="${settings.title}"></div>
+                    <div><label class="text-xs text-slate-400">기준일(C조)</label><input type="date" id="set_date" class="w-full p-3 bg-slate-50 border rounded-xl" value="${settings.baseDate}"></div>
+                    <div><label class="text-xs text-slate-400">비밀번호 변경</label><input id="set_pw" class="w-full p-3 bg-slate-50 border rounded-xl" value="${settings.adminPw}"></div>
+                    <hr>
+                    <button onclick="if(confirm('데이터를 초기화할까요?')){localStorage.clear();location.reload();}" class="w-full p-3 bg-red-50 text-red-600 rounded-xl border border-red-100">데이터 초기화</button>
+                </div>`;
+            f.textContent = "저장";
+            f.onclick = () => {
+                settings.title = document.getElementById('set_title').value;
+                settings.baseDate = document.getElementById('set_date').value;
+                settings.adminPw = document.getElementById('set_pw').value;
+                localStorage.setItem('cal_settings', JSON.stringify(settings));
+                location.reload();
+            };
+        }
+
+        function closeModal() { document.getElementById('commonModal').classList.remove('active'); }
+        function changeMonth(v) { currentMonth += v; if(currentMonth<0){currentMonth=11;currentYear--;} else if(currentMonth>11){currentMonth=0;currentYear++;} render(); }
+        window.onload = init;
+    </script>
+</body>
+</html>
