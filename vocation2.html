@@ -2,65 +2,78 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>연차 통합 관리 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
-        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f1f5f9; }
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        table { border-collapse: collapse; width: 100%; font-size: 13px; }
-        th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: center; }
-        th { background-color: #f8fafc; font-weight: 700; position: sticky; top: 0; }
-        input[type="text"] { width: 100%; border: none; background: transparent; text-align: center; font-weight: 700; color: #1e293b; }
-        input[type="text"]:focus { outline: 2px solid #3b82f6; background: white; }
-        @media print { .no-print { display: none !important; } .print-area { display: block !important; width: 100%; } body { background: white; } }
-        /* 이전 달 숨김 스타일 */
+        table { border-collapse: collapse; width: 100%; font-size: 13px; table-layout: fixed; }
+        th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: center; word-break: break-all; }
+        th { background-color: #f8fafc; font-weight: 700; position: sticky; top: 0; z-index: 10; }
+        input[type="text"] { width: 100%; border: none; background: transparent; text-align: center; font-weight: 700; color: #1e293b; padding: 4px 0; }
+        input[type="text"]:focus { outline: 2px solid #3b82f6; background: white; border-radius: 4px; }
         .row-hidden { display: none; }
+        .v-mark { background-color: #a855f7 !important; color: white !important; font-weight: bold; }
+        .sat { color: #3b82f6; background-color: #eff6ff; }
+        .sun { color: #ef4444; background-color: #fef2f2; }
+        
+        @media print { 
+            .no-print { display: none !important; } 
+            .print-area { display: block !important; width: 100%; } 
+            body { background: white; padding: 0; }
+            .tab-content { display: none; }
+            #tab-calendar { display: block !important; }
+            table { font-size: 10pt; }
+            @page { size: A4 landscape; margin: 10mm; }
+        }
     </style>
 </head>
 <body class="p-0 sm:p-4">
-    <div class="max-w-6xl mx-auto bg-white shadow-2xl rounded-none sm:rounded-3xl overflow-hidden min-h-screen flex flex-col">
+    <div class="max-w-6xl mx-auto bg-white shadow-2xl min-h-screen flex flex-col sm:rounded-3xl overflow-hidden">
         
         <header class="no-print bg-slate-800 text-white p-4">
-            <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
                 <div class="flex items-center gap-2">
                     <span class="text-2xl">📊</span>
-                    <h1 class="text-xl font-black">연차 통합 관리대장</h1>
+                    <h1 class="text-lg font-black">연차 통합 관리대장</h1>
                 </div>
-                <div class="flex items-center gap-2 bg-slate-700 p-1 rounded-lg">
-                    <input type="month" id="targetMonth" value="2026-04" onchange="renderAll()" class="bg-transparent border-none text-white font-bold outline-none p-1">
-                    <label class="flex items-center gap-1 text-xs cursor-pointer bg-slate-600 px-2 py-1 rounded">
-                        <input type="checkbox" id="hidePast" onchange="renderAll()"> 이전 달 숨김
+                <div class="flex items-center gap-3 bg-slate-700 p-2 rounded-xl border border-slate-600">
+                    <input type="month" id="targetMonth" value="2026-05" onchange="renderAll()" class="bg-transparent border-none text-white font-bold outline-none cursor-pointer">
+                    <label class="flex items-center gap-1.5 text-xs cursor-pointer bg-slate-600 px-3 py-1.5 rounded-lg hover:bg-slate-500 transition-colors">
+                        <input type="checkbox" id="hidePast" onchange="renderAll()" class="w-4 h-4"> 이전 달 숨김
                     </label>
                 </div>
             </div>
             
-            <div class="flex mt-4 border-t border-slate-600 pt-4 gap-2">
-                <button onclick="switchTab('input')" id="btn-input" class="tab-btn flex-1 py-2 rounded-lg font-bold bg-blue-600 text-white">📝 입력/대장</button>
-                <button onclick="switchTab('calendar')" id="btn-calendar" class="tab-btn flex-1 py-2 rounded-lg font-bold bg-slate-700 text-slate-300">📅 일정표</button>
-                <button onclick="window.print()" class="flex-1 py-2 rounded-lg font-bold bg-emerald-600 text-white">🖨️ 인쇄</button>
+            <div class="flex border-t border-slate-600 pt-4 gap-2">
+                <button onclick="switchTab('input')" id="btn-input" class="tab-btn flex-1 py-3 rounded-xl font-bold bg-blue-600 text-white transition-all">📝 입력/대장</button>
+                <button onclick="switchTab('calendar')" id="btn-calendar" class="tab-btn flex-1 py-3 rounded-xl font-bold bg-slate-700 text-slate-300 transition-all">📅 연차일정표</button>
+                <button onclick="window.print()" class="flex-1 py-3 rounded-xl font-bold bg-emerald-600 text-white hover:bg-emerald-500 transition-all">🖨️ 인쇄</button>
             </div>
         </header>
 
-        <main class="flex-1 overflow-x-auto p-4">
+        <main class="flex-1 p-4 overflow-x-auto">
             
             <div id="tab-input" class="tab-content active">
-                <div class="mb-2 text-sm text-slate-500 font-bold">※ 이름을 클릭하면 해당 월의 연차일(숫자)을 수정할 수 있습니다.</div>
-                <div class="overflow-x-auto bg-white border border-slate-200 rounded-xl">
+                <div class="mb-3 flex justify-between items-center">
+                    <span class="text-sm text-slate-500 font-bold">※ 성명 옆 칸에 날짜를 입력하세요 (예: 1, 15, 20)</span>
+                </div>
+                <div class="overflow-hidden border border-slate-200 rounded-2xl">
                     <table id="inputTable">
                         </table>
                 </div>
-                <div class="no-print mt-4 flex gap-2">
-                    <button onclick="downloadJSON()" class="text-xs bg-slate-100 text-slate-600 px-3 py-2 rounded font-bold border border-slate-200">💾 파일로 저장</button>
+                <div class="no-print mt-6 flex flex-wrap gap-2">
+                    <button onclick="downloadJSON()" class="flex-1 sm:flex-none bg-slate-100 text-slate-700 px-4 py-3 rounded-xl font-bold border border-slate-200 hover:bg-slate-200 transition-all">💾 파일 저장</button>
                     <input type="file" id="fileIn" class="hidden" onchange="uploadJSON(event)">
-                    <button onclick="document.getElementById('fileIn').click()" class="text-xs bg-slate-100 text-slate-600 px-3 py-2 rounded font-bold border border-slate-200">📂 파일 불러오기</button>
+                    <button onclick="document.getElementById('fileIn').click()" class="flex-1 sm:flex-none bg-slate-100 text-slate-700 px-4 py-3 rounded-xl font-bold border border-slate-200 hover:bg-slate-200 transition-all">📂 파일 열기</button>
                 </div>
             </div>
 
             <div id="tab-calendar" class="tab-content">
-                <div id="calendarArea" class="print-area">
+                <div id="calendarArea" class="print-area overflow-x-auto">
                     </div>
             </div>
 
@@ -68,28 +81,36 @@
     </div>
 
     <script>
+        // 초기 데이터 (사용자 제공 staff list 기준)
         let staffData = [
-            { "g": "성의회관", "s": "A조", "p": "조장", "n": "배준용" },
-            { "g": "성의회관", "s": "A조", "p": "조원", "n": "김영중" },
-            { "g": "성의회관", "s": "A조", "p": "조원", "n": "이명구" },
-            { "g": "성의회관", "s": "A조", "p": "조원", "n": "김삼동" },
-            { "g": "성의회관", "s": "B조", "p": "조장", "n": "심규천" },
-            { "g": "성의회관", "s": "B조", "p": "조원", "n": "권영국" },
-            { "g": "성의회관", "s": "B조", "p": "조원", "n": "임종헌" },
-            { "g": "성의회관", "s": "B조", "p": "조원", "n": "전준수" },
-            { "g": "성의회관", "s": "C조", "p": "조장", "n": "황재업" },
-            { "g": "성의회관", "s": "C조", "p": "조원", "n": "김태언" },
-            { "g": "성의회관", "s": "C조", "p": "조원", "n": "이태원" },
-            { "g": "성의회관", "s": "C조", "p": "조원", "n": "이정석" },
-            { "g": "옴니버스", "s": "A조", "p": "조장", "n": "손병휘" },
-            { "g": "옴니버스", "s": "A조", "p": "조원", "n": "김전식" },
-            { "g": "옴니버스", "s": "A조", "p": "조원", "n": "권순호" },
-            { "g": "옴니버스", "s": "B조", "p": "조장", "n": "황일범" },
-            { "g": "옴니버스", "s": "B조", "p": "조원", "n": "이상길" },
-            { "g": "옴니버스", "s": "B조", "p": "조원", "n": "허용" },
-            { "g": "옴니버스", "s": "C조", "p": "조장", "n": "피재영" },
-            { "g": "옴니버스", "s": "C조", "p": "조원", "n": "남형민" },
-            { "g": "옴니버스", "s": "C조", "p": "조원", "n": "강경훈" }
+            { g: "성의교정", s: "관리", p: "소장", n: "이규용" },
+            { g: "성의교정", s: "관리", p: "부소장", n: "박상현" },
+            { g: "성의회관", s: "관리", p: "반장", n: "유정수" },
+            { g: "성의회관", s: "A조", p: "조장", n: "배준용" },
+            { g: "성의회관", s: "A조", p: "조원", n: "김영중" },
+            { g: "성의회관", s: "A조", p: "조원", n: "이명구" },
+            { g: "성의회관", s: "A조", p: "조원", n: "김삼동" },
+            { g: "성의회관", s: "B조", p: "조장", n: "심규천" },
+            { g: "성의회관", s: "B조", p: "조원", n: "권영국" },
+            { g: "성의회관", s: "B조", p: "조원", n: "임종헌" },
+            { g: "성의회관", s: "B조", p: "조원", n: "전준수" },
+            { g: "성의회관", "s": "C조", "p": "조장", "n": "황재업" },
+            { g: "성의회관", "s": "C조", "p": "조원", "n": "김태언" },
+            { g: "성의회관", "s": "C조", "p": "조원", "n": "이태원" },
+            { g: "성의회관", "s": "C조", "p": "조원", "n": "이정석" },
+            { g: "옴니버스", s: "관리", p: "반장", n: "오재준" },
+            { g: "옴니버스", s: "A조", p: "조장", n: "손병휘" },
+            { g: "옴니버스", s: "A조", p: "조원", n: "김전식" },
+            { g: "옴니버스", s: "A조", p: "조원", n: "권순호" },
+            { g: "옴니버스", s: "B조", p: "조장", n: "황일범" },
+            { g: "옴니버스", s: "B조", p: "조원", n: "이상길" },
+            { g: "옴니버스", s: "B조", p: "조원", n: "허용" },
+            { g: "옴니버스", "s": "C조", "p": "조장", "n": "피재영" },
+            { g: "옴니버스", "s": "C조", "p": "조원", "n": "남형민" },
+            { g: "옴니버스", "s": "C조", "p": "조원", "n": "강경훈" },
+            { g: "기숙사", s: "관리", p: "반장", n: "이강택" },
+            { g: "기숙사", s: "관리", p: "조원", n: "유시균" },
+            { g: "기숙사", s: "관리", p: "조원", n: "이상현" }
         ];
 
         let vData = JSON.parse(localStorage.getItem('v_data_v34')) || {};
@@ -97,50 +118,54 @@
         function renderAll() {
             renderInputTable();
             renderCalendarTable();
-            saveData();
+            syncToCalendarApp();
         }
 
-        // [핵심] 입력부와 대장이 통합된 테이블 렌더링
+        // 입력부/대장 통합 테이블 생성
         function renderInputTable() {
-            const currentMonth = document.getElementById('targetMonth').value;
+            const mKey = document.getElementById('targetMonth').value;
             const hidePast = document.getElementById('hidePast').checked;
-            const monthV = vData[currentMonth] || {};
+            const currentV = vData[mKey] || {};
             
-            let html = `<thead><tr><th>소속</th><th>조</th><th>성명</th><th>연차일자 (쉼표구분)</th></tr></thead><tbody>`;
+            let html = `<thead><tr><th style="width:25%">소속/조</th><th style="width:20%">성명</th><th style="width:55%">연차 날짜</th></tr></thead><tbody>`;
             
             staffData.forEach(p => {
-                const val = monthV[p.n] || "";
-                // 이전 달 숨김 로직 (데이터가 없는 사람은 선택 시 숨김)
+                const val = currentV[p.n] || "";
                 const isHidden = hidePast && val === "" ? "row-hidden" : "";
                 
                 html += `<tr class="${isHidden}">
-                    <td class="bg-slate-50 text-[11px]">${p.g}</td>
-                    <td class="bg-slate-50 text-[11px]">${p.s}</td>
-                    <td class="font-bold text-blue-700">${p.n}</td>
-                    <td class="p-0"><input type="text" value="${val}" onblur="updateV('${p.n}', this.value)" placeholder="..."></td>
+                    <td class="bg-slate-50 text-[10px] text-slate-500 font-bold">${p.g} ${p.s}</td>
+                    <td class="font-bold text-slate-800">${p.n}</td>
+                    <td class="p-0 bg-amber-50/30"><input type="text" value="${val}" onblur="updateV('${p.n}', this.value)" placeholder="숫자 입력"></td>
                 </tr>`;
             });
             document.getElementById('inputTable').innerHTML = html + `</tbody>`;
         }
 
-        // [핵심] 일정표(달력형) 렌더링
+        // 가로형 연차 일정표 생성
         function renderCalendarTable() {
-            const [year, month] = document.getElementById('targetMonth').value.split('-').map(Number);
+            const [y, m] = document.getElementById('targetMonth').value.split('-').map(Number);
             const mKey = document.getElementById('targetMonth').value;
-            const monthV = vData[mKey] || {};
-            const lastDay = new Date(year, month, 0).getDate();
+            const currentV = vData[mKey] || {};
+            const lastDay = new Date(y, m, 0).getDate();
             
-            let html = `<h2 class="text-center text-xl font-black mb-4">${month}월 연차 일정표</h2>`;
-            html += `<table><thead><tr><th rowspan="2">소속</th><th rowspan="2">성명</th><th colspan="${lastDay}">${month}월</th></tr><tr>`;
-            for(let i=1; i<=lastDay; i++) html += `<th class="text-[9px] p-1">${i}</th>`;
+            let html = `<h2 class="text-center text-lg font-black mb-4 border-b pb-2">${y}년 ${m}월 연차 일정표</h2>`;
+            html += `<table style="table-layout: auto;"><thead><tr><th>성명</th>`;
+            for(let i=1; i<=lastDay; i++) {
+                const day = new Date(y, m-1, i).getDay();
+                const cls = day === 0 ? 'sun' : (day === 6 ? 'sat' : '');
+                html += `<th class="${cls} text-[10px] p-1">${i}</th>`;
+            }
             html += `</tr></thead><tbody>`;
 
             staffData.forEach(p => {
-                const days = (monthV[p.n] || "").split(',').map(d => d.trim());
-                html += `<tr><td class="text-[10px]">${p.g} ${p.s}</td><td class="font-bold">${p.n}</td>`;
+                const days = (currentV[p.n] || "").split(',').map(d => d.trim());
+                html += `<tr><td class="font-bold text-[11px] whitespace-nowrap bg-slate-50">${p.n} <small class="text-slate-400">(${p.s})</small></td>`;
                 for(let i=1; i<=lastDay; i++) {
                     const isV = days.includes(String(i));
-                    html += `<td class="${isV ? 'bg-purple-500 text-white font-bold' : ''}">${isV ? 'V' : ''}</td>`;
+                    const day = new Date(y, m-1, i).getDay();
+                    const weCls = day === 0 ? 'sun' : (day === 6 ? 'sat' : '');
+                    html += `<td class="${weCls} ${isV ? 'v-mark' : ''}">${isV ? 'V' : ''}</td>`;
                 }
                 html += `</tr>`;
             });
@@ -151,13 +176,13 @@
             const mKey = document.getElementById('targetMonth').value;
             if(!vData[mKey]) vData[mKey] = {};
             vData[mKey][name] = val;
-            saveData();
-            renderCalendarTable(); // 달력형 일정표만 즉시 갱신
+            localStorage.setItem('v_data_v34', JSON.stringify(vData));
+            renderCalendarTable();
+            syncToCalendarApp();
         }
 
-        function saveData() {
-            localStorage.setItem('v_data_v34', JSON.stringify(vData));
-            // 근무달력(calendar7.html)과 연동하기 위한 풀데이터 저장
+        // 근무달력(calendar7.html)과 소속 정보를 연동하기 위한 데이터 동기화
+        function syncToCalendarApp() {
             localStorage.setItem('v_data_v34_full', JSON.stringify({ staff: staffData, v: vData }));
         }
 
@@ -184,7 +209,12 @@
             const reader = new FileReader();
             reader.onload = (ev) => {
                 const data = JSON.parse(ev.target.result);
-                if(data.v) { vData = data.v; renderAll(); }
+                if(data.v) { 
+                    vData = data.v; 
+                    if(data.staff) staffData = data.staff;
+                    renderAll(); 
+                    alert("데이터를 성공적으로 불러왔습니다.");
+                }
             };
             reader.readAsText(e.target.files[0]);
         }
