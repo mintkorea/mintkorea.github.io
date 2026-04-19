@@ -11,41 +11,51 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
-        /* [복구] 달력 및 투톤 하이라이트 */
+        /* --- 달력 레이아웃 & TODAY 하이라이트 --- */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; background: white; }
         .calendar-cell { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; display: flex; flex-direction: column; position: relative; cursor: pointer; min-height: 80px; overflow: hidden; }
-        .date-area { height: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; position: relative; z-index: 10; }
-        .shift-area { aspect-ratio: 1 / 1; width: 100%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 20px; z-index: 5; }
         
-        /* 조별 강조 시 투톤 효과 */
+        .date-area { height: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; position: relative; z-index: 10; }
+        .shift-area { aspect-ratio: 1 / 1; width: 100%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 20px; z-index: 5; transition: all 0.2s; }
+        
+        /* 조별 강조 시 투톤 효과 (상단 날짜영역 반투명) */
         .cell-highlighted .date-area { background-color: rgba(255, 255, 255, 0.7); }
         .cell-highlighted .shift-area { color: white !important; }
 
-        /* [복구] Today 하이라이트 */
-        .is-today { border: 2px solid #ef4444 !important; z-index: 20; }
-        .is-today::after { content: 'TODAY'; position: absolute; top: 0; left: 50%; transform: translateX(-50%); background: #ef4444; color: white; font-size: 7px; font-weight: 900; padding: 0px 3px; border-radius: 0 0 3px 3px; z-index: 30; }
+        /* TODAY 배지 및 붉은 테두리 */
+        .is-today { border: 2px solid #ef4444 !important; z-index: 20; box-shadow: inset 0 0 0 1px #ef4444; }
+        .is-today::after { 
+            content: 'TODAY'; position: absolute; top: 0; left: 50%; transform: translateX(-50%); 
+            background: #ef4444; color: white; font-size: 8px; font-weight: 900; 
+            padding: 1px 4px; border-radius: 0 0 4px 4px; z-index: 30; 
+        }
         
         .sunday { color: #ef4444; }
         .saturday { color: #3b82f6; }
 
-        /* [수정] 명단 리스트 스타일 */
-        #floatingList { position: fixed; top: 0; right: -100%; width: 100%; height: 100%; background: #f8f9fa; z-index: 200; transition: 0.3s ease; display: flex; flex-direction: column; }
+        /* --- 명단 리스트 (플로팅) 스타일 --- */
+        #floatingList { position: fixed; top: 0; right: -100%; width: 100%; height: 100%; background: #f8f9fa; z-index: 200; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
         #floatingList.active { right: 0; }
         .list-card { background: white; border-radius: 12px; padding: 12px; margin-bottom: 8px; border: 1px solid #e2e8f0; }
         
-        /* 건물 배지 & 이름 텍스트 */
-        .building-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 800; color: white; margin-right: 6px; }
-        .bg-sung { background-color: #a855f7; } /* 성의회관 보라 */
-        .bg-omni { background-color: #f97316; } /* 옴니버스 주황 */
-        .person-name { font-size: 14px; font-weight: 700; color: #334155; }
+        .building-badge { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; color: white; margin-right: 8px; }
+        .bg-sung { background-color: #a855f7; } 
+        .bg-omni { background-color: #f97316; } 
+        .person-name { font-size: 15px; font-weight: 700; color: #1e293b; }
 
-        /* 모달 스타일 */
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); z-index: 300; align-items: center; justify-content: center; padding: 20px; }
+        /* --- 블루톤 모달 스타일 (이미지 반영) --- */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(2px); z-index: 300; align-items: center; justify-content: center; padding: 20px; }
         .modal-overlay.active { display: flex; }
-        .modal-content { background: white; width: 100%; max-width: 320px; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .modal-content { background: white; width: 100%; max-width: 320px; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+        
+        .modal-header { background-color: #5dade2; padding: 15px; color: white; font-weight: 800; text-align: center; font-size: 16px; }
+        .modal-item { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 10px; text-align: center; }
+        .modal-item .dept { color: #cbd5e1; font-size: 11px; margin-bottom: 4px; display: block; font-weight: 500; }
+        .modal-item .name { color: #334155; font-size: 17px; font-weight: 900; }
 
+        /* 기타 UI */
         .fab { position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px; background: #1e293b; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 150; cursor: pointer; }
-        .dot-container { display: flex; gap: 2px; justify-content: center; height: 6px; }
+        .dot-container { display: flex; gap: 2px; justify-content: center; height: 6px; margin-top: 1px; }
         .v-dot { width: 5px; height: 5px; border-radius: 50%; }
         .dot-sung { background-color: #a855f7; } 
         .dot-omni { background-color: #f97316; }
@@ -89,9 +99,9 @@
 
     <div id="commonModal" class="modal-overlay" onclick="closeModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <div id="modalHeader" class="bg-slate-800 p-3 text-white font-bold text-center text-sm"></div>
-            <div id="modalBody" class="p-4 space-y-2 max-h-[50vh] overflow-y-auto"></div>
-            <button onclick="closeModal()" class="w-full p-3 bg-gray-50 font-bold border-t text-sm">닫기</button>
+            <div id="modalHeader" class="modal-header"></div>
+            <div id="modalBody" class="p-5 space-y-3 max-h-[50vh] overflow-y-auto"></div>
+            <button onclick="closeModal()" class="w-full p-4 bg-white font-black border-t text-slate-800 text-sm active:bg-gray-50">닫기</button>
         </div>
     </div>
 
@@ -157,7 +167,6 @@
                 const cell = document.createElement('div');
                 cell.className = `calendar-cell ${isToday ? 'is-today' : ''}`;
                 
-                // 조별 투톤 하이라이트 적용
                 if (targetShift === sName) {
                     cell.classList.add('cell-highlighted');
                     cell.style.backgroundColor = sCol[1];
@@ -170,7 +179,6 @@
                     <div class="shift-area" style="background:${targetShift===sName?'transparent':sCol[0]}; color:${sCol[1]}">${sName}</div>
                 `;
                 
-                // 달력 클릭 시 모달 팝업
                 if (vList.length > 0) cell.onclick = () => showModal(`${currentMonth+1}월 ${d}일 연차`, vList);
                 container.appendChild(cell);
             }
@@ -200,19 +208,14 @@
                 let html = `
                     <div class="flex items-center justify-between mb-3">
                         <span class="text-sm font-black text-slate-700">${currentMonth+1}/${d} (${['일','월','화','수','목','금','토'][curr.getDay()]})</span>
-                        <span class="text-[10px] font-black px-2 py-0.5 rounded text-white" style="background:${sCol[1]}">${sName}조</span>
+                        <span class="text-[9px] font-black px-2 py-0.5 rounded text-white" style="background:${sCol[1]}">${sName}조</span>
                     </div>
                     <div class="flex flex-wrap gap-y-2">
                 `;
 
                 vList.forEach(v => {
                     const bClass = v.g.includes("성의") ? "bg-sung" : "bg-omni";
-                    html += `
-                        <div class="flex items-center w-full">
-                            <span class="building-badge ${bClass}">${v.g}</span>
-                            <span class="person-name">${v.name}</span>
-                        </div>
-                    `;
+                    html += `<div class="flex items-center w-full"><span class="building-badge ${bClass}">${v.g}</span><span class="person-name">${v.name}</span></div>`;
                 });
                 item.innerHTML = html + `</div>`;
                 container.appendChild(item);
@@ -240,9 +243,9 @@
         function showModal(title, list) {
             document.getElementById('modalHeader').textContent = title;
             document.getElementById('modalBody').innerHTML = list.map(item => `
-                <div class="p-3 bg-slate-50 rounded-lg border flex items-center justify-between">
-                    <span class="text-xs font-bold text-slate-500">${item.g}</span>
-                    <span class="text-slate-800 font-black">${item.s} ${item.name}</span>
+                <div class="modal-item">
+                    <span class="dept">[${item.g}]</span>
+                    <span class="name">${item.s} ${item.name}</span>
                 </div>`).join('');
             document.getElementById('commonModal').classList.add('active');
         }
