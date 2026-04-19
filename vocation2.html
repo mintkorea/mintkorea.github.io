@@ -3,29 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>성의교정 통합 관리 시스템 (Firestore v2.2)</title>
+    <title>성의교정 통합 관리 시스템</title>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <style>
         :root { --sat-bg: #f5faff; --sun-bg: #fff5f5; --today-border: #ff0000; --select-border: #0044ff; }
-        html, body { margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; background: #f0f2f5; }
+        html, body { margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; background: #f0f2f5; overflow-x: auto; }
         
-        /* 상단 네비바 */
-        .nav-header { background: #2c3e50; color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
-        .nav-header h1 { margin: 0; font-size: 18px; }
-        #syncStatus { font-size: 12px; color: #bdc3c7; }
+        /* 메인 영역: 상단 프레임 제거 후 여백 조정 */
+        .content-area { display: flex; justify-content: center; padding: 10px; min-height: 100vh; box-sizing: border-box; }
+        #paper { background: white; width: 297mm; min-height: 210mm; padding: 5mm; display: flex; flex-direction: column; align-items: center; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
 
-        /* 메인 영역 */
-        .content-area { display: flex; justify-content: center; padding: 20px; min-height: 100vh; box-sizing: border-box; }
-        #paper { background: white; width: 297mm; min-height: 210mm; padding: 10mm; display: flex; flex-direction: column; align-items: center; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
-
-        #viewTitle { text-align: center; margin: 0 0 15px 0; font-size: 22px; text-decoration: underline; text-underline-offset: 5px; letter-spacing: 2px; }
+        #viewTitle { text-align: center; margin: 10px 0 15px 0; font-size: 22px; text-decoration: underline; text-underline-offset: 5px; letter-spacing: 2px; font-weight: bold; }
         
         /* 테이블 스타일 */
-        #tableWrapper { position: relative; width: 100%; }
+        #tableWrapper { position: relative; width: 100%; overflow-x: visible; }
         table { border-collapse: collapse; width: 100%; border: 1.8pt solid #000; table-layout: fixed; background: white; z-index: 5; position: relative; }
-        td { border: 0.5pt solid #000; text-align: center; font-weight: bold; height: 18pt; font-size: 11px; padding: 0; overflow: hidden; }
+        td { border: 0.5pt solid #000; text-align: center; font-weight: bold; height: 18pt; font-size: 11px; padding: 0; }
         .hdr { background: #f2f2f2 !important; height: 25pt; cursor: pointer; }
         .border-right-bold { border-right: 1.5pt solid #000 !important; }
         
@@ -38,8 +33,11 @@
         .sun { background-color: var(--sun-bg) !important; color: #dc3545 !important; }
         .v-mark { background-color: #d4edda !important; color: #28a745; cursor: pointer; font-weight: bold; }
 
-        /* 플로팅 컨트롤바 */
-        .floating-bar { position: fixed; bottom: 20px; right: 20px; display: flex; align-items: center; gap: 8px; z-index: 2000; background: white; padding: 10px 15px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 1px solid #ddd; }
+        /* 하단 컨트롤 영역 */
+        .controls-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; z-index: 2000; }
+        #syncStatus { font-size: 11px; font-weight: bold; color: #7f8c8d; background: rgba(255,255,255,0.8); padding: 2px 8px; border-radius: 10px; }
+        .floating-bar { display: flex; align-items: center; gap: 8px; background: white; padding: 10px 15px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 1px solid #ddd; }
+        
         .btn { padding: 8px 15px; cursor: pointer; border: none; font-weight: bold; font-size: 13px; border-radius: 20px; transition: 0.2s; }
         .btn-orange { background: #e67e22; color: white; }
         .btn-blue { background: #3498db; color: white; }
@@ -52,19 +50,20 @@
         .modal-body { padding: 20px; text-align: center; line-height: 1.8; }
         .close-btn { width: 100%; padding: 12px; background: #f8f9fa; border: none; border-top: 1px solid #eee; cursor: pointer; font-weight: bold; border-radius: 0 0 12px 12px; }
 
+        @media screen and (max-width: 768px) {
+            .content-area { padding: 5px; justify-content: flex-start; }
+            #paper { width: fit-content; min-width: 100%; padding: 10px; }
+            #viewTitle { font-size: 18px; }
+        }
+
         @media print { 
-            .nav-header, .floating-bar, #modal, #modalOverlay, .col-highlight { display: none !important; } 
+            .controls-container, #modal, #modalOverlay, .col-highlight { display: none !important; } 
             body { background: white; }
             #paper { box-shadow: none; padding: 0; width: 100%; }
         }
     </style>
 </head>
 <body>
-
-<div class="nav-header">
-    <h1>Catholic-Security-System</h1>
-    <div id="syncStatus">Firestore 연결 시도 중...</div>
-</div>
 
 <div id="modalOverlay" onclick="closeModal()"></div>
 <div id="modal">
@@ -75,19 +74,22 @@
 
 <div class="content-area">
     <div id="paper">
-        <h2 id="viewTitle">데이터를 불러오는 중입니다...</h2>
+        <h2 id="viewTitle">데이터를 불러오는 중...</h2>
         <div id="tableWrapper">
             <table id="displayTable"></table>
         </div>
     </div>
 </div>
 
-<div class="floating-bar">
-    <button class="btn btn-red" onclick="firstTimeSetup()">Firestore 초기화</button>
-    <input type="month" id="targetMonth" onchange="render()">
-    <button class="btn btn-orange" onclick="changeTab('ledger')">연차대장</button>
-    <button class="btn btn-blue" onclick="changeTab('schedule')">연차일정표</button>
-    <button class="btn btn-blue" onclick="window.print()">인쇄</button>
+<div class="controls-container">
+    <div id="syncStatus">Firestore 연결 시도 중...</div>
+    <div class="floating-bar">
+        <button class="btn btn-red" onclick="firstTimeSetup()">초기화</button>
+        <input type="month" id="targetMonth" onchange="render()">
+        <button class="btn btn-orange" onclick="changeTab('ledger')">연차대장</button>
+        <button class="btn btn-blue" onclick="changeTab('schedule')">연차일정표</button>
+        <button class="btn btn-blue" onclick="window.print()">인쇄</button>
+    </div>
 </div>
 
 <script>
@@ -110,7 +112,6 @@
     let staffData = [];
     let vData = {};
 
-    // [데이터 초기화] 유정수 반장님 행 틀어짐 수정 완료
     async function firstTimeSetup() {
         if(!confirm("서버의 모든 데이터를 초기화하시겠습니까?")) return;
         const initialStaff = [
@@ -131,36 +132,23 @@
         ];
         try {
             await db.collection("vocation_app").doc("data").set({ staff: initialStaff, vocation: {} });
-            alert("Firestore 초기화 완료! 이제 표가 정상적으로 보입니다.");
-        } catch (e) {
-            alert("초기화 실패: " + e.message);
-        }
+            alert("초기화 완료!");
+        } catch (e) { alert("실패: " + e.message); }
     }
 
-    // 실시간 동기화 리스너
     function initSync() {
         db.collection("vocation_app").doc("data").onSnapshot((doc) => {
             if (doc.exists) {
                 const data = doc.data();
                 staffData = data.staff || [];
                 vData = data.vocation || {};
-                document.getElementById('syncStatus').innerText = "● Firestore 실시간 연결됨";
+                document.getElementById('syncStatus').innerText = "● Firestore 연결됨";
                 render();
             } else {
-                document.getElementById('syncStatus').innerText = "● 데이터 없음 (초기화 필요)";
-                document.getElementById('viewTitle').innerText = "초기화 버튼을 눌러주세요";
+                document.getElementById('syncStatus').innerText = "● 데이터 없음";
+                document.getElementById('viewTitle').innerText = "초기화가 필요합니다.";
             }
-        }, (error) => {
-            document.getElementById('syncStatus').innerText = "● 연결 오류 (Rules 확인 필요)";
         });
-    }
-
-    async function saveData() {
-        try {
-            await db.collection("vocation_app").doc("data").update({ staff: staffData, vocation: vData });
-        } catch (e) {
-            console.error("저장 실패:", e);
-        }
     }
 
     function render() {
@@ -206,15 +194,12 @@
 
     function renderLedger(y) {
         document.getElementById('viewTitle').innerText = `성의교정 연차 관리대장(${y}년)`;
-        let editMonthNum = activeEditColumn && activeEditColumn.includes('-') ? parseInt(activeEditColumn.split('-')[1]) : 0;
         let h = `<colgroup><col style="width:55px;"><col style="width:40px;"><col style="width:45px;"><col style="width:60px;"></colgroup><thead><tr class="hdr"><td>구분</td><td>조</td><td>직위</td><td class="border-right-bold" onclick="toggleEditCol('name')">성명</td>`;
         for(let i=1; i<=12; i++) {
             const mk = `${y}-${String(i).padStart(2,'0')}`;
-            if (editMonthNum > 0 && i < editMonthNum) continue;
             h += `<td onclick="toggleEditCol('${mk}')" style="width:45px;">${i}월</td>`;
         }
-        if (!editMonthNum) h += `<td style="width:45px;">합계</td>`;
-        h += `</tr></thead><tbody>${generateRows(y, null, editMonthNum)}</tbody>`;
+        h += `<td style="width:45px;">합계</td></tr></thead><tbody>${generateRows(y, null, 0)}</tbody>`;
         document.getElementById('displayTable').innerHTML = h;
     }
 
@@ -223,43 +208,31 @@
         staffData.forEach((staff, idx) => {
             const isLastOfGroup = (idx === staffData.length - 1) || (staffData[idx+1].s !== staff.s || staffData[idx+1].g !== staff.g);
             rows += `<tr style="${isLastOfGroup ? 'border-bottom:1.5pt solid #000' : ''}">`;
-            
-            // 구분(g) 병합
             if(idx===0 || staffData[idx-1].g !== staff.g) {
                 const gCount = staffData.filter(x => x.g === staff.g).length;
                 rows += `<td rowspan="${gCount}">${staff.g}</td>`;
             }
-            // 조(s) 병합
             if(idx===0 || staffData[idx-1].s !== staff.s || staffData[idx-1].g !== staff.g) {
                 const sCount = staffData.filter(x => x.g === staff.g && x.s === staff.s).length;
                 rows += `<td rowspan="${sCount}">${staff.s}</td>`;
             }
-            
             rows += `<td>${staff.p}</td>`;
-            
-            // 성명 수정 모드
             if(activeEditColumn === 'name') {
                 rows += `<td class="border-right-bold"><input type="text" style="width:90%; border:none; text-align:center; background:#e3f2fd;" value="${staff.n}" onchange="updateName(${idx}, this.value)"></td>`;
-            } else {
-                rows += `<td class="border-right-bold">${staff.n}</td>`;
-            }
+            } else { rows += `<td class="border-right-bold">${staff.n}</td>`; }
             
-            if (m === null) { // 연차 대장
+            if (m === null) {
                 let rowTotal = 0;
                 for(let i=1; i<=12; i++) {
                     const mk = `${y}-${String(i).padStart(2,'0')}`;
                     const val = vData[mk]?.[staff.n] || "";
                     if(val) rowTotal += val.split(',').length;
-                    if (editMonthNum > 0 && i < editMonthNum) continue;
-                    
                     if(activeEditColumn === mk) {
                         rows += `<td><input type="text" style="width:90%; border:none; text-align:center; background:#fffde7;" value="${val}" onchange="updateV('${mk}', '${staff.n}', this.value)"></td>`;
-                    } else {
-                        rows += `<td>${val}</td>`;
-                    }
+                    } else { rows += `<td>${val}</td>`; }
                 }
-                if (!editMonthNum) rows += `<td style="color:blue;">${rowTotal || ''}</td>`;
-            } else { // 연차 일정표
+                rows += `<td style="color:blue;">${rowTotal || ''}</td>`;
+            } else {
                 const mk = `${y}-${String(m).padStart(2,'0')}`;
                 const vArr = (vData[mk]?.[staff.n] || "").split(',').map(s => s.trim());
                 for(let i=1; i<=new Date(y, m, 0).getDate(); i++) {
@@ -276,7 +249,8 @@
     function selectDay(day) { selectedScheduleDay = (selectedScheduleDay === day) ? null : day; render(); }
     function toggleEditCol(colId) { activeEditColumn = (activeEditColumn === colId) ? null : colId; render(); }
     function updateName(idx, val) { staffData[idx].n = val; saveData(); }
-    function updateV(mk, n, v) { if(!vData[mk]) vData[mk] = {}; vData[mk][n] = v; saveData(); }
+    async function updateV(mk, n, v) { if(!vData[mk]) vData[mk] = {}; vData[mk][n] = v; await saveData(); }
+    async function saveData() { await db.collection("vocation_app").doc("data").update({ staff: staffData, vocation: vData }); }
     function changeTab(tab) { currentTab = tab; activeEditColumn = null; selectedScheduleDay = null; render(); }
     
     function showVDetail(staffObj, monthStr) {
