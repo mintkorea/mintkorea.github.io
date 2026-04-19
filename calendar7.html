@@ -13,27 +13,23 @@
         
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; background: white; }
         
-        /* 전체 셀 구조 */
         .calendar-cell { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; display: flex; flex-direction: column; position: relative; cursor: pointer; overflow: hidden; }
         
-        /* 날짜 영역 */
-        .date-area { height: 45px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; position: relative; }
+        /* [수정] 숫자 영역 높이 20% 감소 (45px -> 36px) */
+        .date-area { height: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; position: relative; }
         
-        /* [수정] 점 컨테이너: 숫자 하단 배치 */
-        .dot-container { display: flex; gap: 2px; justify-content: center; align-items: center; height: 6px; margin-top: 2px; }
+        .dot-container { display: flex; gap: 2px; justify-content: center; align-items: center; height: 6px; margin-top: 1px; }
         .v-dot { width: 5px; height: 5px; border-radius: 50%; }
         .dot-sung { background-color: #a855f7; } 
         .dot-omni { background-color: #f97316; } 
         .dot-etc { background-color: #14b8a6; } 
 
-        /* [수정] 근무조 표시 영역: 정사각 크기 유지 */
-        .shift-area { aspect-ratio: 1 / 1; width: 100%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 17px; z-index: 5; }
+        /* [수정] 조 표시 폰트 크기 3pt 확대 (17px -> 20px) */
+        .shift-area { aspect-ratio: 1 / 1; width: 100%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 20px; z-index: 5; }
         
-        /* 강조 모드 시 색상 처리 */
         .cell-highlighted .date-area { background-color: rgba(255,255,255,0.7); }
         .cell-highlighted .shift-area { color: white !important; }
 
-        /* Today 디자인 */
         .is-today { border: 2px solid #ef4444 !important; z-index: 20; }
         .is-today::after { content: 'TODAY'; position: absolute; top: 0; left: 50%; transform: translateX(-50%); background: #ef4444; color: white; font-size: 7px; font-weight: 900; padding: 0px 3px; border-radius: 0 0 3px 3px; }
         
@@ -57,7 +53,6 @@
                 <div id="dbStatus" class="text-[8px] font-bold text-slate-400">● 연결됨</div>
             </div>
             
-            <!-- [수정] 상단 컨트롤러: 5:5 동일 너비 배치 -->
             <div class="flex items-center gap-2 w-full">
                 <div class="flex items-center bg-white border rounded-lg h-9 flex-1">
                     <button onclick="changeMonth(-1)" class="px-3 font-bold text-slate-400">＜</button>
@@ -71,7 +66,7 @@
         <div id="calendarBody" class="calendar-grid rounded-xl shadow-lg overflow-hidden border border-gray-200"></div>
     </div>
 
-    <!-- 연차 상세 모달 및 관리자 모달 (기존과 동일) -->
+    <!-- 모달 레이아웃 생략 (기존 기능과 동일) -->
     <div id="commonModal" class="modal-overlay" onclick="closeModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div id="modalHeader" class="bg-[#3498db] p-3 text-white font-bold text-center text-sm"></div>
@@ -86,7 +81,7 @@
             <div class="p-4 space-y-3 text-[11px] overflow-y-auto max-h-[60vh]">
                 <div><label class="font-bold">앱 타이틀</label><input id="setAppTitle" class="admin-input"></div>
                 <div><label class="font-bold">관리자 비번</label><input id="setAdminPw" type="password" class="admin-input"></div>
-                <div><label class="font-bold">근무 순서 (쉼표 구분)</label><input id="setShiftOrder" class="admin-input"></div>
+                <div><label class="font-bold">근무 순서</label><input id="setShiftOrder" class="admin-input"></div>
                 <div id="colorSettings" class="space-y-1 mt-2"></div>
             </div>
             <div class="flex border-t">
@@ -109,9 +104,7 @@
         const db = firebase.firestore();
 
         let settings = JSON.parse(localStorage.getItem('cal_settings')) || {
-            title: "성의교정 근무달력",
-            adminPw: "1234",
-            baseDate: "2026/03/09",
+            title: "성의교정 근무달력", adminPw: "1234", baseDate: "2026/03/09",
             shifts: ['C', 'A', 'B'],
             colors: { C: ['#dbeafe', '#3b82f6'], A: ['#fef3c7', '#f59e0b'], B: ['#fee2e2', '#ef4444'] }
         };
@@ -135,7 +128,7 @@
             document.getElementById('setAdminPw').value = settings.adminPw;
             document.getElementById('setShiftOrder').value = settings.shifts.join(',');
             const colorArea = document.getElementById('colorSettings');
-            colorArea.innerHTML = '<p class="font-bold mb-1">조별 색상</p>';
+            colorArea.innerHTML = '';
             settings.shifts.forEach(s => {
                 const c = settings.colors[s] || ['#f1f5f9', '#475569'];
                 colorArea.innerHTML += `<div class="flex items-center gap-2"><span>${s}</span><input type="color" id="bg_${s}" value="${c[0]}"><input type="color" id="fg_${s}" value="${c[1]}"></div>`;
@@ -159,13 +152,8 @@
             const select = document.getElementById('shiftSelect');
             select.innerHTML = '<option value="none">강조 없음</option>';
             settings.shifts.forEach(s => { select.innerHTML += `<option value="${s}">${s}조 강조</option>`; });
-            
             db.collection("vocation_app").doc("data").onSnapshot(doc => {
-                if(doc.exists) { 
-                    staffData = doc.data().staff || []; 
-                    vData = doc.data().vocation || {}; 
-                    render(); 
-                }
+                if(doc.exists) { staffData = doc.data().staff || []; vData = doc.data().vocation || {}; render(); }
             });
         }
 
@@ -179,7 +167,6 @@
             const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
             const base = new Date(settings.baseDate);
             base.setHours(0, 0, 0, 0);
-
             const targetShift = document.getElementById('shiftSelect').value;
 
             for (let i = 0; i < firstDay; i++) container.appendChild(Object.assign(document.createElement('div'), { className: 'calendar-cell bg-slate-50/50' }));
@@ -187,7 +174,6 @@
             for (let d = 1; d <= lastDate; d++) {
                 const curr = new Date(currentYear, currentMonth, d);
                 curr.setHours(0, 0, 0, 0);
-
                 const diffDays = Math.round((curr - base) / 86400000); 
                 const shiftName = settings.shifts[((diffDays % settings.shifts.length) + settings.shifts.length) % settings.shifts.length];
                 const shiftColor = settings.colors[shiftName] || ['#ffffff', '#000000'];
@@ -208,14 +194,11 @@
 
                 const cell = document.createElement('div');
                 cell.className = 'calendar-cell' + (curr.getTime() === today.getTime() ? ' is-today' : '');
-                
                 const dDiv = document.createElement('div');
                 dDiv.className = `date-area ${curr.getDay()===0?'sunday':curr.getDay()===6?'saturday':''}`;
-                
                 const numSpan = document.createElement('span');
                 numSpan.textContent = d;
                 dDiv.appendChild(numSpan);
-
                 const dotCon = document.createElement('div');
                 dotCon.className = 'dot-container';
                 if(hasSung) dotCon.innerHTML += '<div class="v-dot dot-sung"></div>';
