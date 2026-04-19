@@ -3,33 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>성의교정 통합 근무달력</title>
+    <title>성의교정 연차 관리 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Firebase SDK (Compat Version) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
-        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; }
         .calendar-cell { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; display: flex; flex-direction: column; background: white; position: relative; aspect-ratio: 1 / 1.35; cursor: pointer; }
         .date-area { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; }
         .shift-area { flex: 1.3; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; position: relative; }
         .cell-highlighted .date-area { color: #ffffff !important; }
         .cell-highlighted .shift-area { color: #ffffff !important; }
-        .is-today { border: 3.5px solid #ef4444 !important; z-index: 30; }
+        .is-today { border: 3px solid #ef4444 !important; z-index: 30; }
         .is-today::after { content: 'TODAY'; position: absolute; top: -1px; left: 50%; transform: translateX(-50%); background: #ef4444; color: white; font-size: 8px; font-weight: 900; padding: 1px 4px; border-radius: 0 0 4px 4px; }
         
         /* 연차 마킹 점 스타일 */
         .v-dot { position: absolute; top: 4px; width: 8px; height: 8px; border-radius: 50%; }
-        .dot-sung { right: 4px; background-color: #a855f7; } /* 성의회관: 우측 보라 */
-        .dot-omni { left: 4px; background-color: #f97316; }  /* 옴니버스: 좌측 주황 */
-        .dot-etc { right: 4px; bottom: 4px; background-color: #14b8a6; } /* 기타: 우측 하단 청록 */
+        .dot-sung { right: 4px; background-color: #a855f7; } 
+        .dot-omni { left: 4px; background-color: #f97316; }  
+        .dot-etc { right: 4px; bottom: 4px; background-color: #14b8a6; } 
 
         .sunday { color: #ef4444; }
         .saturday { color: #3b82f6; }
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; }
+        
+        /* 🎨 모달 애니메이션 및 레이아웃 */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
         .modal-overlay.active { display: flex; }
+        .modal-content { background: white; width: 100%; max-width: 350px; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        
         .nav-btn { display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 10px; background-color: #f1f5f9; color: #475569; font-weight: 800; }
     </style>
 </head>
@@ -56,19 +60,22 @@
         <div id="calendarBody" class="calendar-grid bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200"></div>
     </div>
 
-    <!-- 공통 모달 -->
+    <!-- 🎨 통일된 공통 모달 -->
     <div id="commonModal" class="modal-overlay" onclick="closeModal()">
-        <div class="bg-white rounded-3xl w-[90%] max-w-sm overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
-            <div id="modalHeader" class="p-4 border-b font-black text-center text-lg"></div>
-            <div id="modalBody" class="p-6 space-y-3 font-bold text-center max-h-[60vh] overflow-y-auto"></div>
-            <div id="modalFooter" class="flex border-t">
-                <button onclick="closeModal()" class="flex-1 p-4 bg-slate-100 text-slate-600 font-bold">닫기</button>
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <!-- 헤더: PC 버전과 동일한 파란색 테마 -->
+            <div id="modalHeader" class="bg-[#3498db] p-5 text-white font-bold text-center text-lg tracking-wider"></div>
+            <!-- 본문: 리스트 스타일 -->
+            <div id="modalBody" class="p-6 space-y-3 font-medium max-h-[60vh] overflow-y-auto bg-white"></div>
+            <!-- 푸터: 버튼 스타일 -->
+            <div id="modalFooter" class="flex">
+                <button onclick="closeModal()" class="flex-1 p-4 bg-gray-50 text-gray-700 font-bold border-t border-gray-100 active:bg-gray-100">닫기</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Firebase 설정 (PC용 소스와 동일한 프로젝트)
+        // Firebase 설정
         const firebaseConfig = {
             apiKey: "AIzaSyDGDUudF49hnXwU55er7joyeSLEPrme1GU",
             authDomain: "catholic-security-system.firebaseapp.com",
@@ -92,7 +99,6 @@
         const today = new Date(); today.setHours(0,0,0,0);
         let currentYear = today.getFullYear(), currentMonth = today.getMonth();
 
-        // Firestore 실시간 데이터 가져오기
         function initSync() {
             db.collection("vocation_app").doc("data").onSnapshot((doc) => {
                 if (doc.exists) {
@@ -101,8 +107,6 @@
                     vData = data.vocation || {};
                     document.getElementById('dbStatus').innerText = "● 실시간 연결됨";
                     render();
-                } else {
-                    document.getElementById('dbStatus').innerText = "○ 데이터 없음";
                 }
             });
         }
@@ -139,12 +143,11 @@
                 const shiftName = ['C', 'A', 'B'][shiftIdx];
                 const shiftColor = settings.colors[shiftName];
                 
-                // 연차자 정보 필터링 및 소속 확인
                 let vList = []; 
                 const monthV = vData[mKey] || {};
-                let hasSung = false; // 성의회관 연차자 유무
-                let hasOmni = false; // 옴니버스 연차자 유무
-                let hasEtc = false;  // 기타 소속 연차자 유무
+                let hasSung = false; 
+                let hasOmni = false; 
+                let hasEtc = false;  
                 
                 for (let name in monthV) {
                     const daysArr = monthV[name].split(',').map(v => v.trim());
@@ -155,9 +158,6 @@
                             if(info.g.includes("성의회관")) hasSung = true;
                             else if(info.g.includes("옴니버스")) hasOmni = true;
                             else hasEtc = true;
-                        } else {
-                            vList.push({ name: name, g: '미분류', s: '' });
-                            hasEtc = true;
                         }
                     }
                 }
@@ -178,7 +178,6 @@
                 if (targetShift !== shiftName) sDiv.style.backgroundColor = shiftColor[0];
                 sDiv.textContent = shiftName;
 
-                // 점 표시 (소속별 다른 위치와 색상)
                 if (hasSung) {
                     const dot = document.createElement('div');
                     dot.className = 'v-dot dot-sung';
@@ -189,7 +188,7 @@
                     dot.className = 'v-dot dot-omni';
                     sDiv.appendChild(dot);
                 }
-                if (hasEtc && !hasSung) { // 성의회관이 없을 때만 표시하거나 별도 위치
+                if (hasEtc && !hasSung) {
                     const dot = document.createElement('div');
                     dot.className = 'v-dot dot-etc';
                     sDiv.appendChild(dot);
@@ -204,16 +203,14 @@
             }
         }
 
+        // 🎨 통일된 모달 리스트 렌더링 함수
         function showVNames(title, list) {
             const h = document.getElementById('modalHeader'), b = document.getElementById('modalBody');
             h.textContent = title;
             b.innerHTML = list.map(item => {
-                let colorClass = "bg-slate-50 text-slate-700";
-                if(item.g.includes("성의회관")) colorClass = "bg-purple-50 text-purple-800 border-purple-100";
-                else if(item.g.includes("옴니버스")) colorClass = "bg-orange-50 text-orange-800 border-orange-100";
-                
-                return `<div class="p-3 ${colorClass} rounded-xl border font-bold text-sm">
-                            <span class="text-[10px] opacity-70">[${item.g}]</span> ${item.s} ${item.name}
+                return `<div class="p-3 bg-gray-50 rounded-xl border border-gray-200 text-center">
+                            <span class="text-[11px] text-gray-400 block mb-1">[${item.g}]</span>
+                            <span class="text-slate-700 font-bold">${item.s} ${item.name}</span>
                         </div>`;
             }).join('');
             document.getElementById('commonModal').classList.add('active');
