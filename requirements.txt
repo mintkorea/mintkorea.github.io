@@ -1,0 +1,8 @@
+streamlit
+requests
+pandas
+xlsxwriter
+fpdf
+pytz
+gspread
+oauth2client
