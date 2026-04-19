@@ -3,41 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>성의교정 연차 관리 시스템</title>
+    <title>성의교정 근무달력</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
-        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         
-        /* 달력 스타일 */
+        /* 달력 기본 스타일 */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; background: white; }
-        .calendar-cell { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; display: flex; flex-direction: column; position: relative; cursor: pointer; overflow: hidden; min-height: 80px; }
+        .calendar-cell { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; display: flex; flex-direction: column; position: relative; cursor: pointer; min-height: 80px; }
         .date-area { height: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; position: relative; }
+        .shift-area { aspect-ratio: 1 / 1; width: 100%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 20px; z-index: 5; }
+        .is-today { border: 2px solid #ef4444 !important; z-index: 20; }
+        .sunday { color: #ef4444; }
+        .saturday { color: #3b82f6; }
+
+        /* 플로팅 메뉴(명단) 스타일 */
+        #floatingList { 
+            position: fixed; top: 0; right: -100%; width: 100%; height: 100%; 
+            background: #f8f9fa; z-index: 200; transition: 0.3s ease-in-out;
+            display: flex; flex-direction: column;
+        }
+        #floatingList.active { right: 0; }
+        .list-card { background: white; border-radius: 12px; padding: 12px; margin-bottom: 8px; border: 1px solid #e2e8f0; }
+
+        /* 배지 스타일 */
+        .v-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 800; border: 1px solid rgba(0,0,0,0.1); }
+        
+        /* 플로팅 버튼 */
+        .fab { 
+            position: fixed; bottom: 25px; right: 25px; width: 55px; height: 55px; 
+            background: #1e293b; color: white; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 150; cursor: pointer;
+        }
+
         .dot-container { display: flex; gap: 2px; justify-content: center; align-items: center; height: 6px; margin-top: 1px; }
         .v-dot { width: 5px; height: 5px; border-radius: 50%; }
         .dot-sung { background-color: #a855f7; } 
         .dot-omni { background-color: #f97316; } 
-        .dot-etc { background-color: #14b8a6; } 
-        .shift-area { aspect-ratio: 1 / 1; width: 100%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 20px; z-index: 5; }
-        
-        /* 리스트 스타일 */
-        .list-item { background: white; border-radius: 12px; padding: 12px; margin-bottom: 8px; border: 1px solid #e2e8f0; }
-        .list-date { font-weight: 900; font-size: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .v-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #f8fafc; border-radius: 20px; border: 1px solid #e2e8f0; font-size: 12px; font-weight: 700; }
-
-        .is-today { border: 2px solid #ef4444 !important; z-index: 20; }
-        .sunday { color: #ef4444; }
-        .saturday { color: #3b82f6; }
-        
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
-        .modal-overlay.active { display: flex; }
-        .modal-content { background: white; width: 100%; max-width: 320px; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body class="p-2">
-    <div class="max-w-md mx-auto h-screen flex flex-col">
+
+    <div class="max-w-md mx-auto">
         <header class="bg-white rounded-xl shadow-sm border border-gray-200 mb-2 p-3">
             <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2" onclick="adminClick()">
@@ -46,37 +57,36 @@
                 </div>
                 <div id="dbStatus" class="text-[8px] font-bold text-slate-400">● 연결됨</div>
             </div>
-            
-            <div class="grid grid-cols-2 gap-2 mb-3">
-                <button id="btnCal" onclick="setView('cal')" class="py-2 rounded-lg font-black text-xs bg-slate-800 text-white shadow-md transition-all">달력보기</button>
-                <button id="btnList" onclick="setView('list')" class="py-2 rounded-lg font-black text-xs bg-white text-slate-400 border border-slate-200 transition-all">명단보기</button>
-            </div>
-
-            <div class="flex items-center gap-2 w-full">
-                <div class="flex items-center bg-white border rounded-lg h-9 flex-1">
-                    <button onclick="changeMonth(-1)" class="px-3 font-bold text-slate-400">＜</button>
-                    <span id="monthTitle" class="text-xs font-black text-slate-700 flex-1 text-center"></span>
-                    <button onclick="changeMonth(1)" class="px-3 font-bold text-slate-400">＞</button>
+            <div class="flex items-center gap-2">
+                <div class="flex items-center bg-white border rounded-lg h-10 flex-1">
+                    <button onclick="changeMonth(-1)" class="px-4 font-bold text-slate-400">＜</button>
+                    <span id="monthTitle" class="text-sm font-black text-slate-700 flex-1 text-center"></span>
+                    <button onclick="changeMonth(1)" class="px-4 font-bold text-slate-400">＞</button>
                 </div>
-                <select id="shiftSelect" class="text-xs h-9 bg-slate-100 text-gray-700 rounded-lg font-bold outline-none border border-slate-200 flex-1 text-center" onchange="render()"></select>
+                <select id="shiftSelect" class="text-xs h-10 bg-slate-100 rounded-lg font-bold outline-none border border-slate-200 px-2" onchange="render()"></select>
             </div>
         </header>
 
         <div id="calendarBody" class="calendar-grid rounded-xl shadow-lg overflow-hidden border border-gray-200"></div>
-        
-        <div id="listView" class="hidden flex-1 overflow-y-auto pb-4"></div>
     </div>
 
-    <div id="commonModal" class="modal-overlay" onclick="closeModal()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div id="modalHeader" class="bg-[#3498db] p-3 text-white font-bold text-center text-sm"></div>
-            <div id="modalBody" class="p-4 space-y-2 max-h-[50vh] overflow-y-auto"></div>
-            <button onclick="closeModal()" class="w-full p-3 bg-gray-50 font-bold border-t text-sm">닫기</button>
+    <div class="fab" onclick="toggleFloatingList()">
+        <span class="text-sm font-black">명단</span>
+    </div>
+
+    <div id="floatingList">
+        <div class="p-4 bg-white border-b flex justify-between items-center sticky top-0 z-10">
+            <h2 class="font-black text-lg">연차자 명단</h2>
+            <div class="flex gap-2">
+                <button id="togglePast" onclick="toggleHidePast()" class="text-[10px] bg-slate-100 px-2 py-1 rounded font-bold text-slate-500">전체보기</button>
+                <button onclick="toggleFloatingList()" class="text-xl px-2">✕</button>
+            </div>
         </div>
+        <div id="listContent" class="p-4 flex-1 overflow-y-auto">
+            </div>
     </div>
 
     <script>
-        // Firebase 설정 (기존 소스와 동일)
         const firebaseConfig = {
             apiKey: "AIzaSyDGDUudF49hnXwU55er7joyeSLEPrme1GU",
             authDomain: "catholic-security-system.firebaseapp.com",
@@ -91,39 +101,18 @@
         let settings = JSON.parse(localStorage.getItem('cal_settings')) || {
             title: "성의교정 근무달력", adminPw: "1234", baseDate: "2026/03/09",
             shifts: ['C', 'A', 'B'],
-            colors: { C: ['#dbeafe', '#3b82f6'], A: ['#fef3c7', '#f59e0b'], B: ['#fee2e2', '#ef4444'] }
+            colors: { C: ['#dbeafe', '#3498db'], A: ['#fef3c7', '#f39c12'], B: ['#fee2e2', '#e74c3c'] }
         };
 
-        let staffData = [], vData = {}, currentView = 'cal';
+        let staffData = [], vData = {}, hidePast = true;
         const today = new Date(); today.setHours(0,0,0,0);
         let currentYear = today.getFullYear(), currentMonth = today.getMonth();
-
-        function setView(view) {
-            currentView = view;
-            const btnCal = document.getElementById('btnCal');
-            const btnList = document.getElementById('btnList');
-            const calBody = document.getElementById('calendarBody');
-            const listView = document.getElementById('listView');
-
-            if(view === 'cal') {
-                btnCal.className = "py-2 rounded-lg font-black text-xs bg-slate-800 text-white shadow-md transition-all";
-                btnList.className = "py-2 rounded-lg font-black text-xs bg-white text-slate-400 border border-slate-200 transition-all";
-                calBody.classList.remove('hidden');
-                listView.classList.add('hidden');
-            } else {
-                btnList.className = "py-2 rounded-lg font-black text-xs bg-slate-800 text-white shadow-md transition-all";
-                btnCal.className = "py-2 rounded-lg font-black text-xs bg-white text-slate-400 border border-slate-200 transition-all";
-                calBody.classList.add('hidden');
-                listView.classList.remove('hidden');
-            }
-            render();
-        }
 
         function init() {
             document.getElementById('appTitle').textContent = settings.title;
             const select = document.getElementById('shiftSelect');
             select.innerHTML = '<option value="none">강조 없음</option>';
-            settings.shifts.forEach(s => { select.innerHTML += `<option value="${s}">${s}조 강조</option>`; });
+            settings.shifts.forEach(s => { select.innerHTML += `<option value="${s}">${s}조</option>`; });
             db.collection("vocation_app").doc("data").onSnapshot(doc => {
                 if(doc.exists) { staffData = doc.data().staff || []; vData = doc.data().vocation || {}; render(); }
             });
@@ -132,15 +121,13 @@
         function render() {
             const mKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
             document.getElementById('monthTitle').textContent = `${currentYear}년 ${currentMonth + 1}월`;
-            
-            if(currentView === 'cal') renderCalendar(mKey);
-            else renderList(mKey);
+            renderCalendar(mKey);
+            renderFloatingList(mKey);
         }
 
         function renderCalendar(mKey) {
             const container = document.getElementById('calendarBody');
-            container.innerHTML = '<div class="grid grid-cols-7 text-center font-bold text-[9px] py-2 bg-slate-50 border-b text-slate-400 col-span-7"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>';
-            
+            container.innerHTML = '<div class="grid grid-cols-7 text-center font-bold text-[10px] py-2 bg-slate-50 border-b text-slate-400 col-span-7"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>';
             const firstDay = new Date(currentYear, currentMonth, 1).getDay();
             const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
             const base = new Date(settings.baseDate);
@@ -152,100 +139,81 @@
                 const curr = new Date(currentYear, currentMonth, d);
                 curr.setHours(0,0,0,0);
                 const diffDays = Math.round((curr - base) / 86400000); 
-                const shiftIndex = ((diffDays % settings.shifts.length) + settings.shifts.length) % settings.shifts.length;
-                const shiftName = settings.shifts[shiftIndex];
-                const shiftColor = settings.colors[shiftName] || ['#ffffff', '#000000'];
-                
+                const sName = settings.shifts[((diffDays % settings.shifts.length) + settings.shifts.length) % settings.shifts.length];
+                const sCol = settings.colors[sName] || ['#ffffff', '#000000'];
                 const {vList, dots} = getDayVocation(mKey, d);
 
                 const cell = document.createElement('div');
                 cell.className = 'calendar-cell' + (curr.getTime() === today.getTime() ? ' is-today' : '');
-                
-                const dDiv = document.createElement('div');
-                dDiv.className = `date-area ${curr.getDay()===0?'sunday':curr.getDay()===6?'saturday':''}`;
-                dDiv.innerHTML = `<span>${d}</span><div class="dot-container">${dots}</div>`;
-
-                const sDiv = document.createElement('div');
-                sDiv.className = 'shift-area';
-                sDiv.textContent = shiftName;
-
-                if (targetShift === shiftName) {
-                    cell.classList.add('cell-highlighted');
-                    cell.style.backgroundColor = shiftColor[1];
-                } else {
-                    sDiv.style.backgroundColor = shiftColor[0];
-                    sDiv.style.color = shiftColor[1];
-                }
-
-                if (vList.length > 0) cell.onclick = () => showVNames(`${currentMonth+1}월 ${d}일 연차`, vList);
-                cell.append(dDiv, sDiv);
+                cell.innerHTML = `
+                    <div class="date-area ${curr.getDay()===0?'sunday':curr.getDay()===6?'saturday':''}">
+                        <span>${d}</span><div class="dot-container">${dots}</div>
+                    </div>
+                    <div class="shift-area" style="background:${targetShift===sName?sCol[1]:sCol[0]}; color:${targetShift===sName?'#fff':sCol[1]}">${sName}</div>
+                `;
+                if (vList.length > 0) cell.onclick = () => { toggleFloatingList(); document.getElementById(mKey+'-'+d)?.scrollIntoView(); };
                 container.appendChild(cell);
             }
         }
 
-        function renderList(mKey) {
-            const container = document.getElementById('listView');
+        function renderFloatingList(mKey) {
+            const container = document.getElementById('listContent');
             container.innerHTML = '';
-            
             const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
             const base = new Date(settings.baseDate);
 
-            let hasAnyVocation = false;
+            // 날짜 배열 생성 및 오늘 기준으로 정렬 로직
+            let dates = [];
+            for (let d = 1; d <= lastDate; d++) dates.push(d);
 
-            for (let d = 1; d <= lastDate; d++) {
+            dates.forEach(d => {
                 const curr = new Date(currentYear, currentMonth, d);
-                const {vList} = getDayVocation(mKey, d);
+                curr.setHours(0,0,0,0);
                 
-                if (vList.length > 0) {
-                    hasAnyVocation = true;
-                    const diffDays = Math.round((curr - base) / 86400000); 
-                    const shiftName = settings.shifts[((diffDays % settings.shifts.length) + settings.shifts.length) % settings.shifts.length];
-                    const dayName = ['일','월','화','수','목','금','토'][curr.getDay()];
-                    
-                    const item = document.createElement('div');
-                    item.className = 'list-item shadow-sm';
-                    if(curr.getTime() === today.getTime()) item.classList.add('border-red-500', 'bg-red-50');
+                // 지나간 날짜 숨김 로직
+                if(hidePast && curr < today) return;
 
-                    let html = `
-                        <div class="list-date">
-                            <span class="${curr.getDay()===0?'sunday':curr.getDay()===6?'saturday':''}">
-                                ${d}일 (${dayName})
-                            </span>
-                            <span class="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-500">${shiftName}조 근무</span>
+                const {vList} = getDayVocation(mKey, d);
+                if (vList.length === 0) return;
+
+                // 성의회관 우선 정렬
+                vList.sort((a, b) => a.g.includes("성의회관") ? -1 : 1);
+
+                const diffDays = Math.round((curr - base) / 86400000); 
+                const sName = settings.shifts[((diffDays % settings.shifts.length) + settings.shifts.length) % settings.shifts.length];
+                const sCol = settings.colors[sName] || ['#fff', '#000'];
+
+                const item = document.createElement('div');
+                item.id = mKey + '-' + d;
+                item.className = `list-card ${curr.getTime() === today.getTime() ? 'ring-2 ring-red-500' : ''}`;
+                
+                let html = `
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="font-black ${curr.getDay()===0?'text-red-500':curr.getDay()===6?'text-blue-500':'text-slate-800'}">
+                            ${currentMonth+1}/${d} (${['일','월','화','수','목','금','토'][curr.getDay()]})
+                            ${curr.getTime() === today.getTime() ? '<span class="ml-2 text-red-500 text-xs">오늘</span>' : ''}
+                        </span>
+                        <span class="text-[10px] font-black px-2 py-0.5 rounded" style="background:${sCol[0]}; color:${sCol[1]}">${sName}조</span>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                `;
+
+                vList.forEach(v => {
+                    html += `
+                        <div class="v-badge" style="background:${sCol[0]}; color:${sCol[1]}">
+                            <span class="opacity-60 text-[10px] font-bold">[${v.g}]</span>
+                            <span>${v.s} ${v.name}</span>
                         </div>
-                        <div class="flex flex-wrap gap-2">
                     `;
-                    
-                    vList.forEach(v => {
-                        let dotClass = "dot-etc";
-                        if(v.g.includes("성의")) dotClass = "dot-sung";
-                        else if(v.g.includes("옴니")) dotClass = "dot-omni";
-                        
-                        html += `
-                            <div class="v-badge">
-                                <div class="v-dot ${dotClass}"></div>
-                                <span class="text-[10px] text-gray-400 mr-1">${v.g}</span>
-                                <span>${v.s} ${v.name}</span>
-                            </div>
-                        `;
-                    });
-                    
-                    html += `</div>`;
-                    item.innerHTML = html;
-                    container.appendChild(item);
-                }
-            }
-
-            if(!hasAnyVocation) {
-                container.innerHTML = '<div class="text-center py-20 text-slate-400 text-xs">이번 달 연차 기록이 없습니다.</div>';
-            }
+                });
+                item.innerHTML = html + `</div>`;
+                container.appendChild(item);
+            });
         }
 
-        // 공통 연차 데이터 추출 함수
         function getDayVocation(mKey, day) {
-            let vList = [], dots = "", hasSung = false, hasOmni = false, hasEtc = false;
+            let vList = [], dots = "", hasSung = false, hasOmni = false;
             const monthV = vData[mKey] || {};
-            
             for (let name in monthV) {
                 if (monthV[name].split(',').map(v=>v.trim()).includes(String(day))) {
                     const info = staffData.find(s => s.n === name);
@@ -253,32 +221,37 @@
                         vList.push({ name, g: info.g, s: info.s });
                         if(info.g.includes("성의")) hasSung = true;
                         else if(info.g.includes("옴니")) hasOmni = true;
-                        else hasEtc = true;
                     }
                 }
             }
             if(hasSung) dots += '<div class="v-dot dot-sung"></div>';
             if(hasOmni) dots += '<div class="v-dot dot-omni"></div>';
-            if(hasEtc) dots += '<div class="v-dot dot-etc"></div>';
-            
             return { vList, dots };
         }
 
-        function showVNames(title, list) {
-            document.getElementById('modalHeader').textContent = title;
-            document.getElementById('modalBody').innerHTML = list.map(item => `
-                <div class="p-2.5 bg-slate-50 rounded-lg border text-center">
-                    <span class="text-[9px] text-gray-400 block mb-0.5">[${item.g}]</span>
-                    <span class="text-slate-700 font-bold text-xs">${item.s} ${item.name}</span>
-                </div>`).join('');
-            document.getElementById('commonModal').classList.add('active');
+        function toggleFloatingList() { document.getElementById('floatingList').classList.toggle('active'); }
+        function toggleHidePast() { 
+            hidePast = !hidePast; 
+            document.getElementById('togglePast').textContent = hidePast ? "전체보기" : "지나간 연차 숨김";
+            render(); 
+        }
+        function changeMonth(v) { currentMonth += v; if(currentMonth<0){currentMonth=11;currentYear--;} else if(currentMonth>11){currentMonth=0;currentYear++;} render(); }
+        
+        // 관리자 클릭 로직 (기본 1234)
+        let clickCount = 0;
+        function adminClick() {
+            clickCount++;
+            if(clickCount >= 5) {
+                const pw = prompt("관리자 비번");
+                if(pw === settings.adminPw) {
+                    const newTitle = prompt("앱 타이틀 수정", settings.title);
+                    if(newTitle) { settings.title = newTitle; localStorage.setItem('cal_settings', JSON.stringify(settings)); location.reload(); }
+                }
+                clickCount = 0;
+            }
+            setTimeout(() => { clickCount = 0; }, 2000);
         }
 
-        // 나머지 함수 (adminClick, changeMonth, closeModal 등은 기존과 동일)
-        function changeMonth(v) { currentMonth += v; if(currentMonth<0){currentMonth=11;currentYear--;} else if(currentMonth>11){currentMonth=0;currentYear++;} render(); }
-        function closeModal() { document.getElementById('commonModal').classList.remove('active'); }
-        function adminClick() { /* 기존과 동일 */ clickCount++; if(clickCount >= 5) { const pw = prompt("관리자 비번"); if(pw === settings.adminPw) openAdmin(); clickCount = 0; } setTimeout(() => { clickCount = 0; }, 2000); }
-        let clickCount = 0; 
         window.onload = init;
     </script>
 </body>
