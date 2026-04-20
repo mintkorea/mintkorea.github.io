@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; }
+    .upload-box { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 2rem; text-align: center; }
+  </style>
+</head>
+<body class="p-4">
+  <div class="max-w-md mx-auto bg-white rounded-2xl shadow-lg p-6">
+    <h1 class="text-xl font-bold text-slate-800 mb-4">📸 이미지 ➡ 표 변환기</h1>
+    
+    <div class="upload-box bg-slate-50 mb-4">
+      <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleFile()">
+      <label for="fileInput" class="cursor-pointer text-slate-600">
+        <span class="text-3xl">📁</span><br>식단표나 근무표 사진 선택
+      </label>
+    </div>
+
+    <div id="status" class="text-sm text-blue-600 font-bold mb-4 hidden">열심히 읽는 중... 🔄</div>
+    
+    <textarea id="resultText" class="w-full h-40 p-2 border rounded text-xs mb-4" placeholder="추출된 텍스트가 여기에 표시됩니다."></textarea>
+    
+    <button onclick="convertToTable()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold">표 형태로 재구성하기</button>
+  </div>
+
+  <script>
+    function handleFile() {
+      const file = document.getElementById('fileInput').files[0];
+      const reader = new FileReader();
+      document.getElementById('status').classList.remove('hidden');
+      
+      reader.onload = function(e) {
+        google.script.run.withSuccessHandler(function(text) {
+          document.getElementById('resultText').value = text;
+          document.getElementById('status').classList.add('hidden');
+        }).processImage(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function convertToTable() {
+      const rawText = document.getElementById('resultText').value;
+      alert("추출된 텍스트를 바탕으로 표 생성을 시작합니다. (LLM 연동 시 더 정확합니다)");
+      // 여기에 LLM API를 붙이거나 규칙 기반 변환 로직을 추가할 수 있습니다.
+    }
+  </script>
+</body>
+</html>
