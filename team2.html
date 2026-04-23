@@ -3,127 +3,225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>근무 편성표</title>
+    <title>C조 통합 근무 시스템 v1.5.6</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <style>
-        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-        body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; color: #1e293b; -webkit-tap-highlight-color: transparent; }
-        .page { width: 100%; max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: 40px; }
-        .header { background: #fff; padding: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px; }
-        .duty-card { background: white; border-radius: 16px; margin: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
-        .section-title { font-size: 11px; font-weight: 900; padding: 2px 8px; border-radius: 5px; display: inline-block; margin-bottom: 10px; }
-        .badge-hall { background-color: #dbeafe; color: #1e40af; }
-        .badge-research { background-color: #f3e8ff; color: #6b21a8; }
-        .name-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-        .name-label { width: 45px; font-size: 12px; font-weight: 700; color: #64748b; }
-        .name-value { font-size: 16px; font-weight: 800; color: #1e293b; }
-        .vocation-tag { font-size: 11px; color: #ef4444; font-weight: 800; margin-left: 4px; }
-        .day-sun { color: #ef4444 !important; }
-        .day-sat { color: #3b82f6 !important; }
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; margin: 0; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .nav-tab.active { color: #2E4077; border-bottom: 3px solid #2E4077; background-color: white; }
+        
+        .custom-table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; table-layout: fixed; background: white; }
+        .custom-table th { background: #f8fafc; color: #1e293b; padding: 6px 1px; border: 1px solid #e2e8f0; font-weight: 800; }
+        .custom-table td { border: 1px solid #e2e8f0; padding: 6px 1px; color: #475569; height: 38px; }
+        .time-cell { width: 85px !important; background-color: #f8fafc; font-weight: 700; color: #1e293b; }
+        
+        .status-card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+        .worker-card { background: white; padding: 15px 10px; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center; }
+        .worker-name { font-size: 11px; font-weight: 800; color: #64748b; margin-bottom: 4px; }
+        .worker-pos { font-size: 18px; font-weight: 900; }
+        
+        .big-msg-box { background: white; color: #1e40af; padding: 20px 15px; border-radius: 24px; text-align: center; font-weight: 900; margin-bottom: 16px; border: 1px solid #e2e8f0; font-size: 16px; line-height: 1.6; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); }
+        .next-duty-inline { display: block; font-size: 13px; color: #ef4444; margin-top: 8px; font-weight: 800; border-top: 1px dashed #e2e8f0; padding-top: 8px; }
+        
+        /* 달력 투톤 하이라이트 핵심 디자인 */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; background: white; }
+        .calendar-cell { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; display: flex; flex-direction: column; min-height: 72px; position: relative; }
+        .date-area { display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem; height: 22px; background-color: rgba(255, 255, 255, 0.35); border-bottom: 1px solid rgba(0, 0, 0, 0.03); }
+        .shift-area { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.1rem; }
+        
+        .sunday { color: #ef4444 !important; }
+        .saturday { color: #3b82f6 !important; }
+        .is-today { outline: 4px solid #ef4444; outline-offset: -4px; z-index: 10; }
+
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay.active { display: flex; }
     </style>
 </head>
 <body>
-    <div class="page">
-        <div class="header">
-            <button onclick="location.href='index.html'" class="p-2 -ml-2"><img src="https://img.icons8.com/material-outlined/24/000000/left.png" width="24"></button>
-            <h1 id="dateDisplay" class="text-lg font-black tracking-tighter">날짜 로드 중...</h1>
+    <div id="main-wrapper" class="max-w-md mx-auto bg-white min-h-screen shadow-lg flex flex-col relative">
+        <div class="bg-[#2E4077] p-6 text-center text-white relative">
+            <h1 class="text-xl font-black">🛡️ <span id="headTitle">C조 통합 근무 시스템</span></h1>
+            <p id="current-time" class="text-[10px] opacity-70 mt-1.5 font-bold tracking-wider"></p>
+            <button onclick="openAuth()" class="absolute right-4 top-7 text-xs bg-white/20 px-2 py-1 rounded font-bold">⚙️</button>
         </div>
 
-        <div id="dutyContent">
-            <div class="p-10 text-center text-slate-400 font-bold">근무 정보를 불러오고 있습니다...</div>
+        <div class="flex border-b bg-slate-50 sticky top-0 z-50">
+            <button onclick="openTab('status')" id="btn-status" class="nav-tab active flex-1 py-4 text-[11px] font-black">🕒 실시간현황</button>
+            <button onclick="openTab('schedule')" id="btn-schedule" class="nav-tab flex-1 py-4 text-[11px] font-black text-slate-400">📅 근무편성표</button>
+            <button onclick="openTab('calendar')" id="btn-calendar" class="nav-tab flex-1 py-4 text-[11px] font-black text-slate-400">🏥 근무달력</button>
+        </div>
+
+        <div id="status" class="tab-content active p-3">
+            <div id="worker-cards" class="status-card-grid"></div>
+            <div id="time-msg"></div>
+            <div class="flex justify-between items-center mb-2 px-1">
+                <span class="text-[11px] font-black text-slate-400">🕒 실시간 상세 시간표</span>
+                <button onclick="toggleFullTable()" class="text-[9px] bg-slate-700 text-white px-3 py-1 rounded-full font-bold">전체보기 OFF</button>
+            </div>
+            <div class="overflow-hidden rounded-xl border border-slate-200 shadow-sm"><table class="custom-table" id="status-table"></table></div>
+        </div>
+
+        <div id="schedule" class="tab-content p-3">
+            <div class="bg-slate-50 p-4 rounded-xl mb-4 border border-slate-200">
+                <input type="range" id="month-slider" min="-12" max="12" value="1" oninput="renderSchedule()" class="w-full h-1.5 accent-[#2E4077]">
+                <select id="worker-focus" onchange="renderSchedule()" class="w-full mt-3 p-3 border rounded-xl text-xs font-bold outline-none">
+                    <option value="none">✨ 내 이름 강조</option>
+                    <option value="황재업">황재업</option><option value="김태언">김태언</option><option value="이태원">이태원</option><option value="이정석">이정석</option>
+                </select>
+            </div>
+            <div class="overflow-hidden rounded-xl border border-slate-200 shadow-sm"><table class="custom-table" id="schedule-list"></table></div>
+        </div>
+
+        <div id="calendar" class="tab-content p-3">
+            <select id="shiftSelect" onchange="renderCalendar()" class="w-full mb-3 p-3 border rounded-xl font-black text-xs outline-none text-[#2E4077]">
+                <option value="all">🌈 모든 조 배경색 표시</option>
+            </select>
+            <div id="calendar-grid-body" class="calendar-grid"></div>
         </div>
     </div>
 
     <script>
-        firebase.initializeApp({ apiKey: "AIzaSyDGDUudF49hnXwU55er7joyeSLEPrme1GU", authDomain: "catholic-security-system.firebaseapp.com", projectId: "catholic-security-system", storageBucket: "catholic-security-system.firebasestorage.app", messagingSenderId: "978946205343", appId: "1:978946205343:web:38c30a21bf0dd522f9a4aa" });
+        firebase.initializeApp({ apiKey: "AIzaSyDGDUudF49hnXwU55er7joyeSLEPrme1GU", projectId: "catholic-security-system" });
         const db = firebase.firestore();
 
-        const baseDate = '2025-01-01', patterns = ['C', 'A', 'B'];
-        const teamA = ["배준용", "이명구", "김영중", "김삼동"], teamB = ["심규천", "임종현", "권영국", "전준수"];
-        const teamC = [
-            ["황재업", "이정석", "이태원", "김태언"],
-            ["황재업", "이태원", "김태언", "이정석"],
-            ["황재업", "김태언", "이정석", "이태원"],
-            ["황재업", "이정석", "김태언", "이태원"],
-            ["황재업", "이정석", "이태원", "김태언"],
-            ["황재업", "이태원", "이정석", "김태언"]
-        ];
+        const DEFAULT_CONFIG = { appTitle: 'C조 통합 근무 시스템', baseDate: '2025-01-01', adminPassword: '7979', patterns: [{ name: 'C', color: '#E3F2FD', highlight: '#E3F2FD' }, { name: 'A', color: '#FFF9C4', highlight: '#FFF9C4' }, { name: 'B', color: '#FCE4EC', highlight: '#FCE4EC' }] };
+        let config = JSON.parse(localStorage.getItem('shift_v5_config')) || DEFAULT_CONFIG;
+        let isFullTable = false, vData = {};
 
-        let vData = {};
-        const urlParams = new URLSearchParams(window.location.search);
-        let currentStr = urlParams.get('date') || new Date().toISOString().split('T')[0];
-        let targetDate = new Date(currentStr);
+        const WORKER_COLORS = { "황재업": { bg: "#2E4077", toneUp: "#E3F2FD" }, "김태언": { bg: "#059669", toneUp: "#ECFDF5" }, "이태원": { bg: "#D97706", toneUp: "#FFFBEB" }, "이정석": { bg: "#7C3AED", toneUp: "#F5F3FF" } };
+        const DATA_LIST = [["07:00", "08:00", "보안실", "로비", "로비", "휴게"], ["08:00", "09:00", "보안실", "휴게", "휴게", "로비"], ["09:00", "10:00", "보안실", "순찰", "휴게", "로비"], ["10:00", "11:00", "휴게", "보안실", "로비", "휴게"], ["11:00", "12:00", "보안실", "중식", "로비", "중식"], ["12:00", "13:00", "중식", "보안실", "중식", "로비"], ["13:00", "14:00", "보안실", "휴게", "순찰", "로비"], ["14:00", "15:00", "순찰", "보안실", "로비", "휴게"], ["15:00", "16:00", "보안실", "휴게", "로비", "휴게"], ["16:00", "17:00", "휴게", "보안실", "휴게", "로비"], ["17:00", "18:00", "보안실", "휴게", "휴게", "로비"], ["18:00", "19:00", "보안실", "석식", "로비", "석식"], ["19:00", "20:00", "보안실", "보안실", "석식", "로비"], ["20:00", "21:00", "석식", "보안실", "로비", "휴게"], ["21:00", "22:00", "보안실", "순찰", "로비", "휴게"], ["22:00", "23:00", "순찰", "보안실", "순찰", "로비"], ["23:00", "00:00", "보안실", "휴게", "휴게", "로비"], ["00:00", "01:00", "보안실", "휴게", "휴게", "로비"], ["01:00", "01:40", "보안실", "휴게", "휴게", "로비"], ["01:40", "02:00", "보안실", "보안실", "로비", "로비"], ["02:00", "03:00", "휴게", "보안실", "로비", "휴게"], ["03:00", "04:00", "휴게", "보안실", "로비", "휴게"], ["04:00", "05:00", "휴게", "보안실", "로비", "휴게"], ["05:00", "06:00", "보안실", "순찰", "로비", "순찰"], ["06:00", "07:00", "보안실", "정리", "로비", "정리"]];
 
-        // 연차 스왑 로직 적용 함수
-        function getFinalNames(shift, diff, date) {
-            let namesArr = [];
-            const y = date.getFullYear(), m = String(date.getMonth() + 1).padStart(2, '0'), dVal = String(date.getDate());
-            const vocation = (vData[`${y}-${m}`] || {});
+        function getShift(d) {
+            let base = new Date(config.baseDate); base.setHours(0,0,0,0);
+            let diff = Math.round((new Date(d).setHours(0,0,0,0) - base) / 86400000);
+            return config.patterns[((diff % 3) + 3) % 3];
+        }
 
-            if (shift === 'A') namesArr = [...teamA];
-            else if (shift === 'B') namesArr = [...teamB];
-            else if (shift === 'C') {
-                const cIdx = Math.floor(((diff % 18) + 18) % 18 / 3);
-                namesArr = [...teamC[cIdx]]; // [0:조장, 1:회관, 2:의산연A, 3:의산연B]
+        // 보직 순환 및 연차 반영 로직 (C조 기준)
+        function getRawWorkers(d) {
+            let base = new Date(config.baseDate); base.setHours(0,0,0,0);
+            let diffDays = Math.round((new Date(d).setHours(0,0,0,0) - base) / 86400000);
+            let dutyCount = Math.floor(diffDays / 3);
+            const members = ["김태언", "이정석", "이태원"];
+            const hallIdx = Math.floor(((dutyCount % 6) + 6) % 6 / 2);
+            const hallWorker = members[hallIdx];
+            let medA, medB;
+            if (hallWorker === "김태언") { medA = "이태원"; medB = "이정석"; }
+            else if (hallWorker === "이정석") { medA = "김태언"; medB = "이태원"; }
+            else { medA = "김태언"; medB = "이정석"; }
+            if (dutyCount % 2 !== 0) { [medA, medB] = [medB, medA]; }
+            return ["황재업", hallWorker, medA, medB];
+        }
 
-                // 연차자 스왑 로직: 조원(1,2,3번) 중 연차 발생 시 회관(1번)으로 이동
-                for (let i = 1; i < namesArr.length; i++) {
-                    const name = namesArr[i];
-                    if (vocation[name] && vocation[name].split(',').map(v => v.trim()).includes(dVal)) {
-                        if (i !== 1) {
-                            [namesArr[1], namesArr[i]] = [namesArr[i], namesArr[1]];
-                        }
-                        break;
-                    }
+        function getWorkers(d, useLogic) {
+            let target = useLogic ? getLogicDate(d) : new Date(d);
+            let names = getRawWorkers(target);
+            const y = target.getFullYear(), m = String(target.getMonth() + 1).padStart(2, '0'), day = String(target.getDate());
+            const monthlyV = vData[`${y}-${m}`] || {};
+            for (let i = 1; i < names.length; i++) {
+                if (monthlyV[names[i]] && monthlyV[names[i]].split(',').map(v => v.trim()).includes(day)) {
+                    if (i !== 1) [names[1], names[i]] = [names[i], names[1]];
+                    break;
                 }
             }
-            return namesArr;
+            return names;
         }
 
-        async function loadData() {
-            const days = ['일','월','화','수','목','금','토'];
-            document.getElementById('dateDisplay').innerText = `${targetDate.getMonth()+1}월 ${targetDate.getDate()}일 (${days[targetDate.getDay()]}) 근무`;
-            if (targetDate.getDay() === 0) document.getElementById('dateDisplay').classList.add('day-sun');
-            if (targetDate.getDay() === 6) document.getElementById('dateDisplay').classList.add('day-sat');
+        async function fetchVocation() { try { const doc = await db.collection("vocation_app").doc("data").get(); if (doc.exists) vData = doc.data().vocation || {}; } catch(e) {} }
+        function getLogicDate(d) { let t = new Date(d); if (t.getHours() < 7) t.setDate(t.getDate() - 1); t.setHours(0, 0, 0, 0); return t; }
+        function getNextCDate(standardDate) { let d = new Date(standardDate); d.setHours(12,0,0,0); for (let i = 0; i <= 7; i++) { let temp = new Date(d); temp.setDate(d.getDate() + i); if (getShift(temp).name === 'C') return temp; } return null; }
 
-            try {
-                const doc = await db.collection("vocation_app").doc("data").get();
-                if (doc.exists) vData = doc.data().vocation || {};
-                render();
-            } catch(e) { render(); }
-        }
-
-        function render() {
-            const diff = Math.round((new Date(targetDate).setHours(0,0,0,0) - new Date(baseDate).setHours(0,0,0,0)) / 86400000);
-            const s = patterns[((diff % 3) + 3) % 3];
-            const finalNames = getFinalNames(s, diff, targetDate);
+        function renderStatus() {
+            const now = new Date();
+            const logicDate = getLogicDate(now);
+            const shift = getShift(logicDate);
+            const isC = shift.name === 'C';
+            const hr = now.getHours();
             
-            const y = targetDate.getFullYear(), m = String(targetDate.getMonth() + 1).padStart(2, '0'), dVal = String(targetDate.getDate());
-            const vocation = (vData[`${y}-${m}`] || {});
+            document.getElementById('current-time').innerText = now.toLocaleString();
+            let msg = isC ? (hr < 7 ? "🛡️ 야간 근무 중입니다." : "🛡️ 현재 C조 근무 중입니다.") : "☕ 휴무 시간입니다.";
+            document.getElementById('time-msg').innerHTML = `<div class="big-msg-box">${msg}<span class="next-duty-inline">📅 다음 근무: ${getNextCDate(now).getMonth()+1}/${getNextCDate(now).getDate()}</span></div>`;
+            
+            const workers = getWorkers(logicDate, true);
+            const isHighlight = isC;
+            const realMin = hr * 60 + now.getMinutes();
+            const logicNowMin = hr < 7 ? realMin + 1440 : realMin;
+            
+            let currentIdx = -1;
+            DATA_LIST.forEach((r, i) => {
+                let [sH, sM] = r[0].split(':').map(Number);
+                let sT = (sH < 7 ? sH * 60 + sM + 1440 : sH * 60 + sM);
+                let [eH, eM] = r[1].split(':').map(Number);
+                let eT = (eH < 7 && r[1] !== "07:00") ? (eH * 60 + eM + 1440) : (eH === 7 ? 1860 : eH * 60 + eM);
+                if (logicNowMin >= sT && logicNowMin < eT) currentIdx = i;
+            });
 
-            const checkV = (name) => vocation[name] && vocation[name].split(',').map(v => v.trim()).includes(dVal) ? '<span class="vocation-tag">🚩연차</span>' : '';
+            const cards = document.getElementById('worker-cards');
+            cards.style.display = isC ? 'grid' : 'none';
+            cards.innerHTML = workers.map((w, idx) => `<div class="worker-card" style="border-left: 8px solid ${WORKER_COLORS[w]?.bg}"><div class="worker-name">${['조장','회관','의산A','의산B'][idx]} ${w}</div><div class="worker-pos" style="color:${WORKER_COLORS[w]?.bg}">${currentIdx !== -1 && isC ? DATA_LIST[currentIdx][idx+2] : '대기'}</div></div>`).join('');
 
-            let html = `
-                <div class="duty-card">
-                    <span class="section-title badge-hall">성의회관 근무</span>
-                    <div class="name-row"><span class="name-label">조장</span><span class="name-value">${finalNames[0]}${checkV(finalNames[0])}</span></div>
-                    <div class="name-row"><span class="name-label">회관</span><span class="name-value">${finalNames[1]}${checkV(finalNames[1])}</span></div>
-                </div>
-                <div class="duty-card">
-                    <span class="section-title badge-research">의생명산업연구원</span>
-                    <div class="name-row"><span class="name-label">의산A</span><span class="name-value">${finalNames[2]}${checkV(finalNames[2])}</span></div>
-                    <div class="name-row"><span class="name-label">의산B</span><span class="name-value">${finalNames[3]}${checkV(finalNames[3])}</span></div>
-                </div>
-            `;
-            document.getElementById('dutyContent').innerHTML = html;
+            let h = `<thead><tr><th rowspan="2" class="time-cell">시간</th><th colspan="2">성의회관</th><th colspan="2">의산연</th></tr><tr>`;
+            workers.forEach(w => { h += `<th style="background-color:${WORKER_COLORS[w]?.toneUp}">${w}</th>`; });
+            h += `</tr></thead><tbody>`;
+            DATA_LIST.forEach((r, i) => {
+                if (isFullTable || (isHighlight && i >= currentIdx)) {
+                    h += `<tr ${isHighlight && i === currentIdx ? 'style="background:#fff7ed; outline:2px solid #ef4444; font-weight:bold;"' : ''}><td class="time-cell">${r[0]}~${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td></tr>`;
+                }
+            });
+            document.getElementById('status-table').innerHTML = h + `</tbody>`;
         }
 
-        window.onload = loadData;
+        function renderCalendar() {
+            const container = document.getElementById('calendar-grid-body');
+            const target = document.getElementById('shiftSelect').value;
+            container.innerHTML = '';
+            const now = new Date();
+            const first = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
+            const last = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            for(let i=0; i<first; i++) container.innerHTML += `<div class="calendar-cell bg-slate-50/50"></div>`;
+            for(let d=1; d<=last; d++) {
+                const dt = new Date(now.getFullYear(), now.getMonth(), d);
+                dt.setHours(12, 0, 0, 0);
+                const shift = getShift(dt);
+                const cell = document.createElement('div');
+                cell.className = `calendar-cell ${dt.toDateString() === new Date().toDateString() ? 'is-today' : ''}`;
+                const isActive = (target === 'all' || target === shift.name);
+                cell.style.backgroundColor = isActive ? shift.color : '#ffffff';
+                cell.innerHTML = `<div class="date-area ${dt.getDay()===0?'sunday':dt.getDay()===6?'saturday':''}">${d}</div><div class="shift-area">${shift.name}</div>`;
+                container.appendChild(cell);
+            }
+        }
+
+        function renderSchedule() {
+            const val = parseInt(document.getElementById('month-slider').value), focus = document.getElementById('worker-focus').value;
+            let h = `<thead><tr><th style="width:85px">날짜</th><th>조장</th><th>회관</th><th>의산A</th><th>의산B</th></tr></thead><tbody>`;
+            for (let i = 0; i < val * 30 + 31; i++) {
+                let d = new Date(); d.setDate(d.getDate() + i); d.setHours(12, 0, 0, 0);
+                if (getShift(d).name === 'C') {
+                    const ws = getWorkers(d, false);
+                    h += `<tr><td class="font-black bg-slate-50">${d.getMonth()+1}/${d.getDate()}</td>`;
+                    ws.forEach(w => { h += `<td style="background:${w===focus?WORKER_COLORS[w].bg:WORKER_COLORS[w].toneUp}; color:${w===focus?'white':'black'}">${w}</td>`; });
+                    h += `</tr>`;
+                }
+            }
+            document.getElementById('schedule-list').innerHTML = h + `</tbody>`;
+        }
+
+        function openTab(id) { document.querySelectorAll('.tab-content, .nav-tab').forEach(el => el.classList.remove('active')); document.getElementById(id).classList.add('active'); document.getElementById('btn-'+id).classList.add('active'); if(id==='calendar') renderCalendar(); else if(id==='schedule') renderSchedule(); }
+        function toggleFullTable() { isFullTable = !isFullTable; renderStatus(); }
+        function openAuth() { alert('관리자 기능은 현재 비활성화 상태입니다.'); }
+
+        window.onload = async () => {
+            const sel = document.getElementById('shiftSelect');
+            config.patterns.forEach(p => sel.innerHTML += `<option value="${p.name}">${p.name}조 강조</option>`);
+            await fetchVocation();
+            renderStatus();
+            setInterval(renderStatus, 30000);
+        };
     </script>
 </body>
 </html>
