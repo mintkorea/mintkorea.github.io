@@ -1,0 +1,133 @@
+<script>
+    // 1. Firebase 설정 (제공해주신 근무달력 소스 기반)
+    const firebaseConfig = {
+        apiKey: "AIzaSyDGDUudF49hnXwU55er7joyeSLEPrme1GU",
+        authDomain: "catholic-security-system.firebaseapp.com",
+        projectId: "catholic-security-system",
+        storageBucket: "catholic-security-system.firebasestorage.app",
+        messagingSenderId: "978946205343",
+        appId: "1:978946205343:web:38c30a21bf0dd522f9a4aa"
+    };
+
+    // Firebase 초기화 (CDN 방식 호환을 위해 비동기 처리 권장하나, 여기서는 단순 통합)
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.firestore();
+
+    const EVENT_API_URL = "https://script.google.com/macros/s/AKfycbzKtqrzNK11rX4sCdDFv0lcgUcdVwsNiUnlXYc8Zjm0dJNlNV8ThwKrtqOgKBeVrP3g/exec";
+    const MEAL_API_URL = "https://script.google.com/macros/s/AKfycbxZkcn8EEcGcxMaT98l_CKJTCM_0Ual_S2JefpHptm_dbEtQ5tjM00TEhU2XdqTObLh/exec";
+    const baseDate = '2026-03-09';
+    const patterns = ['C', 'A', 'B'];
+    const teamA = ["배준용", "이명구", "김영중", "김삼동"];
+    const teamB = ["심규천", "임종현", "권영국", "전준수"];
+    const workersPatternC = [
+        ["황재업", "김태언", "이태원", "이정석"], ["황재업", "김태언", "이정석", "이태원"], 
+        ["황재업", "이정석", "김태언", "이태원"], ["황재업", "이정석", "이태원", "김태언"], 
+        ["황재업", "이태원", "김태언", "이정석"], ["황재업", "이태원", "이정석", "김태언"]
+    ];
+
+    let currentDate = getKSTNow();
+    let staffData = [];
+    let vData = {};
+
+    function getKSTNow() { const now = new Date(); return new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (9 * 60 * 60000)); }
+
+    // 연차 데이터 로드 함수
+    async function loadVocationData() {
+        const doc = await db.collection("vocation_app").doc("data").get();
+        if (doc.exists) {
+            staffData = doc.data().staff || [];
+            vData = doc.data().vocation || {};
+            updateDutyUI(); // 데이터 로드 후 UI 갱신
+        }
+    }
+
+    // 특정 날짜의 성의회관 연차자 명단 가져오기
+    function getSungVocationNames(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate());
+        const mKey = `${y}-${m}`;
+        
+        let names = [];
+        const monthV = vData[mKey] || {};
+        
+        for (let name in monthV) {
+            if (monthV[name].split(',').map(v => v.trim()).includes(d)) {
+                const info = staffData.find(s => s.n === name);
+                // "성의"가 포함된 소속의 인원만 필터링
+                if (info && info.g.includes("성의")) {
+                    names.push(name);
+                }
+            }
+        }
+        return names.length > 0 ? `<span class="text-red-500 ml-2">[주간연차: ${names.join(',')}]</span>` : "";
+    }
+
+    function updateDutyUI() {
+        const days = ['일','월','화','수','목','금','토'];
+        const container = document.getElementById('duty-preview-container');
+        const badge = document.getElementById('shift-badge');
+        const currentShift = getShiftName(currentDate);
+        badge.innerText = `${currentShift}조 근무`;
+        badge.className = `px-4 py-2 rounded-xl font-black text-[13px] shadow-sm bg-shift-${currentShift}`;
+        
+        const dayLabel = (d) => {
+            const day = d.getDay();
+            let cls = (day === 0) ? "day-sun" : (day === 6 ? "day-sat" : "");
+            return `<span class="duty-date ${cls}">${d.getMonth()+1}/${d.getDate()}(${days[day]})</span>`;
+        };
+
+        const getTeamMembers = (shift, date) => (shift === 'A' ? teamA : (shift === 'B' ? teamB : getWorkersForC(date)));
+
+        let html = "";
+        if (currentShift === 'C') {
+            let count = 0;
+            for(let i=0; count < 2 && i < 30; i++) {
+                let temp = new Date(currentDate); temp.setDate(currentDate.getDate() + i);
+                if(getShiftName(temp) === 'C') {
+                    const vInfo = getSungVocationNames(temp); // 연차 정보 가져오기
+                    html += `<div class="duty-item">${dayLabel(temp)}<span class="duty-shift shift-C">C조</span><span class="duty-names">${getWorkersForC(temp).join(' ')}${vInfo}</span></div>`;
+                    count++;
+                }
+            }
+        } else {
+            const tomorrow = new Date(currentDate); tomorrow.setDate(currentDate.getDate() + 1);
+            const s1 = getShiftName(currentDate); 
+            const s2 = getShiftName(tomorrow);
+            const vInfo1 = getSungVocationNames(currentDate); // 오늘 연차
+            const vInfo2 = getSungVocationNames(tomorrow);    // 내일 연차
+
+            html = `
+                <div class="duty-item">${dayLabel(currentDate)}<span class="duty-shift shift-${s1}">${s1}조</span><span class="duty-names">${getTeamMembers(s1, currentDate).join(' ')}${vInfo1}</span></div>
+                <div class="duty-item opacity-40">${dayLabel(tomorrow)}<span class="duty-shift shift-${s2}">${s2}조</span><span class="duty-names">${getTeamMembers(s2, tomorrow).join(' ')}${vInfo2}</span></div>
+            `;
+        }
+        container.innerHTML = html;
+    }
+
+    // ... (getShiftName, getWorkersForC, updateEvents, updateMeal 등 기존 함수 유지) ...
+
+    window.onload = () => {
+        // Firebase 스크립트가 로드된 후 실행되도록 함
+        loadVocationData(); 
+        
+        flatpickr("#datePickerTrigger", {
+            locale: "ko", dateFormat: "Y.m.d (D)", defaultDate: currentDate, disableMobile: true, 
+            onChange: (dates) => { if(dates.length) { currentDate = dates[0]; updateDisplay(); } }
+        });
+        updateDisplay();
+    };
+
+    function updateDisplay() {
+        const days = ['일','월','화','수','목','금','토'];
+        document.getElementById('datePickerTrigger').innerText = `${currentDate.getFullYear()}.${currentDate.getMonth()+1}.${currentDate.getDate()} (${days[currentDate.getDay()]})`;
+        updateDutyUI();
+        updateEvents(currentDate);
+        updateMeal(currentDate);
+    }
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
