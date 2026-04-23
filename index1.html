@@ -17,7 +17,7 @@
             font-family: 'Pretendard', sans-serif; background-color: #f1f5f9; color: #1e293b;
             letter-spacing: -0.05em; margin: 0; padding: 0; line-height: 1.3; -webkit-tap-highlight-color: transparent;
         }
-        .page { width: 100%; max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; gap: 8px; }
+        .page { width: 100%; max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; gap: 8px; padding-bottom: 50px; }
         .brand-header { 
             background: linear-gradient(135deg, #2d3e75 0%, #1e293b 100%);
             padding: 20px 16px 45px 16px; color: white; 
@@ -41,28 +41,25 @@
         .label-duty { color: #3b82f6; background-color: #eff6ff; border-right: 1px solid #dbeafe; }
         .table-body { flex-grow: 1; padding: 12px 14px; min-width: 0; }
         
-        .duty-item { display: flex; flex-direction: column; padding: 6px 0; border-bottom: 1px solid #f1f5f9; }
+        .duty-item { display: flex; flex-direction: column; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
         .duty-item:last-child { border-bottom: none; }
-        .duty-main { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .duty-main { display: flex; align-items: center; gap: 8px; }
         .duty-date { font-weight: 700; color: #64748b; font-size: 0.8rem; flex-shrink: 0; min-width: 65px; }
         .duty-shift { font-weight: 900; font-size: 0.8rem; padding: 2px 6px; border-radius: 4px; color: white; flex-shrink: 0; }
-        .duty-names { font-weight: 800; color: #334155; font-size: 0.85rem; display: flex; flex-wrap: wrap; gap: 4px; }
-        .vocation-line { font-size: 0.75rem; font-weight: 800; color: #ef4444; padding-left: 71px; margin-top: 2px; }
+        .duty-names { font-weight: 800; color: #334155; font-size: 0.85rem; line-height: 1.4; word-break: keep-all; }
+        
+        .vocation-line { font-size: 0.75rem; font-weight: 800; color: #ef4444; padding-left: 73px; margin-top: 4px; }
 
         .bg-shift-A { background-color: #F59E0B; }
         .bg-shift-B { background-color: #EF4444; }
         .bg-shift-C { background-color: #3B82F6; }
 
-        .quick-btn { background: white; padding: 10px 6px; border-radius: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-        .day-sun { color: #ef4444 !important; } .day-sat { color: #3b82f6 !important; }
-
         #dutyModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
-        .modal-content { background: white; width: 100%; max-width: 420px; border-radius: 20px; overflow: hidden; animation: slideUp 0.2s ease-out; }
+        .modal-content { background: white; width: 100%; max-width: 420px; border-radius: 20px; overflow: hidden; animation: slideUp 0.15s ease-out; }
         .modal-header { padding: 14px 18px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-        .modal-body { padding: 10px 15px; max-height: 70vh; overflow-y: auto; }
+        .modal-body { padding: 5px 15px; max-height: 70vh; overflow-y: auto; }
         @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .modal-item { border-bottom: 1px solid #f1f5f9; padding: 10px 0; }
-        .name-tag { display: inline-flex; align-items: center; gap: 1px; }
+        .modal-item { border-bottom: 1px solid #f1f5f9; padding: 12px 0; }
     </style>
 </head>
 <body>
@@ -73,28 +70,28 @@
                     <h1 class="text-2xl font-black tracking-tighter">성의교정 통합조회</h1>
                     <div id="datePickerTrigger" class="custom-date-trigger">날짜 선택</div>
                 </div>
-                <div id="shift-badge" onclick="navigateTo('team.html')" class="px-4 py-2 rounded-xl font-black text-[13px] shadow-sm cursor-pointer transition-transform active:scale-95">--조 근무</div>
+                <div id="shift-badge" class="px-4 py-2 rounded-xl font-black text-[13px] shadow-sm">--조 근무</div>
             </div>
         </div>
 
         <div class="px-3 -mt-8 relative z-10">
             <div class="grid grid-cols-3 gap-3">
-                <div onclick="location.href='calendar.html'" class="quick-btn cursor-pointer">
+                <div onclick="location.href='calendar.html'" class="quick-btn p-3 rounded-2xl bg-white shadow-sm border border-slate-100 flex flex-col items-center gap-1">
                     <img src="https://img.icons8.com/fluency/48/calendar.png" width="24">
-                    <span class="text-[0.9rem] font-extrabold text-slate-600">근무달력</span>
+                    <span class="text-[0.85rem] font-bold text-slate-600">근무달력</span>
                 </div>
-                <div onclick="location.href='yellowpage.html'" class="quick-btn cursor-pointer">
+                <div onclick="location.href='yellowpage.html'" class="quick-btn p-3 rounded-2xl bg-white shadow-sm border border-slate-100 flex flex-col items-center gap-1">
                     <img src="https://img.icons8.com/fluency/48/phone.png" width="24">
-                    <span class="text-[0.9rem] font-extrabold text-slate-600">주요전화</span>
+                    <span class="text-[0.85rem] font-bold text-slate-600">주요전화</span>
                 </div>
-                <div onclick="location.href='search.html'" class="quick-btn cursor-pointer">
+                <div onclick="location.href='search.html'" class="quick-btn p-3 rounded-2xl bg-white shadow-sm border border-slate-100 flex flex-col items-center gap-1">
                     <img src="https://img.icons8.com/fluency/48/hospital.png" width="24">
-                    <span class="text-[0.9rem] font-extrabold text-slate-600">시설안내</span>
+                    <span class="text-[0.85rem] font-bold text-slate-600">시설안내</span>
                 </div>
             </div>
         </div>
 
-        <div onclick="openDutyModal()" class="table-card mt-2 active:bg-slate-50">
+        <div onclick="openDutyModal()" class="table-card mt-2 active:bg-slate-50 transition-colors">
             <div class="table-header label-duty">근무<br>편성</div>
             <div id="duty-preview-container" class="table-body"></div>
         </div>
@@ -114,13 +111,22 @@
         firebase.initializeApp({ apiKey: "AIzaSyDGDUudF49hnXwU55er7joyeSLEPrme1GU", authDomain: "catholic-security-system.firebaseapp.com", projectId: "catholic-security-system", storageBucket: "catholic-security-system.firebasestorage.app", messagingSenderId: "978946205343", appId: "1:978946205343:web:38c30a21bf0dd522f9a4aa" });
         const db = firebase.firestore();
 
-        const baseDate = '2026-03-09', patterns = ['C', 'A', 'B'];
+        const baseDate = '2025-01-01'; // 25년 1월 1일 C조 시작 기준
+        const patterns = ['C', 'A', 'B'];
         const teamA = ["배준용", "이명구", "김영중", "김삼동"], teamB = ["심규천", "임종현", "권영국", "전준수"];
-        const teamC = [["황재업", "김태언", "이태원", "이정석"], ["황재업", "김태언", "이정석", "이태원"], ["황재업", "이정석", "김태언", "이태원"], ["황재업", "이정석", "이태원", "김태언"], ["황재업", "이태원", "김태언", "이정석"], ["황재업", "이태원", "이정석", "김태언"]];
+        const teamC = [
+            ["황재업", "이정석", "이태원", "김태언"],
+            ["황재업", "이태원", "김태언", "이정석"],
+            ["황재업", "김태언", "이정석", "이태원"],
+            ["황재업", "이정석", "김태언", "이태원"],
+            ["황재업", "이정석", "이태원", "김태언"],
+            ["황재업", "이태원", "이정석", "김태언"]
+        ];
 
         let currentDate = new Date();
-        let staffData = [], vData = {};
+        let vData = {};
 
+        // [핵심 로직] C조 연차 시 스왑 규칙
         function getShiftNames(shift, diff, date) {
             let namesArr = [];
             const y = date.getFullYear(), m = String(date.getMonth() + 1).padStart(2, '0'), dVal = String(date.getDate());
@@ -130,20 +136,19 @@
             else if (shift === 'B') namesArr = [...teamB];
             else if (shift === 'C') {
                 const cIdx = Math.floor(((diff % 18) + 18) % 18 / 3);
-                namesArr = [...teamC[cIdx]]; // [0:조장/회관, 1:의산연A, 2:의산연B, 3:야간회관]
+                namesArr = [...teamC[cIdx]]; // [0:조장, 1:회관B, 2:의산연A, 3:의산연B]
 
-                // 조장(황재업, index 0)을 제외한 조원(index 1, 2, 3) 중 연차 확인
-                let membersOnly = namesArr.slice(1);
-                let vInMembers = membersOnly.filter(n => vocation[n] && vocation[n].split(',').map(v=>v.trim()).includes(dVal));
-
-                if (vInMembers.length > 0) {
-                    vInMembers.forEach(vName => {
-                        let currentIdx = namesArr.indexOf(vName);
-                        let targetIdx = 3; // 연차 시 무조건 야간회관(마지막 자리)으로 스왑
-                        if (currentIdx !== -1 && currentIdx !== targetIdx && currentIdx !== 0) {
-                            [namesArr[currentIdx], namesArr[targetIdx]] = [namesArr[targetIdx], namesArr[currentIdx]];
+                // 연차자 확인 (조장 제외 1,2,3번)
+                for(let i=1; i<namesArr.length; i++) {
+                    const name = namesArr[i];
+                    if (vocation[name] && vocation[name].split(',').map(v=>v.trim()).includes(dVal)) {
+                        // 연차자가 발생하면 해당 인원을 '회관 근무(index 1)'로 보내고, 
+                        // 원래 그 자리에 있던 사람을 연차자의 자리로 스왑 (의산연 근무와 교대)
+                        if (i !== 1) {
+                            [namesArr[1], namesArr[i]] = [namesArr[i], namesArr[1]];
                         }
-                    });
+                        break; 
+                    }
                 }
             }
             return namesArr;
@@ -160,12 +165,8 @@
                 const s = patterns[((diff % 3) + 3) % 3];
                 const namesArr = getShiftNames(s, diff, d);
                 
-                const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), dVal = String(d.getDate());
-                const vocation = (vData[`${y}-${m}`] || {});
-                let vNames = namesArr.filter(n => vocation[n] && vocation[n].split(',').map(v=>v.trim()).includes(dVal));
-                
-                const namesHtml = namesArr.map(n => vNames.includes(n) ? `<span class="name-tag">${n}🚩</span>` : n).join(', ');
-                const vDisplay = vNames.length ? `<div class="text-[11px] font-bold text-red-500 mt-0.5">주간연차: ${vNames.join(', ')}</div>` : "";
+                const vocation = (vData[`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`] || {});
+                let vNames = namesArr.filter(n => vocation[n] && vocation[n].split(',').map(v=>v.trim()).includes(String(d.getDate())));
 
                 const item = document.createElement('div');
                 item.className = 'modal-item flex items-start gap-2'; 
@@ -175,8 +176,8 @@
                     </span>
                     <span class="duty-shift bg-shift-${s} px-2 py-0.5 rounded text-white text-[10px] font-black flex-shrink-0 mt-0.5">${s}조</span>
                     <div class="flex-grow ml-1 min-w-0">
-                        <div class="text-[13px] font-semibold text-slate-600 leading-tight">${namesHtml}</div>
-                        ${vDisplay}
+                        <div class="duty-names">${namesArr.join(', ')}</div>
+                        ${vNames.length ? `<div class="vocation-line text-red-500 font-bold text-[11px] mt-1">주간연차: ${vNames.join(', ')}</div>` : ""}
                     </div>
                 `;
                 listContainer.appendChild(item);
@@ -195,35 +196,34 @@
                 const s = patterns[((diff % 3) + 3) % 3];
                 const namesArr = getShiftNames(s, diff, d);
                 
-                const y = d.getFullYear(), m = String(dateToYM(d).y), dVal = String(d.getDate());
                 const vocation = (vData[`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`] || {});
-                let vNames = namesArr.filter(n => vocation[n] && vocation[n].split(',').map(v=>v.trim()).includes(dVal));
-                
-                const namesHtml = namesArr.map(n => vNames.includes(n) ? `<span class="name-tag">${n}🚩</span>` : n).join(' ');
+                let vNames = namesArr.filter(n => vocation[n] && vocation[n].split(',').map(v=>v.trim()).includes(String(d.getDate())));
 
                 if(op === "") {
-                    document.getElementById('shift-badge').innerText = `${s}조 근무`;
-                    document.getElementById('shift-badge').className = `px-4 py-2 rounded-xl font-black text-[13px] shadow-sm bg-shift-${s} text-white cursor-pointer transition-transform active:scale-95`;
+                    const badge = document.getElementById('shift-badge');
+                    badge.innerText = `${s}조 근무`;
+                    badge.className = `px-4 py-2 rounded-xl font-black text-[13px] shadow-sm bg-shift-${s} text-white`;
                 }
 
-                return `<div class="duty-item ${op}"><div class="duty-main"><span class="duty-date ${d.getDay()===0?'day-sun':d.getDay()===6?'day-sat':''}">${d.getMonth()+1}/${d.getDate()}(${days[d.getDay()]})</span><span class="duty-shift bg-shift-${s}">${s}조</span><span class="duty-names">${namesHtml}</span></div>${vNames.length?`<div class="vocation-line">주간연차: ${vNames.join(', ')}</div>`:""}</div>`;
+                return `
+                <div class="duty-item ${op}">
+                    <div class="duty-main">
+                        <span class="duty-date ${d.getDay()===0?'day-sun':d.getDay()===6?'day-sat':''}">${d.getMonth()+1}/${d.getDate()}(${days[d.getDay()]})</span>
+                        <span class="duty-shift bg-shift-${s}">${s}조</span>
+                        <span class="duty-names">${namesArr.join(' ')}</span>
+                    </div>
+                    ${vNames.length ? `<div class="vocation-line">주간연차: ${vNames.join(', ')}</div>` : ""}
+                </div>`;
             };
 
             const tom = new Date(currentDate); tom.setDate(currentDate.getDate() + 1);
             container.innerHTML = render(currentDate) + render(tom, "opacity-40");
         }
 
-        function dateToYM(d) { return { y: d.getFullYear(), m: String(d.getMonth() + 1).padStart(2, '0') }; }
-
-        function navigateTo(url) {
-            const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(currentDate.getDate()).padStart(2,'0')}`;
-            window.location.href = `${url}?date=${dateStr}`;
-        }
-
         async function loadFirebaseData() {
             try {
                 const doc = await db.collection("vocation_app").doc("data").get();
-                if (doc.exists) { staffData = doc.data().staff || []; vData = doc.data().vocation || {}; }
+                if (doc.exists) { vData = doc.data().vocation || {}; }
                 updateDisplay();
             } catch(e) { updateDisplay(); }
         }
