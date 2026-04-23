@@ -32,6 +32,7 @@
         .table-card { 
             background: white; border-radius: 16px; overflow: hidden; display: flex; 
             margin: 0 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;
+            cursor: pointer; /* 클릭 가능 표시 */
         }
         .table-header { 
             width: 55px; display: flex; align-items: center; justify-content: center; 
@@ -42,7 +43,6 @@
         .label-meal { color: #f59e0b; background-color: #fffbeb; border-right: 1px solid #fef3c7; }
         .table-body { flex-grow: 1; padding: 12px 14px; min-width: 0; }
         
-        /* 근무 편성 */
         .duty-item { display: flex; flex-direction: column; padding: 4px 0; border-bottom: 1px solid #f1f5f9; }
         .duty-item:last-child { border-bottom: none; }
         .duty-main { display: flex; align-items: center; gap: 8px; }
@@ -55,7 +55,6 @@
         .bg-shift-B { background-color: #EF4444; }
         .bg-shift-C { background-color: #3B82F6; }
 
-        /* 행사/식단 */
         .building-badge { font-size: 11px; font-weight: 900; padding: 2px 8px; border-radius: 5px; display: inline-block; margin-bottom: 8px; }
         .badge-hall { background-color: #dbeafe; color: #1e40af; }
         .badge-research { background-color: #f3e8ff; color: #6b21a8; }
@@ -106,12 +105,12 @@
             <div id="duty-preview-container" class="table-body"></div>
         </div>
 
-        <div onclick="location.href='rentalm.html'" class="table-card">
+        <div onclick="navigateTo('rentalm.html')" class="table-card">
             <div class="table-header label-event">오늘<br>행사</div>
             <div id="event-list" class="table-body"><div class="text-slate-300 text-xs">로드 중...</div></div>
         </div>
 
-        <div onclick="location.href='meal.html'" class="table-card">
+        <div onclick="navigateTo('meal.html')" class="table-card">
             <div class="table-header label-meal">오늘<br>식단</div>
             <div class="table-body">
                 <div class="meal-row"><span class="meal-type">중식</span><span id="lunch-menu" class="meal-menu">--</span></div>
@@ -136,7 +135,16 @@
         let currentDate = new Date();
         let staffData = [], vData = {};
 
-        // 캐시 로직
+        // [추가] 날짜를 포함하여 페이지 이동하는 함수
+        function navigateTo(url) {
+            const y = currentDate.getFullYear();
+            const m = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const d = String(currentDate.getDate()).padStart(2, '0');
+            const dateStr = `${y}-${m}-${d}`;
+            window.location.href = `${url}?date=${dateStr}`;
+        }
+
+        // 캐시 및 데이터 처리 로직 (기존과 동일)
         function getCache(key, dateStr) {
             const cached = localStorage.getItem(key);
             if (!cached) return null;
