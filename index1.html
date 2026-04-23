@@ -66,17 +66,6 @@
         @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .modal-item { border-bottom: 1px solid #f1f5f9; }
         .modal-item:last-child { border-bottom: none; }
-
-        /* 행사/식단 스타일 */
-        .building-badge { font-size: 11px; font-weight: 900; padding: 2px 8px; border-radius: 5px; display: inline-block; margin-bottom: 8px; }
-        .badge-hall { background-color: #dbeafe; color: #1e40af; }
-        .badge-research { background-color: #f3e8ff; color: #6b21a8; }
-        .event-item { font-size: 13px; font-weight: 800; margin-bottom: 10px; display: block; line-height: 1.5; }
-        .event-place { color: #3b82f6; font-weight: 900; margin-right: 4px; } 
-        .meal-row { display: flex; align-items: center; padding: 7px 0; border-bottom: 1px solid #f1f5f9; gap: 12px; }
-        .meal-row:last-child { border-bottom: none; }
-        .meal-type { font-size: 13px; font-weight: 900; color: #94a3b8; width: 30px; }
-        .meal-menu { font-size: 15px; font-weight: 800; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; }
     </style>
 </head>
 <body>
@@ -113,19 +102,7 @@
             <div id="duty-preview-container" class="table-body"></div>
         </div>
 
-        <div onclick="navigateTo('rentalm.html')" class="table-card active:bg-slate-50">
-            <div class="table-header label-event">오늘<br>행사</div>
-            <div id="event-list" class="table-body"><div class="text-slate-300 text-xs">로드 중...</div></div>
         </div>
-
-        <div onclick="navigateTo('meal.html')" class="table-card active:bg-slate-50">
-            <div class="table-header label-meal">오늘<br>식단</div>
-            <div class="table-body">
-                <div class="meal-row"><span class="meal-type">중식</span><span id="lunch-menu" class="meal-menu">--</span></div>
-                <div class="meal-row"><span class="meal-type text-blue-400">야식</span><span id="night-menu" class="meal-menu text-blue-600 font-black">--</span></div>
-            </div>
-        </div>
-    </div>
 
     <div id="dutyModal" onclick="closeModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
@@ -151,30 +128,54 @@
         let currentDate = new Date();
         let staffData = [], vData = {};
 
-        // 모달 생성 함수 (명단 아래에 연차자 표시)
+        // [공통 로직] C조 연차 시 스왑 처리 함수
+        function getShiftNames(shift, diff, date) {
+            let namesArr = [];
+            if (shift === 'A') namesArr = [...teamA];
+            else if (shift === 'B') namesArr = [...teamB];
+            else if (shift === 'C') {
+                const cIdx = Math.floor(((diff % 18) + 18) % 18 / 3);
+                namesArr = [...teamC[cIdx]];
+                
+                // 연차자 체크
+                const y = date.getFullYear(), m = String(date.getMonth() + 1).padStart(2, '0'), dVal = String(date.getDate());
+                const vocation = (vData[`${y}-${m}`] || {});
+                
+                let vInC = namesArr.filter(n => vocation[n] && vocation[n].split(',').map(v=>v.trim()).includes(dVal));
+                
+                if (vInC.length > 0) {
+                    // 규칙: 연차자는 마지막(야간회관)으로, 원래 그 자리에 있던 조원은 연차자 자리(의산연)로 이동
+                    vInC.forEach(vName => {
+                        let vIdx = namesArr.indexOf(vName);
+                        if(vIdx !== -1) {
+                            let targetIdx = namesArr.length - 1; // 마지막 인덱스
+                            // 스왑
+                            [namesArr[vIdx], namesArr[targetIdx]] = [namesArr[targetIdx], namesArr[vIdx]];
+                        }
+                    });
+                }
+            }
+            return namesArr;
+        }
+
         function openDutyModal() {
             const listContainer = document.getElementById('modalList');
             listContainer.innerHTML = '';
             const days = ['일','월','화','수','목','금','토'];
 
             for (let i = 0; i < 14; i++) {
-                let d = new Date(currentDate);
-                d.setDate(d.getDate() + i);
+                let d = new Date(currentDate); d.setDate(d.getDate() + i);
                 const diff = Math.round((new Date(d).setHours(0,0,0,0) - new Date(baseDate).setHours(0,0,0,0)) / 86400000);
                 const s = patterns[((diff % 3) + 3) % 3];
                 const dayIdx = d.getDay();
                 
-                let names = (s === 'A' ? teamA : (s === 'B' ? teamB : teamC[Math.floor(((diff % 18) + 18) % 18 / 3)])).join(', ');
-
-                const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), dateVal = String(d.getDate());
+                // 스왑 로직이 적용된 명단 가져오기
+                const namesArr = getShiftNames(s, diff, d);
+                
+                // 연차자 표시용 (이름 뒤 🚩)
+                const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), dVal = String(d.getDate());
                 const vocation = (vData[`${y}-${m}`] || {});
-                let vNames = [];
-                for(let key in vocation) {
-                    if(vocation[key].split(',').map(v=>v.trim()).includes(dateVal)) {
-                        if(staffData.find(st=>st.n===key && st.g.includes("성의"))) vNames.push(key);
-                    }
-                }
-                const vText = vNames.length ? `<div class="text-[11px] font-bold text-red-500 mt-0.5">🚩 연차: ${vNames.join(', ')}</div>` : "";
+                const namesWithFlag = namesArr.map(n => (vocation[n] && vocation[n].split(',').map(v=>v.trim()).includes(dVal)) ? n + "🚩" : n).join(', ');
 
                 const item = document.createElement('div');
                 item.className = 'modal-item flex items-start py-3 px-1 gap-2'; 
@@ -186,8 +187,7 @@
                         ${s}조
                     </span>
                     <div class="flex-grow ml-1 min-w-0">
-                        <div class="text-[13px] font-semibold text-slate-600 leading-tight">${names}</div>
-                        ${vText}
+                        <div class="text-[13px] font-semibold text-slate-600 leading-tight">${namesWithFlag}</div>
                     </div>
                 `;
                 listContainer.appendChild(item);
@@ -197,12 +197,34 @@
 
         function closeModal() { document.getElementById('dutyModal').style.display = 'none'; }
 
+        function updateDutyUI() {
+            const days = ['일','월','화','수','목','금','토'];
+            const container = document.getElementById('duty-preview-container');
+            
+            const render = (d, op = "") => {
+                const diff = Math.round((new Date(d).setHours(0,0,0,0) - new Date(baseDate).setHours(0,0,0,0)) / 86400000);
+                const s = patterns[((diff % 3) + 3) % 3];
+                const namesArr = getShiftNames(s, diff, d);
+                
+                const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), dVal = String(d.getDate());
+                const vocation = (vData[`${y}-${m}`] || {});
+                const names = namesArr.map(n => (vocation[n] && vocation[n].split(',').map(v=>v.trim()).includes(dVal)) ? n + "🚩" : n).join(' ');
+
+                if(op === "") { // 오늘 날짜인 경우 배지 업데이트
+                    document.getElementById('shift-badge').innerText = `${s}조 근무`;
+                    document.getElementById('shift-badge').className = `px-4 py-2 rounded-xl font-black text-[13px] shadow-sm bg-shift-${s} text-white cursor-pointer transition-transform active:scale-95`;
+                }
+
+                return `<div class="duty-item ${op}"><div class="duty-main"><span class="duty-date ${d.getDay()===0?'day-sun':d.getDay()===6?'day-sat':''}">${d.getMonth()+1}/${d.getDate()}(${days[d.getDay()]})</span><span class="duty-shift bg-shift-${s}">${s}조</span><span class="duty-names">${names}</span></div></div>`;
+            };
+
+            const tom = new Date(currentDate); tom.setDate(currentDate.getDate() + 1);
+            container.innerHTML = render(currentDate) + render(tom, "opacity-40");
+        }
+
         function navigateTo(url) {
-            const y = currentDate.getFullYear();
-            const m = String(currentDate.getMonth() + 1).padStart(2, '0');
-            const d = String(currentDate.getDate()).padStart(2, '0');
-            const dateStr = `${y}-${m}-${d}`;
-            window.location.href = `${url}${url.includes('?')?'&':'?'}date=${dateStr}`;
+            const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(currentDate.getDate()).padStart(2,'0')}`;
+            window.location.href = `${url}?date=${dateStr}`;
         }
 
         async function loadFirebaseData() {
@@ -213,68 +235,10 @@
             } catch(e) { updateDisplay(); }
         }
 
-        function updateDutyUI() {
-            const days = ['일','월','화','수','목','금','토'];
-            const container = document.getElementById('duty-preview-container');
-            
-            const getShiftData = (d) => {
-                const diff = Math.round((new Date(d).setHours(0,0,0,0) - new Date(baseDate).setHours(0,0,0,0)) / 86400000);
-                const s = patterns[((diff % 3) + 3) % 3];
-                let n = s === 'A' ? teamA : (s === 'B' ? teamB : teamC[Math.floor(((diff % 18) + 18) % 18 / 3)]);
-                return { s, n };
-            };
-
-            const current = getShiftData(currentDate);
-            document.getElementById('shift-badge').innerText = `${current.s}조 근무`;
-            document.getElementById('shift-badge').className = `px-4 py-2 rounded-xl font-black text-[13px] shadow-sm bg-shift-${current.s} text-white cursor-pointer transition-transform active:scale-95`;
-
-            const render = (d, op = "") => {
-                const { s, n } = getShiftData(d);
-                const day = d.getDay();
-                const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), dateVal = String(d.getDate());
-                const vocation = (vData[`${y}-${m}`] || {});
-                let vNames = [];
-                for(let key in vocation) {
-                    if(vocation[key].split(',').map(v=>v.trim()).includes(dateVal)) {
-                        if(staffData.find(st=>st.n===key && st.g.includes("성의"))) vNames.push(key);
-                    }
-                }
-                const vText = vNames.length ? `🚩 연차: ${vNames.join(', ')}` : "";
-                return `<div class="duty-item ${op}"><div class="duty-main"><span class="duty-date ${day===0?'day-sun':day===6?'day-sat':''}">${d.getMonth()+1}/${d.getDate()}(${days[day]})</span><span class="duty-shift bg-shift-${s}">${s}조</span><span class="duty-names">${n.join(' ')}</span></div>${vText?`<div class="vocation-line">${vText}</div>`:""}</div>`;
-            };
-
-            const tom = new Date(currentDate); tom.setDate(currentDate.getDate() + 1);
-            container.innerHTML = render(currentDate) + render(tom, "opacity-40");
-        }
-
-        async function updateEvents(date) {
-            const dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-            try {
-                const res = await fetch(EVENT_API); const data = await res.json();
-                const f = data.filter(r => r.rawDate === dateStr);
-                const hall = f.filter(r => r.bu.includes("성의회관") || r.place.includes("성의회관"));
-                const resi = f.filter(r => r.bu.includes("의산연") || r.bu.includes("의생명"));
-                const fmt = (p) => p ? p.replace("성의교정", "").trim() : "장소미정";
-                document.getElementById('event-list').innerHTML = `
-                    <div class="mb-4"><span class="building-badge badge-hall">성의회관</span>${hall.length?hall.map(i=>`<div class="event-item"><span class="event-place">📍 ${fmt(i.place)}</span><span class="event-name">${i.event}</span></div>`).join(''):'<div class="text-xs text-slate-300 ml-1">행사 없음</div>'}</div>
-                    <div><span class="building-badge badge-research">의산연</span>${resi.length?resi.map(i=>`<div class="event-item"><span class="event-place text-purple-500">📍 ${fmt(i.place)}</span><span class="event-name">${i.event}</span></div>`).join(''):'<div class="text-xs text-slate-300 ml-1">행사 없음</div>'}</div>`;
-            } catch(e) { document.getElementById('event-list').innerHTML = "로드 실패"; }
-        }
-
-        async function updateMeal(date) {
-            const dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-            try {
-                const res = await fetch(MEAL_API); const data = await res.json();
-                const m = data[dateStr];
-                document.getElementById('lunch-menu').innerText = m ? (m["중식"]?.menu || "정보 없음") : "정보 없음";
-                document.getElementById('night-menu').innerText = m ? (m["야식"]?.menu || "정보 없음") : "정보 없음";
-            } catch(e) { document.getElementById('lunch-menu').innerText = "로드 실패"; }
-        }
-
         function updateDisplay() {
             const days = ['일','월','화','수','목','금','토'];
             document.getElementById('datePickerTrigger').innerText = `${currentDate.getFullYear()}.${currentDate.getMonth()+1}.${currentDate.getDate()} (${days[currentDate.getDay()]})`;
-            updateDutyUI(); updateEvents(currentDate); updateMeal(currentDate);
+            updateDutyUI();
         }
 
         window.onload = () => {
