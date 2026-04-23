@@ -13,28 +13,65 @@
     
     <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-        body { font-family: 'Pretendard', sans-serif; background-color: #f1f5f9; color: #1e293b; letter-spacing: -0.05em; margin: 0; padding: 0; line-height: 1.3; -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: 'Pretendard', sans-serif; background-color: #f1f5f9; color: #1e293b;
+            letter-spacing: -0.05em; margin: 0; padding: 0; line-height: 1.3; -webkit-tap-highlight-color: transparent;
+        }
         .page { width: 100%; max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; gap: 8px; }
-        .brand-header { background: linear-gradient(135deg, #2d3e75 0%, #1e293b 100%); padding: 20px 16px 45px 16px; color: white; border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; }
-        .custom-date-trigger { background-color: rgba(255, 255, 255, 0.15); color: white; font-size: 16px; font-weight: 800; padding: 6px 14px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; margin-top: 10px; border: 1px solid rgba(255, 255, 255, 0.1); }
-        .table-card { background: white; border-radius: 16px; overflow: hidden; display: flex; margin: 0 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-        .table-header { width: 55px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.85rem; flex-shrink: 0; text-align: center; line-height: 1.2; }
+        
+        /* 헤더 디자인 */
+        .brand-header { 
+            background: linear-gradient(135deg, #2d3e75 0%, #1e293b 100%);
+            padding: 20px 16px 45px 16px; color: white; 
+            border-bottom-left-radius: 24px; border-bottom-right-radius: 24px;
+        }
+        .custom-date-trigger {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: white; font-size: 18px; font-weight: 800; padding: 8px 16px;
+            border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center;
+            margin-top: 10px; border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* 카드 공통 */
+        .table-card { 
+            background: white; border-radius: 20px; overflow: hidden; display: flex; 
+            margin: 0 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
+            border: 1px solid #e2e8f0; min-height: 80px;
+        }
+        .table-header { 
+            width: 60px; display: flex; align-items: center; justify-content: center; 
+            font-weight: 900; font-size: 0.9rem; flex-shrink: 0; text-align: center; line-height: 1.3;
+        }
         .label-duty { color: #3b82f6; background-color: #eff6ff; border-right: 1px solid #dbeafe; }
         .label-event { color: #10b981; background-color: #ecfdf5; border-right: 1px solid #d1fae5; }
         .label-meal { color: #f59e0b; background-color: #fffbeb; border-right: 1px solid #fef3c7; }
-        .table-body { flex-grow: 1; padding: 12px 14px; min-width: 0; }
-        .duty-item { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; border-bottom: 1px solid #f1f5f9; }
+        .table-body { flex-grow: 1; padding: 14px 16px; min-width: 0; }
+
+        /* 근무 섹션 */
+        .duty-item { display: flex; flex-direction: column; gap: 2px; padding: 4px 0; border-bottom: 1px solid #f8fafc; }
         .duty-item:last-child { border-bottom: none; }
-        .duty-main { display: flex; align-items: center; gap: 8px; }
-        .duty-date { font-weight: 700; color: #64748b; font-size: 0.8rem; min-width: 65px; }
-        .duty-shift { font-weight: 900; font-size: 0.8rem; padding: 2px 6px; border-radius: 6px; color: white; }
-        .duty-names { font-weight: 800; color: #334155; font-size: 0.85rem; }
-        .vocation-line { font-size: 0.75rem; font-weight: 800; color: #ef4444; padding-left: 73px; margin-top: -2px; }
-        .bg-shift-A { background-color: #F59E0B; } .bg-shift-B { background-color: #EF4444; } .bg-shift-C { background-color: #3B82F6; }
-        .event-text { font-size: 13px; font-weight: 800; margin-bottom: 4px; color: #334155; }
-        .meal-row { display: flex; align-items: center; padding: 5px 0; gap: 10px; }
-        .meal-type { font-size: 12px; font-weight: 900; color: #94a3b8; width: 30px; }
-        .meal-menu { font-size: 14px; font-weight: 800; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .duty-main { display: flex; align-items: center; gap: 10px; }
+        .duty-date { font-weight: 700; color: #64748b; font-size: 0.85rem; min-width: 70px; }
+        .duty-shift-box { font-weight: 900; font-size: 0.8rem; padding: 2px 8px; border-radius: 6px; color: white; }
+        .duty-names { font-weight: 800; color: #334155; font-size: 0.9rem; }
+        .vocation-tag { font-size: 0.8rem; font-weight: 800; color: #ef4444; padding-left: 80px; margin-top: -2px; }
+
+        .bg-shift-A { background-color: #F59E0B; }
+        .bg-shift-B { background-color: #EF4444; }
+        .bg-shift-C { background-color: #3B82F6; }
+
+        /* 행사 섹션 */
+        .event-row { font-size: 14px; font-weight: 800; color: #334155; margin-bottom: 6px; line-height: 1.4; display: flex; gap: 4px; }
+        .event-row:last-child { margin-bottom: 0; }
+        .building-tag { font-size: 11px; font-weight: 900; padding: 1px 6px; border-radius: 4px; background: #f1f5f9; color: #64748b; margin-bottom: 4px; display: inline-block; }
+
+        /* 식단 섹션 */
+        .meal-row { display: flex; align-items: center; padding: 6px 0; gap: 12px; }
+        .meal-type { font-size: 13px; font-weight: 900; color: #94a3b8; width: 35px; }
+        .meal-menu { font-size: 15px; font-weight: 800; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; }
+
+        .day-sun { color: #ef4444 !important; }
+        .day-sat { color: #3b82f6 !important; }
     </style>
 </head>
 <body>
@@ -45,23 +82,23 @@
                     <h1 class="text-2xl font-black tracking-tighter">성의교정 통합조회</h1>
                     <div id="datePickerTrigger" class="custom-date-trigger">날짜 선택</div>
                 </div>
-                <div id="shift-badge" class="px-4 py-2 rounded-xl font-black text-[13px] shadow-sm">--조 근무</div>
+                <div id="shift-badge" class="px-5 py-2 rounded-2xl font-black text-[14px] shadow-lg">--조 근무</div>
             </div>
         </div>
 
-        <div class="px-3 -mt-8 relative z-10">
+        <div class="px-4 -mt-8 relative z-10">
             <div class="grid grid-cols-3 gap-3">
-                <div onclick="navigateTo('calendar.html')" class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex flex-col items-center gap-1 cursor-pointer">
-                    <img src="https://img.icons8.com/fluency/48/calendar.png" width="24">
-                    <span class="text-[13px] font-bold text-slate-600">근무달력</span>
+                <div onclick="navigateTo('calendar.html')" class="bg-white p-4 rounded-2xl shadow-md border border-slate-100 flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition-transform">
+                    <img src="https://img.icons8.com/fluency/48/calendar.png" width="28">
+                    <span class="text-[14px] font-extrabold text-slate-700">근무달력</span>
                 </div>
-                <div onclick="navigateTo('yellowpage.html')" class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex flex-col items-center gap-1 cursor-pointer">
-                    <img src="https://img.icons8.com/fluency/48/phone.png" width="24">
-                    <span class="text-[13px] font-bold text-slate-600">주요전화</span>
+                <div onclick="navigateTo('yellowpage.html')" class="bg-white p-4 rounded-2xl shadow-md border border-slate-100 flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition-transform">
+                    <img src="https://img.icons8.com/fluency/48/phone.png" width="28">
+                    <span class="text-[14px] font-extrabold text-slate-700">주요전화</span>
                 </div>
-                <div onclick="navigateTo('search.html')" class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex flex-col items-center gap-1 cursor-pointer">
-                    <img src="https://img.icons8.com/fluency/48/hospital.png" width="24">
-                    <span class="text-[13px] font-bold text-slate-600">시설안내</span>
+                <div onclick="navigateTo('search.html')" class="bg-white p-4 rounded-2xl shadow-md border border-slate-100 flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition-transform">
+                    <img src="https://img.icons8.com/fluency/48/hospital.png" width="28">
+                    <span class="text-[14px] font-extrabold text-slate-700">시설안내</span>
                 </div>
             </div>
         </div>
@@ -73,113 +110,163 @@
 
         <div onclick="navigateTo('rentalm.html')" class="table-card">
             <div class="table-header label-event">오늘<br>행사</div>
-            <div id="event-list" class="table-body"><div class="text-slate-300 text-sm">로드 중...</div></div>
+            <div id="event-list" class="table-body"><div class="text-slate-300 text-sm">데이터를 불러오는 중...</div></div>
         </div>
 
         <div onclick="navigateTo('meal.html')" class="table-card">
             <div class="table-header label-meal">오늘<br>식단</div>
             <div class="table-body">
-                <div class="meal-row"><span class="meal-type">중식</span><span id="lunch-menu" class="meal-menu">--</span></div>
-                <div class="meal-row"><span class="meal-type text-blue-400">야식</span><span id="night-menu" class="meal-menu text-blue-600 font-black">--</span></div>
+                <div class="meal-row">
+                    <span class="meal-type">중식</span>
+                    <span id="lunch-menu" class="meal-menu">--</span>
+                </div>
+                <div class="meal-row">
+                    <span class="meal-type text-blue-400">야식</span>
+                    <span id="night-menu" class="meal-menu text-blue-600 font-black">--</span>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
+        // API 설정
         const EVENT_API = "https://script.google.com/macros/s/AKfycbzKtqrzNK11rX4sCdDFv0lcgUcdVwsNiUnlXYc8Zjm0dJNlNV8ThwKrtqOgKBeVrP3g/exec";
         const MEAL_API = "https://script.google.com/macros/s/AKfycbxZkcn8EEcGcxMaT98l_CKJTCM_0Ual_S2JefpHptm_dbEtQ5tjM00TEhU2XdqTObLh/exec";
         
+        // Firebase 설정 (연차 정보용)
         firebase.initializeApp({ apiKey: "AIzaSyDGDUudF49hnXwU55er7joyeSLEPrme1GU", authDomain: "catholic-security-system.firebaseapp.com", projectId: "catholic-security-system", storageBucket: "catholic-security-system.firebasestorage.app", messagingSenderId: "978946205343", appId: "1:978946205343:web:38c30a21bf0dd522f9a4aa" });
         const db = firebase.firestore();
 
-        let currentDate = new Date(); // 기본 브라우저 시간 사용 (보정 제거)
+        let currentDate = new Date(); // 브라우저 현재 시간
         let staffData = [], vData = {};
 
+        // 페이지 이동 시 날짜 파라미터 전달
         function navigateTo(url) {
-            const d = currentDate;
-            const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            const dStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(currentDate.getDate()).padStart(2,'0')}`;
             window.location.href = `${url}?date=${dStr}`;
         }
 
-        async function loadAllData() {
+        // Firebase 연차 데이터 로드
+        async function loadFirebaseData() {
             try {
-                const vDoc = await db.collection("vocation_app").doc("data").get();
-                if (vDoc.exists) { staffData = vDoc.data().staff; vData = vDoc.data().vocation; }
+                const doc = await db.collection("vocation_app").doc("data").get();
+                if (doc.exists) { 
+                    staffData = doc.data().staff || []; 
+                    vData = doc.data().vocation || {}; 
+                }
                 updateDisplay();
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("Firebase 로드 오류"); updateDisplay(); }
         }
 
-        function getVName(date) {
+        // 연차 이름 가져오기
+        function getVocationText(date) {
             const y = date.getFullYear(), m = String(date.getMonth()+1).padStart(2,'0'), d = String(date.getDate());
             const monthV = vData[`${y}-${m}`] || {};
             let names = [];
-            for (let n in monthV) {
-                if (monthV[n].split(',').map(x=>x.trim()).includes(d)) {
-                    if (staffData.find(s=>s.n===n && s.g.includes("성의"))) names.push(n);
+            for (let name in monthV) {
+                if (monthV[name].split(',').map(v=>v.trim()).includes(d)) {
+                    // 성의교정 인원만 필터링
+                    if (staffData.find(s => s.n === name && s.g.includes("성의"))) names.push(name);
                 }
             }
-            return names.length ? `🚩 연차: ${names.join(', ')}` : "";
+            return names.length ? `🚩 주간연차: ${names.join(', ')}` : "";
         }
 
+        // 근무 로직
         const baseDate = '2026-03-09', patterns = ['C', 'A', 'B'];
         const teamA = ["배준용", "이명구", "김영중", "김삼동"], teamB = ["심규천", "임종현", "권영국", "전준수"];
         const teamC = [["황재업", "김태언", "이태원", "이정석"], ["황재업", "김태언", "이정석", "이태원"], ["황재업", "이정석", "김태언", "이태원"], ["황재업", "이정석", "이태원", "김태언"], ["황재업", "이태원", "김태언", "이정석"], ["황재업", "이태원", "이정석", "김태언"]];
 
-        function getDuty(d) {
+        function getDutyInfo(d) {
             const diff = Math.round((new Date(d).setHours(0,0,0,0) - new Date(baseDate).setHours(0,0,0,0)) / 86400000);
-            const s = patterns[((diff % 3) + 3) % 3];
-            const m = (s==='A'?teamA:(s==='B'?teamB:teamC[Math.floor(((diff%18)+18)%18/3)]));
-            return { s, m };
+            const shift = patterns[((diff % 3) + 3) % 3];
+            const members = (shift === 'A' ? teamA : (shift === 'B' ? teamB : teamC[Math.floor(((diff%18)+18)%18/3)]));
+            return { shift, members };
         }
 
-        async function fetchExternal() {
+        // 행사 및 식단 API 호출
+        async function fetchExternalData() {
             const dStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(currentDate.getDate()).padStart(2,'0')}`;
             
-            // 행사 가져오기
             try {
-                const res = await fetch(EVENT_API);
-                const data = await res.json();
-                const filtered = data.filter(i => i.rawDate === dStr);
-                document.getElementById('event-list').innerHTML = filtered.length ? filtered.slice(0,3).map(i => `<div class="event-text">📍 ${i.place.replace("성의교정","")} | ${i.event}</div>`).join('') : "행사 없음";
-            } catch(e) { document.getElementById('event-list').innerText = "로드 실패"; }
+                // 병렬 호출로 속도 향상
+                const [eventRes, mealRes] = await Promise.all([
+                    fetch(`${EVENT_API}?t=${Date.now()}`),
+                    fetch(MEAL_API)
+                ]);
+                const eventData = await eventRes.json();
+                const mealData = await mealRes.json();
 
-            // 식단 가져오기
-            try {
-                const res = await fetch(MEAL_API);
-                const data = await res.json();
-                const todayMeal = data[dStr];
+                // 1. 행사 필터링 및 렌더링
+                const dailyEvents = eventData.filter(ev => ev.rawDate === dStr);
+                const eventList = document.getElementById('event-list');
+                if(dailyEvents.length > 0) {
+                    eventList.innerHTML = dailyEvents.map(ev => `
+                        <div class="event-row">
+                            <span class="text-red-500">📍</span>
+                            <span><b class="text-blue-600">${ev.place.replace("성의교정","").trim()}</b> ${ev.event}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    eventList.innerHTML = `<div class="text-slate-300 text-sm">확정된 행사가 없습니다.</div>`;
+                }
+
+                // 2. 식단 렌더링
+                const todayMeal = mealData[dStr];
                 document.getElementById('lunch-menu').innerText = todayMeal ? (todayMeal["중식"]?.menu || "정보 없음") : "정보 없음";
                 document.getElementById('night-menu').innerText = todayMeal ? (todayMeal["야식"]?.menu || "정보 없음") : "정보 없음";
-            } catch(e) { }
+
+            } catch(e) { 
+                document.getElementById('event-list').innerHTML = "데이터 로드 실패";
+            }
         }
 
+        // 화면 업데이트
         function updateDisplay() {
             const days = ['일','월','화','수','목','금','토'];
-            document.getElementById('datePickerTrigger').innerText = `${currentDate.getFullYear()}.${currentDate.getMonth()+1}.${currentDate.getDate()} (${days[currentDate.getDay()]})`;
-            
-            // 근무 편성 (오늘+내일)
-            const tomorrow = new Date(currentDate); tomorrow.setDate(currentDate.getDate()+1);
-            const d1 = getDuty(currentDate), d2 = getDuty(tomorrow);
-            const v1 = getVName(currentDate), v2 = getVName(tomorrow);
+            const dLabel = (d) => {
+                const day = d.getDay();
+                const cls = day === 0 ? "day-sun" : (day === 6 ? "day-sat" : "");
+                return `<span class="duty-date ${cls}">${d.getMonth()+1}/${d.getDate()}(${days[day]})</span>`;
+            };
 
-            document.getElementById('shift-badge').innerText = `${d1.s}조 근무`;
-            document.getElementById('shift-badge').className = `px-4 py-2 rounded-xl font-black text-[13px] shadow-sm bg-shift-${d1.s} text-white`;
+            // 상단 날짜 표시
+            document.getElementById('datePickerTrigger').innerText = `${currentDate.getFullYear()}.${currentDate.getMonth()+1}.${currentDate.getDate()} (${days[currentDate.getDay()]})`;
+
+            // 근무 편성 (오늘/내일)
+            const tomorrow = new Date(currentDate); tomorrow.setDate(currentDate.getDate() + 1);
+            const dToday = getDutyInfo(currentDate), dTomorrow = getDutyInfo(tomorrow);
+            const vToday = getVocationText(currentDate), vTomorrow = getVocationText(tomorrow);
+
+            // 상단 배지
+            const badge = document.getElementById('shift-badge');
+            badge.innerText = `${dToday.shift}조 근무`;
+            badge.className = `px-5 py-2 rounded-2xl font-black text-[14px] shadow-lg bg-shift-${dToday.shift} text-white`;
 
             document.getElementById('duty-preview-container').innerHTML = `
                 <div class="duty-item">
-                    <div class="duty-main"><span class="duty-date">${currentDate.getMonth()+1}/${currentDate.getDate()}(${days[currentDate.getDay()]})</span><span class="duty-shift bg-shift-${d1.s}">${d1.s}조</span><span class="duty-names">${d1.m.join(' ')}</span></div>
-                    ${v1 ? `<div class="vocation-line">${v1}</div>` : ''}
+                    <div class="duty-main">
+                        ${dLabel(currentDate)}
+                        <span class="duty-shift-box bg-shift-${dToday.shift}">${dToday.shift}조</span>
+                        <span class="duty-names">${dToday.members.join(' ')}</span>
+                    </div>
+                    ${vToday ? `<div class="vocation-tag">${vToday}</div>` : ''}
                 </div>
-                <div class="duty-item opacity-50">
-                    <div class="duty-main"><span class="duty-date">${tomorrow.getMonth()+1}/${tomorrow.getDate()}(${days[tomorrow.getDay()]})</span><span class="duty-shift bg-shift-${d2.s}">${d2.s}조</span><span class="duty-names">${d2.m.join(' ')}</span></div>
-                    ${v2 ? `<div class="vocation-line">${v2}</div>` : ''}
+                <div class="duty-item opacity-40">
+                    <div class="duty-main">
+                        ${dLabel(tomorrow)}
+                        <span class="duty-shift-box bg-shift-${dTomorrow.shift}">${dTomorrow.shift}조</span>
+                        <span class="duty-names">${dTomorrow.members.join(' ')}</span>
+                    </div>
+                    ${vTomorrow ? `<div class="vocation-tag">${vTomorrow}</div>` : ''}
                 </div>
             `;
-            fetchExternal();
+
+            fetchExternalData();
         }
 
         window.onload = () => {
-            loadAllData();
+            loadFirebaseData();
             flatpickr("#datePickerTrigger", {
                 locale: "ko", dateFormat: "Y.m.d (D)", defaultDate: currentDate, disableMobile: true,
                 onChange: (dates) => { if(dates.length) { currentDate = dates[0]; updateDisplay(); } }
