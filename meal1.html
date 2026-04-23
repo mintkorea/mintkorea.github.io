@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>성의교정 식단안내</title>
+    <title>성의교정 식단조회</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -14,62 +14,63 @@
             font-family: 'Pretendard', sans-serif; background-color: #f1f5f9; color: #1e293b;
             letter-spacing: -0.05em; margin: 0; padding: 0;
         }
-        /* 인덱스와 통일된 헤더 스타일 */
+        /* [인덱스 디자인 복사] 브랜드 헤더 */
         .brand-header { 
             background: linear-gradient(135deg, #2d3e75 0%, #1e293b 100%);
             padding: 20px 16px 45px 16px; color: white; 
             border-bottom-left-radius: 24px; border-bottom-right-radius: 24px;
         }
+        /* [인덱스 디자인 복사] 달력 트리거 버튼 스타일 */
         .custom-date-trigger {
             background-color: rgba(255, 255, 255, 0.15);
             color: white; font-size: 16px; font-weight: 800; padding: 6px 14px;
             border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center;
             margin-top: 10px; border: 1px solid rgba(255, 255, 255, 0.1);
         }
+        /* 내용 카드 */
         .content-card {
             background: white; border-radius: 16px; margin: -25px 12px 12px 12px;
             padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             position: relative; z-index: 10;
         }
         .meal-title { font-size: 1.1rem; font-weight: 900; color: #1e293b; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
-        .meal-box { background-color: #f8fafc; border-radius: 12px; padding: 15px; border: 1px solid #e2e8f0; margin-bottom: 15px; }
-        .menu-text { font-size: 1.05rem; font-weight: 700; color: #334155; line-height: 1.6; word-break: keep-all; }
+        .meal-box { background-color: #f8fafc; border-radius: 12px; padding: 18px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+        .menu-text { font-size: 1.1rem; font-weight: 700; color: #334155; line-height: 1.7; word-break: keep-all; }
+        
+        /* 하단 네비게이션 */
         .nav-bar { 
             position: fixed; bottom: 0; left: 0; right: 0; background: white; 
             display: flex; justify-content: space-around; padding: 12px;
-            border-top: 1px solid #e2e8f0; box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+            border-top: 1px solid #e2e8f0; box-shadow: 0 -4px 10px rgba(0,0,0,0.05); z-index: 100;
         }
-        .nav-btn { font-size: 0.85rem; font-weight: 800; color: #64748b; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .nav-btn { font-size: 0.85rem; font-weight: 800; color: #64748b; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
         .active-nav { color: #2d3e75; }
+        .day-sun { color: #ef4444 !important; } .day-sat { color: #3b82f6 !important; }
     </style>
 </head>
-<body class="pb-20">
+<body class="pb-24">
     <div class="brand-header">
         <div class="flex justify-between items-center">
             <div>
-                <h1 class="text-2xl font-black tracking-tighter">식단 상세조회</h1>
+                <h1 class="text-2xl font-black tracking-tighter">성의교정 식단안내</h1>
                 <div id="datePickerTrigger" class="custom-date-trigger">날짜 선택</div>
             </div>
             <div id="shift-badge" class="px-3 py-1.5 rounded-lg font-black text-[12px] bg-white/20 text-white">
-                오늘의 식단
+                MEAL INFO
             </div>
         </div>
     </div>
 
     <div class="content-card">
-        <div class="meal-title"><span class="text-orange-500">☀️</span> 중식 (11:30~13:30)</div>
+        <div class="meal-title"><span class="text-orange-500">☀️</span> 오늘의 중식</div>
         <div class="meal-box">
-            <div id="lunch-menu" class="menu-text">데이터를 불러오는 중...</div>
+            <div id="lunch-menu" class="menu-text">조회 중...</div>
         </div>
 
-        <div class="meal-title"><span class="text-indigo-500">🌙</span> 야식 (23:30~00:30)</div>
+        <div class="meal-title"><span class="text-indigo-500">🌙</span> 오늘의 야식</div>
         <div class="meal-box">
-            <div id="night-menu" class="menu-text">데이터를 불러오는 중...</div>
+            <div id="night-menu" class="menu-text">조회 중...</div>
         </div>
-        
-        <p class="text-[11px] text-slate-400 font-medium text-center mt-4">
-            * 식단은 식당 사정에 따라 변경될 수 있습니다.
-        </p>
     </div>
 
     <nav class="nav-bar">
@@ -83,8 +84,9 @@
         const MEAL_API = "https://script.google.com/macros/s/AKfycbxZkcn8EEcGcxMaT98l_CKJTCM_0Ual_S2JefpHptm_dbEtQ5tjM00TEhU2XdqTObLh/exec";
         let currentDate = new Date();
         let mealData = null;
+        let fp;
 
-        // URL 파라미터 날짜 확인
+        // 1. URL 파라미터 날짜 우선 적용
         function initDate() {
             const params = new URLSearchParams(window.location.search);
             const dateParam = params.get('date');
@@ -96,11 +98,12 @@
 
         async function fetchMeals() {
             try {
+                // 캐시 확인 로직 (필요시 추가 가능)
                 const res = await fetch(MEAL_API);
                 mealData = await res.json();
                 updateDisplay();
             } catch (e) {
-                document.getElementById('lunch-menu').innerText = "식단 정보를 가져오지 못했습니다.";
+                document.getElementById('lunch-menu').innerText = "데이터 로드 실패";
             }
         }
 
@@ -111,17 +114,25 @@
             const d = String(currentDate.getDate()).padStart(2, '0');
             const dateStr = `${y}-${m}-${d}`;
 
-            // 날짜 표시 업데이트
-            document.getElementById('datePickerTrigger').innerText = `${y}.${currentDate.getMonth()+1}.${currentDate.getDate()} (${days[currentDate.getDay()]})`;
+            // 인덱스와 동일한 날짜 표시 업데이트
+            const trigger = document.getElementById('datePickerTrigger');
+            trigger.innerText = `${y}.${currentDate.getMonth()+1}.${currentDate.getDate()} (${days[currentDate.getDay()]})`;
             
+            // 요일별 색상 처리
+            trigger.classList.remove('day-sun', 'day-sat');
+            if(currentDate.getDay() === 0) trigger.classList.add('day-sun');
+            else if(currentDate.getDay() === 6) trigger.classList.add('day-sat');
+
+            // Flatpickr 날짜 동기화
+            if(fp) fp.setDate(currentDate, false);
+            
+            // 데이터 매칭
             if (mealData && mealData[dateStr]) {
-                const lunch = mealData[dateStr]["중식"]?.menu || "등록된 식단이 없습니다.";
-                const night = mealData[dateStr]["야식"]?.menu || "등록된 식단이 없습니다.";
-                document.getElementById('lunch-menu').innerText = lunch;
-                document.getElementById('night-menu').innerText = night;
-            } else {
-                document.getElementById('lunch-menu').innerText = "등록된 식단 정보가 없습니다.";
-                document.getElementById('night-menu').innerText = "등록된 식단 정보가 없습니다.";
+                document.getElementById('lunch-menu').innerText = mealData[dateStr]["중식"]?.menu || "중식 정보가 없습니다.";
+                document.getElementById('night-menu').innerText = mealData[dateStr]["야식"]?.menu || "야식 정보가 없습니다.";
+            } else if(mealData) {
+                document.getElementById('lunch-menu').innerText = "등록된 식단이 없습니다.";
+                document.getElementById('night-menu').innerText = "등록된 식단이 없습니다.";
             }
         }
 
@@ -133,11 +144,13 @@
 
         window.onload = () => {
             initDate();
-            flatpickr("#datePickerTrigger", { 
+            
+            // 인덱스와 동일한 Flatpickr 설정
+            fp = flatpickr("#datePickerTrigger", { 
                 locale: "ko", 
-                dateFormat: "Y-m.d (D)", 
+                dateFormat: "Y.m.d (D)", 
                 defaultDate: currentDate,
-                disableMobile: true,
+                disableMobile: true, // 인덱스와 동일하게 모바일 UI 대신 커스텀 UI 사용
                 onChange: (dates) => {
                     if(dates.length) {
                         currentDate = dates[0];
@@ -145,6 +158,7 @@
                     }
                 }
             });
+
             fetchMeals();
         };
     </script>
