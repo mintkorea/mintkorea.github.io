@@ -17,28 +17,24 @@
         .page { width: 100%; max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; gap: 8px; }
         .brand-header { background: linear-gradient(135deg, #2d3e75 0%, #1e293b 100%); padding: 20px 16px 45px 16px; color: white; border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; }
         .custom-date-trigger { background-color: rgba(255, 255, 255, 0.15); color: white; font-size: 16px; font-weight: 800; padding: 6px 14px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; margin-top: 10px; border: 1px solid rgba(255, 255, 255, 0.1); }
-        .table-card { background: white; border-radius: 16px; overflow: hidden; display: flex; margin: 0 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; text-decoration: none; color: inherit; }
+        .table-card { background: white; border-radius: 16px; overflow: hidden; display: flex; margin: 0 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
         .table-header { width: 55px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.85rem; flex-shrink: 0; text-align: center; line-height: 1.2; }
         .label-duty { color: #3b82f6; background-color: #eff6ff; border-right: 1px solid #dbeafe; }
         .label-event { color: #10b981; background-color: #ecfdf5; border-right: 1px solid #d1fae5; }
         .label-meal { color: #f59e0b; background-color: #fffbeb; border-right: 1px solid #fef3c7; }
         .table-body { flex-grow: 1; padding: 12px 14px; min-width: 0; }
-        .duty-row { display: flex; flex-direction: column; gap: 4px; padding: 4px 0; }
+        .duty-item { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; border-bottom: 1px solid #f1f5f9; }
+        .duty-item:last-child { border-bottom: none; }
         .duty-main { display: flex; align-items: center; gap: 8px; }
         .duty-date { font-weight: 700; color: #64748b; font-size: 0.8rem; min-width: 65px; }
-        .duty-shift { font-weight: 900; font-size: 0.85rem; padding: 2px 6px; border-radius: 6px; color: white; }
+        .duty-shift { font-weight: 900; font-size: 0.8rem; padding: 2px 6px; border-radius: 6px; color: white; }
         .duty-names { font-weight: 800; color: #334155; font-size: 0.85rem; }
-        .vocation-row { font-size: 0.8rem; font-weight: 800; color: #ef4444; padding-left: 73px; margin-top: -2px; }
-        .bg-shift-A { background-color: #F59E0B; }
-        .bg-shift-B { background-color: #EF4444; }
-        .bg-shift-C { background-color: #3B82F6; }
-        .quick-btn { background: white; padding: 10px 6px; border-radius: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-        .quick-btn span { font-size: 0.9rem; color: #475569; font-weight: 800; }
-        .meal-row { display: flex; align-items: center; padding: 7px 0; border-bottom: 1px solid #f1f5f9; gap: 12px; }
-        .meal-type { font-size: 13px; font-weight: 900; color: #94a3b8; width: 30px; }
-        .meal-menu { font-size: 15px; font-weight: 800; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; }
-        .day-sun { color: #ef4444 !important; }
-        .day-sat { color: #3b82f6 !important; }
+        .vocation-line { font-size: 0.75rem; font-weight: 800; color: #ef4444; padding-left: 73px; margin-top: -2px; }
+        .bg-shift-A { background-color: #F59E0B; } .bg-shift-B { background-color: #EF4444; } .bg-shift-C { background-color: #3B82F6; }
+        .event-text { font-size: 13px; font-weight: 800; margin-bottom: 4px; color: #334155; }
+        .meal-row { display: flex; align-items: center; padding: 5px 0; gap: 10px; }
+        .meal-type { font-size: 12px; font-weight: 900; color: #94a3b8; width: 30px; }
+        .meal-menu { font-size: 14px; font-weight: 800; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -55,17 +51,17 @@
 
         <div class="px-3 -mt-8 relative z-10">
             <div class="grid grid-cols-3 gap-3">
-                <div onclick="navigateTo('calendar.html')" class="quick-btn cursor-pointer">
+                <div onclick="navigateTo('calendar.html')" class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex flex-col items-center gap-1 cursor-pointer">
                     <img src="https://img.icons8.com/fluency/48/calendar.png" width="24">
-                    <span>근무달력</span>
+                    <span class="text-[13px] font-bold text-slate-600">근무달력</span>
                 </div>
-                <div onclick="navigateTo('yellowpage.html')" class="quick-btn cursor-pointer">
+                <div onclick="navigateTo('yellowpage.html')" class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex flex-col items-center gap-1 cursor-pointer">
                     <img src="https://img.icons8.com/fluency/48/phone.png" width="24">
-                    <span>주요전화</span>
+                    <span class="text-[13px] font-bold text-slate-600">주요전화</span>
                 </div>
-                <div onclick="navigateTo('search.html')" class="quick-btn cursor-pointer">
+                <div onclick="navigateTo('search.html')" class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex flex-col items-center gap-1 cursor-pointer">
                     <img src="https://img.icons8.com/fluency/48/hospital.png" width="24">
-                    <span>시설안내</span>
+                    <span class="text-[13px] font-bold text-slate-600">시설안내</span>
                 </div>
             </div>
         </div>
@@ -77,7 +73,7 @@
 
         <div onclick="navigateTo('rentalm.html')" class="table-card">
             <div class="table-header label-event">오늘<br>행사</div>
-            <div id="event-list" class="table-body"><div class="text-slate-300 py-1 text-center text-sm">로드 중...</div></div>
+            <div id="event-list" class="table-body"><div class="text-slate-300 text-sm">로드 중...</div></div>
         </div>
 
         <div onclick="navigateTo('meal.html')" class="table-card">
@@ -90,96 +86,104 @@
     </div>
 
     <script>
-        // 1. Firebase 설정
-        const firebaseConfig = { apiKey: "AIzaSyDGDUudF49hnXwU55er7joyeSLEPrme1GU", authDomain: "catholic-security-system.firebaseapp.com", projectId: "catholic-security-system", storageBucket: "catholic-security-system.firebasestorage.app", messagingSenderId: "978946205343", appId: "1:978946205343:web:38c30a21bf0dd522f9a4aa" };
-        firebase.initializeApp(firebaseConfig);
+        const EVENT_API = "https://script.google.com/macros/s/AKfycbzKtqrzNK11rX4sCdDFv0lcgUcdVwsNiUnlXYc8Zjm0dJNlNV8ThwKrtqOgKBeVrP3g/exec";
+        const MEAL_API = "https://script.google.com/macros/s/AKfycbxZkcn8EEcGcxMaT98l_CKJTCM_0Ual_S2JefpHptm_dbEtQ5tjM00TEhU2XdqTObLh/exec";
+        
+        firebase.initializeApp({ apiKey: "AIzaSyDGDUudF49hnXwU55er7joyeSLEPrme1GU", authDomain: "catholic-security-system.firebaseapp.com", projectId: "catholic-security-system", storageBucket: "catholic-security-system.firebasestorage.app", messagingSenderId: "978946205343", appId: "1:978946205343:web:38c30a21bf0dd522f9a4aa" });
         const db = firebase.firestore();
 
-        // 2. 날짜 관련 (서버 시간 오차 방지)
-        function getSmartDate() {
-            const now = new Date();
-            // 로컬 시간이 이미 KST라면 추가 9시간을 더하지 않음 (표준시 기준일 때만 보정)
-            const offset = now.getTimezoneOffset() === 0 ? 9 * 60 * 60000 : 0;
-            return new Date(now.getTime() + offset);
-        }
-
-        let currentDate = getSmartDate();
+        let currentDate = new Date(); // 기본 브라우저 시간 사용 (보정 제거)
         let staffData = [], vData = {};
 
-        // 3. 네비게이션 (날짜 파라미터 포함)
         function navigateTo(url) {
-            const dStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(currentDate.getDate()).padStart(2,'0')}`;
+            const d = currentDate;
+            const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
             window.location.href = `${url}?date=${dStr}`;
         }
 
-        // 4. 연차 데이터 로드
-        async function loadVocationData() {
+        async function loadAllData() {
             try {
-                const doc = await db.collection("vocation_app").doc("data").get();
-                if (doc.exists) {
-                    staffData = doc.data().staff || [];
-                    vData = doc.data().vocation || {};
-                    updateDisplay();
-                }
-            } catch (e) { console.error(e); }
+                const vDoc = await db.collection("vocation_app").doc("data").get();
+                if (vDoc.exists) { staffData = vDoc.data().staff; vData = vDoc.data().vocation; }
+                updateDisplay();
+            } catch(e) { console.error(e); }
         }
 
-        function getVocationNames(date) {
-            const y = date.getFullYear(), m = String(date.getMonth() + 1).padStart(2, '0'), d = String(date.getDate());
-            const mKey = `${y}-${m}`;
+        function getVName(date) {
+            const y = date.getFullYear(), m = String(date.getMonth()+1).padStart(2,'0'), d = String(date.getDate());
+            const monthV = vData[`${y}-${m}`] || {};
             let names = [];
-            const monthV = vData[mKey] || {};
-            for (let name in monthV) {
-                if (monthV[name].split(',').map(v => v.trim()).includes(d)) {
-                    if (staffData.find(s => s.n === name && s.g.includes("성의"))) names.push(name);
+            for (let n in monthV) {
+                if (monthV[n].split(',').map(x=>x.trim()).includes(d)) {
+                    if (staffData.find(s=>s.n===n && s.g.includes("성의"))) names.push(n);
                 }
             }
-            return names.length > 0 ? `🚩 주간연차: ${names.join(', ')}` : "";
+            return names.length ? `🚩 연차: ${names.join(', ')}` : "";
         }
 
-        // 5. 근무 계산
         const baseDate = '2026-03-09', patterns = ['C', 'A', 'B'];
         const teamA = ["배준용", "이명구", "김영중", "김삼동"], teamB = ["심규천", "임종현", "권영국", "전준수"];
         const teamC = [["황재업", "김태언", "이태원", "이정석"], ["황재업", "김태언", "이정석", "이태원"], ["황재업", "이정석", "김태언", "이태원"], ["황재업", "이정석", "이태원", "김태언"], ["황재업", "이태원", "김태언", "이정석"], ["황재업", "이태원", "이정석", "김태언"]];
 
-        function getShiftInfo(d) {
+        function getDuty(d) {
             const diff = Math.round((new Date(d).setHours(0,0,0,0) - new Date(baseDate).setHours(0,0,0,0)) / 86400000);
-            const shift = patterns[((diff % 3) + 3) % 3];
-            const members = (shift === 'A') ? teamA : (shift === 'B' ? teamB : teamC[Math.floor(((diff % 18) + 18) % 18 / 3)]);
-            return { shift, members };
+            const s = patterns[((diff % 3) + 3) % 3];
+            const m = (s==='A'?teamA:(s==='B'?teamB:teamC[Math.floor(((diff%18)+18)%18/3)]));
+            return { s, m };
+        }
+
+        async function fetchExternal() {
+            const dStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(currentDate.getDate()).padStart(2,'0')}`;
+            
+            // 행사 가져오기
+            try {
+                const res = await fetch(EVENT_API);
+                const data = await res.json();
+                const filtered = data.filter(i => i.rawDate === dStr);
+                document.getElementById('event-list').innerHTML = filtered.length ? filtered.slice(0,3).map(i => `<div class="event-text">📍 ${i.place.replace("성의교정","")} | ${i.event}</div>`).join('') : "행사 없음";
+            } catch(e) { document.getElementById('event-list').innerText = "로드 실패"; }
+
+            // 식단 가져오기
+            try {
+                const res = await fetch(MEAL_API);
+                const data = await res.json();
+                const todayMeal = data[dStr];
+                document.getElementById('lunch-menu').innerText = todayMeal ? (todayMeal["중식"]?.menu || "정보 없음") : "정보 없음";
+                document.getElementById('night-menu').innerText = todayMeal ? (todayMeal["야식"]?.menu || "정보 없음") : "정보 없음";
+            } catch(e) { }
         }
 
         function updateDisplay() {
             const days = ['일','월','화','수','목','금','토'];
             document.getElementById('datePickerTrigger').innerText = `${currentDate.getFullYear()}.${currentDate.getMonth()+1}.${currentDate.getDate()} (${days[currentDate.getDay()]})`;
+            
+            // 근무 편성 (오늘+내일)
+            const tomorrow = new Date(currentDate); tomorrow.setDate(currentDate.getDate()+1);
+            const d1 = getDuty(currentDate), d2 = getDuty(tomorrow);
+            const v1 = getVName(currentDate), v2 = getVName(tomorrow);
 
-            const info = getShiftInfo(currentDate);
-            const badge = document.getElementById('shift-badge');
-            badge.innerText = `${info.shift}조 근무`;
-            badge.className = `px-4 py-2 rounded-xl font-black text-[13px] shadow-sm bg-shift-${info.shift} text-white`;
+            document.getElementById('shift-badge').innerText = `${d1.s}조 근무`;
+            document.getElementById('shift-badge').className = `px-4 py-2 rounded-xl font-black text-[13px] shadow-sm bg-shift-${d1.s} text-white`;
 
-            const vNames = getVocationNames(currentDate);
             document.getElementById('duty-preview-container').innerHTML = `
-                <div class="duty-row">
-                    <div class="duty-main">
-                        <span class="duty-date ${currentDate.getDay()===0?'day-sun':(currentDate.getDay()===6?'day-sat':'')}">${currentDate.getMonth()+1}/${currentDate.getDate()}(${days[currentDate.getDay()]})</span>
-                        <span class="duty-shift bg-shift-${info.shift}">${info.shift}조</span>
-                        <span class="duty-names">${info.members.join(' ')}</span>
-                    </div>
-                    ${vNames ? `<div class="vocation-row">${vNames}</div>` : ''}
+                <div class="duty-item">
+                    <div class="duty-main"><span class="duty-date">${currentDate.getMonth()+1}/${currentDate.getDate()}(${days[currentDate.getDay()]})</span><span class="duty-shift bg-shift-${d1.s}">${d1.s}조</span><span class="duty-names">${d1.m.join(' ')}</span></div>
+                    ${v1 ? `<div class="vocation-line">${v1}</div>` : ''}
+                </div>
+                <div class="duty-item opacity-50">
+                    <div class="duty-main"><span class="duty-date">${tomorrow.getMonth()+1}/${tomorrow.getDate()}(${days[tomorrow.getDay()]})</span><span class="duty-shift bg-shift-${d2.s}">${d2.s}조</span><span class="duty-names">${d2.m.join(' ')}</span></div>
+                    ${v2 ? `<div class="vocation-line">${v2}</div>` : ''}
                 </div>
             `;
-            // 행사/식단 업데이트 (URL 연동 필요시 활성화)
-            // updateEvents(currentDate); updateMeal(currentDate);
+            fetchExternal();
         }
 
         window.onload = () => {
-            loadVocationData();
+            loadAllData();
             flatpickr("#datePickerTrigger", {
                 locale: "ko", dateFormat: "Y.m.d (D)", defaultDate: currentDate, disableMobile: true,
                 onChange: (dates) => { if(dates.length) { currentDate = dates[0]; updateDisplay(); } }
             });
-            updateDisplay();
         };
     </script>
 </body>
