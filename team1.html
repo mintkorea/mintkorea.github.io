@@ -26,8 +26,8 @@
         .next-duty-inline { display: block; font-size: 13px; color: #ef4444; margin-top: 8px; font-weight: 800; border-top: 1px dashed #e2e8f0; padding-top: 8px; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; background: white; }
         .calendar-cell { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; display: flex; flex-direction: column; min-height: 65px; }
-        /* 달력 상단 날짜 영역 투명도 수정 */
-        .date-area { display: flex; align-items: center; justify-content: center; font-weight: 700; background-color: rgba(255, 255, 255, 0.1); font-size: 0.75rem; height: 20px; border-bottom: 1px solid rgba(0,0,0,0.03); }
+        /* 디자인 수정 포인트: 날짜 영역 투명도 강화 */
+        .date-area { display: flex; align-items: center; justify-content: center; font-weight: 700; background-color: rgba(255, 255, 255, 0.05); font-size: 0.75rem; height: 18px; }
         .shift-area { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.1rem; }
         .sunday { color: #ef4444 !important; }
         .saturday { color: #3b82f6 !important; }
@@ -83,13 +83,13 @@
     </div>
 
     <div id="authModal" class="modal-overlay"><div class="bg-white p-6 rounded-3xl w-full max-w-xs text-center shadow-2xl"><h3 class="text-lg font-black mb-4">관리자 인증</h3><input type="password" id="authPw" class="admin-input text-center tracking-widest" placeholder="••••"><div class="flex gap-2"><button onclick="closeModal('authModal')" class="flex-1 py-3 bg-slate-100 rounded-xl font-bold">취소</button><button onclick="checkAuth()" class="flex-1 py-3 bg-[#2E4077] text-white rounded-xl font-bold">확인</button></div></div></div>
-    <div id="adminModal" class="modal-overlay"><div class="bg-white p-6 rounded-3xl w-full max-sm max-h-[85vh] overflow-y-auto shadow-2xl"><h3 class="text-lg font-black mb-4 text-center">시스템 환경 설정</h3><div class="space-y-4"><div><label class="text-[10px] font-bold text-slate-400 ml-1">앱 타이틀</label><input type="text" id="appTitleIn" class="admin-input"></div><div><label class="text-[10px] font-bold text-slate-400 ml-1">패턴 기준 날짜</label><input type="date" id="baseDateIn" class="admin-input"></div><div id="pattern-settings" class="space-y-2 pt-2 border-t"></div></div><div class="flex gap-2 mt-6"><button onclick="closeModal('adminModal')" class="flex-1 py-3 bg-slate-100 rounded-xl font-bold">닫기</button><button onclick="saveAdminSettings()" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold">저장</button></div></div></div>
+    <div id="adminModal" class="modal-overlay"><div class="bg-white p-6 rounded-3xl w-full max-sm max-h-[85vh] overflow-y-auto shadow-2xl"><h3 class="text-lg font-black mb-4 text-center">시스템 환경 설정</h3><div class="space-y-4"><div><label class="text-[10px] font-bold text-slate-400 ml-1">앱 타이틀</label><input type="text" id="appTitleIn" class="admin-input"></div><div><label class="text-[10px] font-bold text-slate-400 ml-1">패턴 기준 날짜</label><input type="date" id="baseDateIn" class="admin-input"></div><div id="pattern-settings" class="space-y-2 pt-2 border-t"></div></div><div class="flex gap-2 mt-6"><button onclick="closeModal('adminModal')" class="flex-1 py-3 bg-slate-100 rounded-xl font-bold">닫기</button><button onclick="saveAdminSettings()" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold">설정 저장</button></div></div></div>
 
     <script>
         firebase.initializeApp({ apiKey: "AIzaSyDGDUudF49hnXwU55er7joyeSLEPrme1GU", authDomain: "catholic-security-system.firebaseapp.com", projectId: "catholic-security-system", storageBucket: "catholic-security-system.firebasestorage.app", messagingSenderId: "978946205343", appId: "1:978946205343:web:38c30a21bf0dd522f9a4aa" });
         const db = firebase.firestore();
 
-        const DEFAULT_CONFIG = { appTitle: 'C조 통합 근무 시스템', baseDate: '2025-01-01', adminPassword: '7979', patterns: [{ name: 'C', color: '#E3F2FD', highlight: '#1976D2' }, { name: 'A', color: '#FFF3E0', highlight: '#F57C00' }, { name: 'B', color: '#FFEBEE', highlight: '#D32F2F' }] };
+        const DEFAULT_CONFIG = { appTitle: 'C조 통합 근무 시스템', baseDate: '2026-03-09', adminPassword: '7979', patterns: [{ name: 'C', color: '#E3F2FD', highlight: '#1976D2' }, { name: 'A', color: '#FFF3E0', highlight: '#F57C00' }, { name: 'B', color: '#FFEBEE', highlight: '#D32F2F' }] };
         let config = JSON.parse(localStorage.getItem('shift_v5_config')) || DEFAULT_CONFIG;
         let isFullTable = false, curY = new Date().getFullYear(), curM = new Date().getMonth(), vData = {};
 
@@ -133,6 +133,7 @@
         }
 
         async function fetchVocation() { try { const doc = await db.collection("vocation_app").doc("data").get(); if (doc.exists) vData = doc.data().vocation || {}; } catch(e) {} }
+        function getPureDate(d) { let t = new Date(d); t.setHours(0, 0, 0, 0); return t; }
         function getLogicDate(d) { let t = new Date(d); if (t.getHours() < 7) t.setDate(t.getDate() - 1); t.setHours(0, 0, 0, 0); return t; }
         function getNextCDate(standardDate) { let d = new Date(standardDate); d.setHours(12,0,0,0); let startOffset = (getShift(d).name === 'C') ? 1 : 0; for (let i = startOffset; i <= 7; i++) { let temp = new Date(d); temp.setDate(d.getDate() + i); if (getShift(temp).name === 'C') return temp; } return null; }
 
@@ -218,8 +219,8 @@
                 const shift = getShift(dt);
                 const cell = document.createElement('div');
                 cell.className = `calendar-cell ${dt.toDateString()===today?'is-today':''}`;
-                // 날짜 영역 투명도 강화 (rgba 255,255,255, 0.05)
-                cell.innerHTML = `<div class="date-area ${dt.getDay()===0?'sunday':dt.getDay()===6?'saturday':''}" style="background:rgba(255,255,255,0.05)">${d}</div><div class="shift-area" style="background:${shift.color}">${shift.name}</div>`;
+                // 날짜 영역 투명도 강화 및 하이라이트 복원
+                cell.innerHTML = `<div class="date-area ${dt.getDay()===0?'sunday':dt.getDay()===6?'saturday':''}" style="background:rgba(255,255,255,0.05); font-weight:700; font-size:0.8rem;">${d}</div><div class="shift-area" style="background:${shift.color}">${shift.name}</div>`;
                 container.appendChild(cell);
             }
         }
