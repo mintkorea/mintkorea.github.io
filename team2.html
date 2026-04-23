@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>근무 편성표</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; color: #1e293b; -webkit-tap-highlight-color: transparent; }
+        .page { width: 100%; max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: 40px; }
+        .header { background: #fff; padding: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px; }
+        .duty-card { background: white; border-radius: 16px; margin: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+        .section-title { font-size: 11px; font-weight: 900; padding: 2px 8px; border-radius: 5px; display: inline-block; margin-bottom: 10px; }
+        .badge-hall { background-color: #dbeafe; color: #1e40af; }
+        .badge-research { background-color: #f3e8ff; color: #6b21a8; }
+        .name-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .name-label { width: 45px; font-size: 12px; font-weight: 700; color: #64748b; }
+        .name-value { font-size: 16px; font-weight: 800; color: #1e293b; }
+        .vocation-tag { font-size: 11px; color: #ef4444; font-weight: 800; margin-left: 4px; }
+        .day-sun { color: #ef4444 !important; }
+        .day-sat { color: #3b82f6 !important; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <button onclick="location.href='index.html'" class="p-2 -ml-2"><img src="https://img.icons8.com/material-outlined/24/000000/left.png" width="24"></button>
+            <h1 id="dateDisplay" class="text-lg font-black tracking-tighter">날짜 로드 중...</h1>
+        </div>
+
+        <div id="dutyContent">
+            <div class="p-10 text-center text-slate-400 font-bold">근무 정보를 불러오고 있습니다...</div>
+        </div>
+    </div>
+
+    <script>
+        firebase.initializeApp({ apiKey: "AIzaSyDGDUudF49hnXwU55er7joyeSLEPrme1GU", authDomain: "catholic-security-system.firebaseapp.com", projectId: "catholic-security-system", storageBucket: "catholic-security-system.firebasestorage.app", messagingSenderId: "978946205343", appId: "1:978946205343:web:38c30a21bf0dd522f9a4aa" });
+        const db = firebase.firestore();
+
+        const baseDate = '2025-01-01', patterns = ['C', 'A', 'B'];
+        const teamA = ["배준용", "이명구", "김영중", "김삼동"], teamB = ["심규천", "임종현", "권영국", "전준수"];
+        const teamC = [
+            ["황재업", "이정석", "이태원", "김태언"],
+            ["황재업", "이태원", "김태언", "이정석"],
+            ["황재업", "김태언", "이정석", "이태원"],
+            ["황재업", "이정석", "김태언", "이태원"],
+            ["황재업", "이정석", "이태원", "김태언"],
+            ["황재업", "이태원", "이정석", "김태언"]
+        ];
+
+        let vData = {};
+        const urlParams = new URLSearchParams(window.location.search);
+        let currentStr = urlParams.get('date') || new Date().toISOString().split('T')[0];
+        let targetDate = new Date(currentStr);
+
+        // 연차 스왑 로직 적용 함수
+        function getFinalNames(shift, diff, date) {
+            let namesArr = [];
+            const y = date.getFullYear(), m = String(date.getMonth() + 1).padStart(2, '0'), dVal = String(date.getDate());
+            const vocation = (vData[`${y}-${m}`] || {});
+
+            if (shift === 'A') namesArr = [...teamA];
+            else if (shift === 'B') namesArr = [...teamB];
+            else if (shift === 'C') {
+                const cIdx = Math.floor(((diff % 18) + 18) % 18 / 3);
+                namesArr = [...teamC[cIdx]]; // [0:조장, 1:회관, 2:의산연A, 3:의산연B]
+
+                // 연차자 스왑 로직: 조원(1,2,3번) 중 연차 발생 시 회관(1번)으로 이동
+                for (let i = 1; i < namesArr.length; i++) {
+                    const name = namesArr[i];
+                    if (vocation[name] && vocation[name].split(',').map(v => v.trim()).includes(dVal)) {
+                        if (i !== 1) {
+                            [namesArr[1], namesArr[i]] = [namesArr[i], namesArr[1]];
+                        }
+                        break;
+                    }
+                }
+            }
+            return namesArr;
+        }
+
+        async function loadData() {
+            const days = ['일','월','화','수','목','금','토'];
+            document.getElementById('dateDisplay').innerText = `${targetDate.getMonth()+1}월 ${targetDate.getDate()}일 (${days[targetDate.getDay()]}) 근무`;
+            if (targetDate.getDay() === 0) document.getElementById('dateDisplay').classList.add('day-sun');
+            if (targetDate.getDay() === 6) document.getElementById('dateDisplay').classList.add('day-sat');
+
+            try {
+                const doc = await db.collection("vocation_app").doc("data").get();
+                if (doc.exists) vData = doc.data().vocation || {};
+                render();
+            } catch(e) { render(); }
+        }
+
+        function render() {
+            const diff = Math.round((new Date(targetDate).setHours(0,0,0,0) - new Date(baseDate).setHours(0,0,0,0)) / 86400000);
+            const s = patterns[((diff % 3) + 3) % 3];
+            const finalNames = getFinalNames(s, diff, targetDate);
+            
+            const y = targetDate.getFullYear(), m = String(targetDate.getMonth() + 1).padStart(2, '0'), dVal = String(targetDate.getDate());
+            const vocation = (vData[`${y}-${m}`] || {});
+
+            const checkV = (name) => vocation[name] && vocation[name].split(',').map(v => v.trim()).includes(dVal) ? '<span class="vocation-tag">🚩연차</span>' : '';
+
+            let html = `
+                <div class="duty-card">
+                    <span class="section-title badge-hall">성의회관 근무</span>
+                    <div class="name-row"><span class="name-label">조장</span><span class="name-value">${finalNames[0]}${checkV(finalNames[0])}</span></div>
+                    <div class="name-row"><span class="name-label">회관</span><span class="name-value">${finalNames[1]}${checkV(finalNames[1])}</span></div>
+                </div>
+                <div class="duty-card">
+                    <span class="section-title badge-research">의생명산업연구원</span>
+                    <div class="name-row"><span class="name-label">의산A</span><span class="name-value">${finalNames[2]}${checkV(finalNames[2])}</span></div>
+                    <div class="name-row"><span class="name-label">의산B</span><span class="name-value">${finalNames[3]}${checkV(finalNames[3])}</span></div>
+                </div>
+            `;
+            document.getElementById('dutyContent').innerHTML = html;
+        }
+
+        window.onload = loadData;
+    </script>
+</body>
+</html>
