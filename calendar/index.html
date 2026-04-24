@@ -30,11 +30,6 @@
         .dot-sung { background-color: #a855f7; } 
         .dot-omni { background-color: #f97316; }
 
-        /* 6개월 모아보기 컨테이너 */
-        .multi-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; width: 100%; margin-top: 20px; }
-        @media (max-width: 1024px) { .multi-container { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 640px) { .multi-container { grid-template-columns: 1fr; } }
-
         /* 플로팅 리스트 */
         #floatingList { 
             position: fixed; top: 0; right: -100%; 
@@ -47,7 +42,7 @@
             right: 50%; transform: translateX(50%); 
         }
 
-        /* [수정됨] 명단보기 리스트 카드 한 줄 스타일 */
+        /* 명단보기 리스트 카드 한 줄 스타일 */
         .list-card { background: white; border-radius: 12px; padding: 10px 14px; margin-bottom: 6px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 10px; overflow: hidden; }
         .list-date { font-size: 13px; font-weight: 900; color: #334155; white-space: nowrap; min-width: 65px; }
         .list-shift { font-size: 10px; font-weight: 900; padding: 2px 6px; border-radius: 4px; color: white; white-space: nowrap; }
@@ -58,7 +53,7 @@
         .bg-omni { background-color: #f97316; }
         .staff-name { font-size: 13px; font-weight: 700; color: #1e293b; white-space: nowrap; }
 
-        /* 블루 모달 스타일 (기존 수정 유지) */
+        /* 블루 모달 스타일 */
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(2px); z-index: 500; align-items: center; justify-content: center; padding: 20px; }
         .modal-overlay.active { display: flex; }
         .modal-content { background: white; width: 100%; max-width: 320px; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
@@ -100,16 +95,9 @@
             </div>
         </header>
 
-        <div id="singleView" class="rounded-xl shadow-lg overflow-hidden border border-gray-200 bg-white">
+        <!-- 단일 달력 뷰만 유지 -->
+        <div id="singleView" class="rounded-xl shadow-lg overflow-hidden border border-gray-200 bg-white mb-20">
             <div id="calendarBody"></div>
-        </div>
-
-        <div id="multiView" class="hidden multi-container"></div>
-
-        <div class="flex justify-center mt-6 mb-20">
-            <button id="viewModeBtn" onclick="toggleViewMode()" class="px-8 py-3 bg-[#5dade2] text-white rounded-full text-sm font-black shadow-lg hover:brightness-110 transition-all active:scale-95">
-                6개월 모아보기
-            </button>
         </div>
     </div>
 
@@ -155,7 +143,7 @@
             colors: { C: ['#eff6ff', '#3b82f6'], A: ['#fffbeb', '#f59e0b'], B: ['#fef2f2', '#ef4444'] }
         };
 
-        let staffData = [], vData = {}, clickCount = 0, viewMode = 'single', hidePast = true;
+        let staffData = [], vData = {}, clickCount = 0, hidePast = true;
         const today = new Date(); today.setHours(0,0,0,0);
         let currentYear = today.getFullYear(), currentMonth = today.getMonth();
 
@@ -170,28 +158,6 @@
                 clickCount = 0;
             }
             setTimeout(() => { clickCount = 0; }, 2000);
-        }
-
-        function toggleViewMode() {
-            viewMode = (viewMode === 'single') ? 'multi' : 'single';
-            const btn = document.getElementById('viewModeBtn');
-            const fab = document.getElementById('fabBtn');
-            const app = document.getElementById('appContainer');
-            if(viewMode === 'multi') {
-                btn.textContent = "단일 보기로 돌아가기";
-                app.style.maxWidth = "1200px";
-                fab.style.display = "none";
-                document.getElementById('singleView').classList.add('hidden');
-                document.getElementById('multiView').classList.remove('hidden');
-            } else {
-                btn.textContent = "6개월 모아보기";
-                app.style.maxWidth = "448px";
-                fab.style.display = "flex";
-                document.getElementById('singleView').classList.remove('hidden');
-                document.getElementById('multiView').classList.add('hidden');
-            }
-            render();
-            window.scrollTo(0,0);
         }
 
         function getDayVocation(mKey, day) {
@@ -246,7 +212,6 @@
             return grid;
         }
 
-        /* [수정됨] 명단보기(플로팅 리스트) 한 줄 렌더링 */
         function renderFloatingList(mKey) {
             const container = document.getElementById('listContent');
             container.innerHTML = '';
@@ -284,22 +249,11 @@
         function render() {
             const mKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
             document.getElementById('monthTitle').textContent = `${currentYear}년 ${currentMonth + 1}월`;
-            if(viewMode === 'single') {
-                const cb = document.getElementById('calendarBody');
-                cb.innerHTML = '';
-                cb.appendChild(createGrid(currentYear, currentMonth));
-            } else {
-                const mv = document.getElementById('multiView');
-                mv.innerHTML = '';
-                for(let i=0; i<6; i++) {
-                    const date = new Date(currentYear, currentMonth + i, 1);
-                    const wrap = document.createElement('div');
-                    wrap.className = "bg-white rounded-xl shadow-sm border overflow-hidden";
-                    wrap.innerHTML = `<div class="p-2 bg-slate-50 border-b font-bold text-center text-xs text-slate-600">${date.getFullYear()}년 ${date.getMonth()+1}월</div>`;
-                    wrap.appendChild(createGrid(date.getFullYear(), date.getMonth()));
-                    mv.appendChild(wrap);
-                }
-            }
+            
+            const cb = document.getElementById('calendarBody');
+            cb.innerHTML = '';
+            cb.appendChild(createGrid(currentYear, currentMonth));
+            
             renderFloatingList(mKey);
         }
 
@@ -317,6 +271,7 @@
         function toggleFloatingList() { document.getElementById('floatingList').classList.toggle('active'); }
         function toggleHidePast() { hidePast = !hidePast; document.getElementById('togglePast').textContent = hidePast ? "전체보기" : "과거포함 보기"; render(); }
         function changeMonth(v) { currentMonth += v; if(currentMonth<0){currentMonth=11;currentYear--;} else if(currentMonth>11){currentMonth=0;currentYear++;} render(); }
+        
         function init() {
             document.getElementById('appTitle').textContent = settings.title;
             const select = document.getElementById('shiftSelect');
