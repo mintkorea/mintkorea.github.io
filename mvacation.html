@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>성의교정 연차 관리 시스템</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <style>
+        :root {
+            --bg-gray: #f1f5f9;
+            --primary: #2E4077; /* team07과 동일한 네이비 */
+            --accent: #3182ce;
+            --border: #e2e8f0;
+            --card-w: 105px;
+            --card-h: 52px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, 'Noto Sans KR', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-gray); padding-bottom: 80px; }
+
+        /* 상단 헤더 */
+        .app-header { 
+            background: var(--primary); padding: 25px 20px; text-align: center; color: white;
+            position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .app-header h1 { font-size: 20px; font-weight: 900; letter-spacing: -1px; }
+        .app-header p { font-size: 11px; opacity: 0.8; margin-top: 5px; font-weight: bold; }
+        
+        #sync-badge { 
+            display: inline-block; font-size: 10px; background: rgba(255,255,255,0.2); 
+            padding: 2px 10px; border-radius: 20px; margin-top: 8px; font-weight: 800;
+        }
+
+        .container { max-width: 600px; margin: 0 auto; padding: 15px; }
+
+        /* 그룹별 섹션 타이틀 */
+        .section-group { margin-bottom: 25px; }
+        .section-title { 
+            display: flex; align-items: center; margin-bottom: 12px; padding-left: 5px;
+            font-size: 14px; font-weight: 900; color: #475569; 
+        }
+        .section-title::before { 
+            content: ""; width: 4px; height: 14px; background: var(--accent); 
+            margin-right: 8px; border-radius: 2px; 
+        }
+
+        /* 카드 그리드 컨테이너 */
+        .grid-container { 
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; 
+            background: white; padding: 15px; border-radius: 20px; border: 1px solid var(--border);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        /* 인원 카드 디자인 */
+        .person-card { 
+            background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            height: var(--card-h); cursor: pointer; transition: all 0.2s;
+        }
+        .person-card:active { transform: scale(0.96); background: #edf2f7; }
+        
+        /* 데이터가 있는 인원 강조 */
+        .person-card.has-data { 
+            border-color: var(--accent); background: #ebf8ff; border-width: 1.5px;
+        }
+        .person-card.has-data .name { color: var(--accent); }
+        .name { font-weight: 800; font-size: 15px; color: #1e293b; }
+
+        /* 하단 고정 탭 바 */
+        .tab-bar {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 65px;
+            background: white; border-top: 1px solid var(--border);
+            display: flex; justify-content: space-around; align-items: center; z-index: 200;
+        }
+        .tab-item { 
+            text-align: center; color: #94a3b8; font-size: 11px; font-weight: 900; 
+            flex: 1; text-decoration: none; display: flex; flex-direction: column;
+        }
+        .tab-item.active { color: var(--primary); }
+        .tab-icon { font-size: 20px; margin-bottom: 3px; }
+
+        /* 모달 스타일 */
+        #modal { 
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); 
+            z-index: 1000; justify-content: center; align-items: flex-end; 
+            backdrop-filter: blur(3px);
+        }
+        .modal-content { 
+            background: white; width: 100%; max-width: 500px; padding: 25px; 
+            border-radius: 30px 30px 0 0; animation: slideUp 0.3s cubic-bezier(0, 0.5, 0.5, 1);
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        .m-header { font-size: 18px; font-weight: 900; margin-bottom: 20px; text-align: center; color: #1e293b; }
+        .leave-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 25px; }
+        .leave-item { background: #f1f5f9; padding: 10px; border-radius: 15px; border: 1px solid var(--border); }
+        .month-label { font-size: 11px; font-weight: 900; color: #64748b; display: block; margin-bottom: 5px; text-align: center; }
+        .input-day { 
+            width: 100%; border: none; background: transparent; text-align: center; 
+            font-size: 16px; font-weight: 900; color: var(--accent); outline: none; 
+        }
+        .input-day::placeholder { color: #cbd5e1; font-size: 12px; }
+        
+        .m-footer { display: flex; gap: 10px; }
+        .btn { flex: 1; padding: 18px; border: none; border-radius: 18px; font-weight: 900; font-size: 15px; cursor: pointer; }
+        .btn-save { background: var(--primary); color: white; }
+        .btn-close { background: #e2e8f0; color: #475569; }
+
+        /* 로딩/비어있음 상태 */
+        .empty-msg { text-align: center; padding: 40px; color: #94a3b8; font-size: 13px; font-weight: bold; line-height: 1.6; }
+    </style>
+</head>
+<body>
+
+<header class="app-header">
+    <h1>🛡️ 연차 관리 현황</h1>
+    <p>가톨릭대학교 성의교정 보안팀</p>
+    <div id="sync-badge">데이터 연결 중...</div>
+</header>
+
+<div class="container" id="main-container">
+    <div class="empty-msg">데이터를 실시간으로 불러오고 있습니다...</div>
+</div>
+
+<nav class="tab-bar">
+    <a href="#" class="tab-item active">
+        <span class="tab-icon">👤</span>연차입력
+    </a>
+    <a href="team07.html" class="tab-item">
+        <span class="tab-icon">📅</span>근무달력
+    </a>
+</nav>
+
+<div id="modal" onclick="closeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div id="m-name" class="m-header">연차 등록</div>
+        <div class="leave-grid" id="leave-grid"></div>
+        <div class="m-footer">
+            <button class="btn btn-save" onclick="saveData()">저장하기</button>
+            <button class="btn btn-close" onclick="closeModal()">닫기</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. Firebase 설정 (team07.html과 동일한 설정 사용)
+    const firebaseConfig = {
+        apiKey: "AIzaSyDGDUudF49hnXwU55er7joyeSLEPrme1GU",
+        authDomain: "catholic-security-system.firebaseapp.com",
+        projectId: "catholic-security-system",
+        storageBucket: "catholic-security-system.firebasestorage.app",
+        messagingSenderId: "978946205343",
+        appId: "1:978946205343:web:38c30a21bf0dd522f9a4aa"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let vocationData = {};
+    let selectedName = "";
+
+    // 2. 모달 내 1~12월 입력 필드 자동 생성
+    const grid = document.getElementById('leave-grid');
+    for(let i=1; i<=12; i++) {
+        grid.innerHTML += `
+            <div class="leave-item">
+                <span class="month-label">${i}월</span>
+                <input type="text" inputmode="decimal" class="input-day" id="m${i}" placeholder="날짜입력">
+            </div>`;
+    }
+
+    // 3. 실시간 데이터 감시 시작
+    function startSync() {
+        db.collection("vocation_app").doc("data").onSnapshot((doc) => {
+            const badge = document.getElementById('sync-badge');
+            if (doc.exists) {
+                const data = doc.data();
+                vocationData = data.vocation || {};
+                const staff = data.staff || [];
+                
+                if (staff.length > 0) {
+                    renderGroups(staff);
+                } else {
+                    document.getElementById('main-container').innerHTML = `<div class="empty-msg">등록된 인원 정보가 없습니다.<br>관리자 설정에서 인원을 추가해 주세요.</div>`;
+                }
+                
+                badge.innerText = "● 실시간 동기화 중";
+                badge.style.background = "rgba(72, 187, 120, 0.2)";
+                badge.style.color = "#c6f6d5";
+            } else {
+                badge.innerText = "○ 연결 오류 (문서 없음)";
+                badge.style.background = "rgba(245, 101, 101, 0.2)";
+            }
+        });
+    }
+
+    // 4. 그룹별 카드 렌더링
+    function renderGroups(staff) {
+        const container = document.getElementById('main-container');
+        container.innerHTML = ''; // 초기화
+
+        // 표시할 그룹 정의
+        const groupNames = ['지휘부/반장', 'A조', 'B조', 'C조'];
+        const groupSections = {};
+
+        groupNames.forEach(name => {
+            const sec = document.createElement('div');
+            sec.className = 'section-group';
+            sec.innerHTML = `<div class="section-title">${name}</div><div class="grid-container" id="grid-${name}"></div>`;
+            container.appendChild(sec);
+            groupSections[name] = sec.querySelector('.grid-container');
+        });
+
+        staff.forEach(p => {
+            // 그룹 매칭 로직 (지휘부와 반장은 통합 표시)
+            let groupKey = p.g;
+            if (p.g === '지휘부' || p.g === '반장') groupKey = '지휘부/반장';
+
+            const targetGrid = groupSections[groupKey];
+            if (targetGrid) {
+                const hasData = (vocationData[p.n] && Object.keys(vocationData[p.n]).length > 0) ? 'has-data' : '';
+                const card = document.createElement('div');
+                card.className = `person-card ${hasData}`;
+                card.onclick = () => openModal(p.n);
+                card.innerHTML = `<span class="name">${p.n}</span>`;
+                targetGrid.appendChild(card);
+            }
+        });
+    }
+
+    // 5. 모달 제어
+    function openModal(name) {
+        selectedName = name;
+        document.getElementById('m-name').innerText = `[${name}] 연차 등록`;
+        
+        const userData = vocationData[name] || {};
+        for(let i=1; i<=12; i++) {
+            document.getElementById(`m${i}`).value = userData[i] || "";
+        }
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+
+    // 6. 데이터 저장 (Firebase 업데이트)
+    async function saveData() {
+        const newData = {};
+        for(let i=1; i<=12; i++) {
+            const val = document.getElementById(`m${i}`).value.trim();
+            if(val) newData[i] = val;
+        }
+
+        // 전체 객체에서 해당 인원 데이터만 교체
+        const updatedVocation = { ...vocationData };
+        updatedVocation[selectedName] = newData;
+
+        try {
+            await db.collection("vocation_app").doc("data").update({
+                vocation: updatedVocation
+            });
+            closeModal();
+            // 성공 알림은 생략 (실시간 반영되므로 사용자 경험상 더 깔끔함)
+        } catch (e) {
+            console.error("저장 오류:", e);
+            alert("저장에 실패했습니다: " + e.message);
+        }
+    }
+
+    // 초기 실행
+    window.onload = startSync;
+</script>
+
+</body>
+</html>
