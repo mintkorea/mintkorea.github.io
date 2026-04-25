@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>연차 관리 시스템</title>
+    <!-- Firebase 라이브러리 추가 -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <style>
+        :root {
+            --bg-gray: #f2f4f7;
+            --border-color: #e9ecef;
+            --fixed-tab-width: 70px; 
+            --card-w: 95px;
+            --card-h: 44px;
+            --primary: #000;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
+        body { background-color: var(--bg-gray); padding: 20px; display: flex; flex-direction: column; align-items: center; }
+
+        .container { width: 550px; } 
+        .table-container { 
+            background: white; border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            overflow: hidden; border: 1px solid var(--border-color); 
+        }
+
+        .row { display: flex; border-bottom: 1px solid var(--border-color); }
+        .side-label { 
+            width: var(--fixed-tab-width); 
+            min-width: var(--fixed-tab-width);
+            display: flex; align-items: center; justify-content: center; 
+            font-weight: 800; font-size: 14px; background: #fff; 
+            border-right: 1px solid var(--border-color); color: #000;
+        }
+
+        .building-row { display: flex; border-bottom: 1px solid var(--border-color); background: #f8f9fa; }
+        .building-spacer { 
+            width: var(--fixed-tab-width); 
+            min-width: var(--fixed-tab-width);
+            border-right: 1px solid var(--border-color); background: #fff;
+        }
+        .building-box { flex: 1; padding: 10px; text-align: center; font-weight: 800; font-size: 13px; color: #495057; }
+        .building-box:first-of-type { border-right: 1px solid var(--border-color); }
+
+        .content-area { flex: 1; padding: 12px; display: flex; justify-content: center; align-items: center; }
+        .split-2 { display: grid; grid-template-columns: 1fr 1fr; width: 100%; justify-items: center; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; justify-items: center; }
+
+        .person-card { 
+            background: white; border: 1.5px solid var(--border-color); border-radius: 10px; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;
+            width: var(--card-w); height: var(--card-h);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02); position: relative;
+        }
+        /* 데이터가 있는 카드 강조 */
+        .person-card.has-data { border-color: #3182ce; background: #ebf8ff; }
+        .name { font-weight: 900; font-size: 15px; color: #000; }
+        .count-badge { font-size: 9px; color: #3182ce; font-weight: bold; margin-top: 1px; }
+
+        .row-a .side-label { background: #e9f7ef; color: #1e4d2b; }
+        .row-b .side-label { background: #fff9db; color: #856404; }
+        .row-c .side-label { background: #ffe3e3; color: #a01a1a; }
+
+        .update-info { text-align: center; font-size: 13px; color: #aaa; margin-top: 20px; font-weight: bold; }
+
+        /* 모달 스타일 */
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 360px; padding: 25px; border-radius: 20px; }
+        .m-header { font-size: 18px; font-weight: 800; margin-bottom: 20px; text-align: center; }
+        .leave-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+        .leave-item { display: flex; flex-direction: column; background: #f8f9fa; padding: 8px; border-radius: 8px; border: 1px solid #ddd; }
+        .month-label { font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #555; text-align: center; }
+        .input-day { width: 100%; border: 1px solid #bbb; border-radius: 6px; padding: 8px 0; text-align: center; font-size: 16px; font-weight: 800; }
+        .m-footer { display: flex; gap: 10px; }
+        .btn { flex: 1; padding: 15px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .btn-save { background: #000; color: white; }
+        .btn-close { background: #eee; color: #555; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="table-container">
+        <!-- 지휘부 -->
+        <div class="row">
+            <div class="side-label">지휘부</div>
+            <div class="content-area">
+                <div class="split-2" id="group-leader"></div>
+            </div>
+        </div>
+
+        <div class="building-row">
+            <div class="building-spacer"></div>
+            <div class="building-box">성의회관</div>
+            <div class="building-box">옴니버스파크</div>
+        </div>
+
+        <!-- 반장 -->
+        <div class="row">
+            <div class="side-label">반장</div>
+            <div class="content-area">
+                <div class="split-2" id="group-head"></div>
+            </div>
+        </div>
+
+        <!-- A조 -->
+        <div class="row row-a">
+            <div class="side-label">A조</div>
+            <div class="content-area"><div class="grid-4" id="group-a"></div></div>
+        </div>
+
+        <!-- B조 -->
+        <div class="row row-b">
+            <div class="side-label">B조</div>
+            <div class="content-area"><div class="grid-4" id="group-b"></div></div>
+        </div>
+
+        <!-- C조 -->
+        <div class="row row-c">
+            <div class="side-label">C조</div>
+            <div class="content-area"><div class="grid-4" id="group-c"></div></div>
+        </div>
+    </div>
+    <div class="update-info" id="last-update">데이터를 불러오는 중...</div>
+</div>
+
+<div id="modal" onclick="closeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div id="m-name" class="m-header">연차 등록</div>
+        <div class="leave-grid" id="leave-grid"></div>
+        <div class="m-footer">
+            <button class="btn btn-save" onclick="save()">저장</button>
+            <button class="btn btn-close" onclick="closeModal()">닫기</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. Firebase 초기화
+    const firebaseConfig = {
+        apiKey: "AIzaSyDGDUudF49hnXwU55er7joyeSLEPrme1GU",
+        authDomain: "catholic-security-system.firebaseapp.com",
+        projectId: "catholic-security-system",
+        storageBucket: "catholic-security-system.firebasestorage.app",
+        messagingSenderId: "978946205343",
+        appId: "1:978946205343:web:38c30a21bf0dd522f9a4aa"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let vocationData = {};
+    let selectedName = "";
+
+    // 2. 모달 내 1~12월 입력칸 생성
+    const grid = document.getElementById('leave-grid');
+    for(let i=1; i<=12; i++) {
+        grid.innerHTML += `<div class="leave-item"><span class="month-label">${i}월</span><input type="text" class="input-day" id="m${i}"></div>`;
+    }
+
+    // 3. 데이터 실시간 감시 및 렌더링
+    function startSync() {
+        db.collection("vacation_app").doc("data").onSnapshot((doc) => {
+            if (doc.exists) {
+                const data = doc.data();
+                vocationData = data.vocation || {};
+                const staff = data.staff || [];
+                renderBoard(staff);
+                document.getElementById('last-update').innerText = "실시간 동기화 중";
+            }
+        });
+    }
+
+    function renderBoard(staff) {
+        const groups = {
+            '지휘부': 'group-leader',
+            '반장': 'group-head',
+            'A조': 'group-a',
+            'B조': 'group-b',
+            'C조': 'group-c'
+        };
+
+        // 초기화
+        Object.values(groups).forEach(id => document.getElementById(id).innerHTML = '');
+
+        staff.forEach(p => {
+            const containerId = groups[p.g];
+            if (containerId) {
+                const hasData = vocationData[p.n] ? 'has-data' : '';
+                const cardHtml = `
+                    <div class="person-card ${hasData}" onclick="openModal('${p.n}')">
+                        <span class="name">${p.n}</span>
+                    </div>`;
+                document.getElementById(containerId).innerHTML += cardHtml;
+            }
+        });
+    }
+
+    function openModal(n) {
+        selectedName = n;
+        document.getElementById('m-name').innerText = n + "님 연차 현황";
+        
+        // 기존 데이터 채우기
+        const userDays = vocationData[n] || {};
+        for(let i=1; i<=12; i++) {
+            document.getElementById(`m${i}`).value = userDays[i] || "";
+        }
+        
+        document.getElementById('modal').style.display='flex';
+    }
+
+    function closeModal() { document.getElementById('modal').style.display='none'; }
+
+    async function save() {
+        const userDays = {};
+        for(let i=1; i<=12; i++) {
+            const val = document.getElementById(`m${i}`).value;
+            if(val) userDays[i] = val;
+        }
+
+        vocationData[selectedName] = userDays;
+
+        try {
+            await db.collection("vacation_app").doc("data").update({ vocation: vocationData });
+            alert("성공적으로 저장되었습니다.");
+            closeModal();
+        } catch (e) {
+            alert("저장 실패: " + e.message);
+        }
+    }
+
+    // 시작
+    window.onload = startSync;
+</script>
+
+</body>
+</html>
