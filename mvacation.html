@@ -10,8 +10,18 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
-        .unified-header { background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e5e7eb; padding: 1.25rem; margin-bottom: 1rem; }
+        .unified-header { background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e5e7eb; padding: 0.75rem 1rem; margin-bottom: 1rem; }
         
+        /* [수정] 드롭박스 폰트 12 및 여백 최소화 */
+        #monthSelect { 
+            font-size: 12px !important; 
+            font-weight: 700; 
+            padding: 0 4px !important; 
+            height: 32px !important;
+            letter-spacing: -0.5px;
+        }
+        .btn-cal { height: 32px !important; padding: 0 12px !important; font-size: 12px !important; font-weight: 900; }
+
         .section-row { display: flex; background: #fff; border-radius: 8px; margin-bottom: 4px; border: 1px solid #f1f3f5; overflow: hidden; }
         .tab-cell { width: 48px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; color: #495057; background: #f1f3f5; flex-shrink: 0; }
         .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 8px; padding: 8px; }
@@ -38,18 +48,29 @@
 
         #modal, #listModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 15px; }
         .modal-content { background: white; width: 100%; max-width: 420px; border-radius: 20px; padding: 20px; max-height: 80vh; overflow-y: auto; }
+        
+        /* 리스트 배지 스타일 */
+        .badge-group { font-size: 11px; font-weight: 900; padding: 2px 6px; border-radius: 4px; color: white; }
+        .bg-a-group { background-color: #f59e0b; }
+        .bg-b-group { background-color: #ef4444; }
+        .bg-c-group { background-color: #3b82f6; }
+        .badge-loc { font-size: 11px; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
+        .loc-sung { background-color: #a855f7; color: white; }
+        .loc-omni { background-color: #f97316; color: white; }
     </style>
 </head>
 <body class="p-4">
     <div class="max-w-xl mx-auto">
         <div class="unified-header">
-            <h1 class="text-xl font-black text-slate-800 mb-4 text-center">📅 보안 연차 현황</h1>
-            <div class="flex gap-2">
-                <select id="monthSelect" class="flex-1 h-10 rounded-lg border border-slate-200 px-3 font-bold text-slate-600 bg-slate-50 outline-none" onchange="showMonthlyList()">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2"><span class="text-xl">📅</span><h1 class="text-lg font-black text-slate-800">보안 연차 현황</h1></div>
+            </div>
+            <div class="flex items-center gap-2">
+                <select id="monthSelect" class="flex-1 rounded border border-slate-200 bg-slate-50 outline-none" onchange="showMonthlyList()">
                     <option value="">월 선택 (명단확인)</option>
                     <script>for(let i=1; i<=12; i++) document.write(`<option value="${i}">${i}월 연차자</option>`);</script>
                 </select>
-                <a href="calendar.html" class="bg-slate-800 text-white px-5 h-10 rounded-lg font-bold text-sm flex items-center shadow-sm">근무달력</a>
+                <a href="calendar.html" class="btn-cal bg-slate-800 text-white rounded font-black flex items-center shadow-sm">근무달력</a>
             </div>
         </div>
 
@@ -79,10 +100,10 @@
     </div>
 
     <div id="listModal" onclick="this.style.display='none'"><div class="modal-content" onclick="event.stopPropagation()"><div id="listContainer"></div></div></div>
-    <div id="modal" onclick="closeModal()"><div class="modal-content" onclick="event.stopPropagation()"><h2 id="modalName" class="font-black text-lg mb-4 text-slate-800"></h2><div class="grid grid-cols-3 gap-3" id="monthGrid"></div><button onclick="closeModal()" class="w-full mt-6 py-3 bg-slate-800 text-white rounded-xl font-bold">닫기</button></div></div>
+    <div id="modal" onclick="closeModal()"><div class="modal-content" onclick="event.stopPropagation()"><h2 id="modalName" class="font-black text-lg mb-4 text-slate-800"></h2><div class="grid grid-cols-3 gap-3" id="monthGrid"></div><button onclick="closeModal()" class="w-full mt-6 py-3 bg-slate-100 rounded-xl font-bold text-slate-600">닫기</button></div></div>
 
     <script>
-        // 사진의 순서와 건물 속성을 정확히 반영한 데이터
+        // 사진 순서 및 건물 데이터 (유지)
         const members = {
             'A': [{n:'배준용',t:'sung'}, {n:'이명구',t:'sung'}, {n:'손병휘',t:'omni'}, {n:'권순호',t:'omni'}, {n:'김영중',t:'sung'}, {n:'김삼동',t:'sung'}, {n:'김전식',t:'omni'}],
             'B': [{n:'심규천',t:'sung'}, {n:'임종현',t:'sung'}, {n:'황일범',t:'omni'}, {n:'이상길',t:'omni'}, {n:'권영국',t:'sung'}, {n:'전준수',t:'sung'}, {n:'허용',t:'omni'}],
@@ -102,14 +123,8 @@
         }
         renderMembers();
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyAu38FXMBUgoeYy1GDViTetsJ68ivHsGyM",
-            authDomain: "catholic-security-system.firebaseapp.com",
-            projectId: "catholic-security-system",
-            storageBucket: "catholic-security-system.firebasestorage.app",
-            messagingSenderId: "978946205343",
-            appId: "1:978946205343:web:38c30a21bf0dd522f9a4aa"
-        };
+        // Firebase 설정 (유지)
+        const firebaseConfig = { apiKey: "AIzaSyAu38FXMBUgoeYy1GDViTetsJ68ivHsGyM", authDomain: "catholic-security-system.firebaseapp.com", projectId: "catholic-security-system", storageBucket: "catholic-security-system.firebasestorage.app", messagingSenderId: "978946205343", appId: "1:978946205343:web:38c30a21bf0dd522f9a4aa" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const docRef = db.collection("vacation_system").doc("data");
@@ -148,20 +163,39 @@
         async function saveData(mk, val) { if(!allVData[mk]) allVData[mk] = {}; allVData[mk][activeUser] = val; await docRef.update({ vocation: allVData }); }
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
+        // 이미지 리스트 스타일 구현
         function showMonthlyList() {
             const m = document.getElementById('monthSelect').value; if(!m) return;
             const mk = `2026-${m.padStart(2,'0')}`;
             const data = allVData[mk] || {};
-            let html = `<h2 class="text-lg font-black mb-4">${m}월 연차자 명단</h2><div class="space-y-2">`;
+            let html = `<h2 class="text-xl font-black mb-4 text-slate-800">${m}월 연차자 명단</h2><div class="space-y-2">`;
             let hasData = false;
+            
+            const allMembers = [
+                {n:'이규용', t:'sung', g:'-'}, {n:'박상현', t:'-', g:'-'}, {n:'유정수', t:'sung', g:'-'}, {n:'오제준', t:'omni', g:'-'},
+                ...members.A.map(x=>({...x, g:'A'})), ...members.B.map(x=>({...x, g:'B'})), ...members.C.map(x=>({...x, g:'C'}))
+            ];
+
             Object.entries(data).forEach(([name, dates]) => {
                 if(dates.trim()) {
-                    html += `<div class="flex justify-between p-3 bg-slate-50 rounded-lg"><span class="font-bold">${name}</span><span class="text-blue-600 font-medium">${dates}</span></div>`;
+                    const info = allMembers.find(x => x.n === name);
+                    const gClass = info?.g === 'A' ? 'bg-a-group' : info?.g === 'B' ? 'bg-b-group' : 'bg-c-group';
+                    const locClass = info?.t === 'sung' ? 'loc-sung' : 'loc-omni';
+                    const locName = info?.t === 'sung' ? '성의회관' : (info?.t === 'omni' ? '옴니버스' : '-');
+
+                    html += `
+                    <div class="flex items-center gap-2 p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
+                        <span class="text-blue-600 font-black text-sm min-w-[50px]">${dates}</span>
+                        ${info?.g !== '-' ? `<span class="badge-group ${gClass}">${info.g}</span>` : ''}
+                        ${info?.t ? `<span class="badge-loc ${locClass}">${locName}</span>` : ''}
+                        <span class="flex-1 text-right font-black text-slate-800 text-base">${name}</span>
+                    </div>`;
                     hasData = true;
                 }
             });
-            if(!hasData) html += `<div class="text-center py-10 text-slate-400">등록된 연차가 없습니다.</div>`;
-            html += `</div><button onclick="document.getElementById('listModal').style.display='none'" class="w-full mt-6 py-3 bg-slate-800 text-white rounded-xl font-bold">확인</button>`;
+            
+            if(!hasData) html += `<div class="text-center py-10 text-slate-400 font-bold">등록된 연차가 없습니다.</div>`;
+            html += `</div><button onclick="document.getElementById('listModal').style.display='none'" class="w-full mt-6 py-4 bg-slate-800 text-white rounded-xl font-black shadow-lg">확인</button>`;
             document.getElementById('listContainer').innerHTML = html;
             document.getElementById('listModal').style.display = 'flex';
         }
