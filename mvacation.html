@@ -7,16 +7,15 @@
     <style>
         :root { 
             --bg: #f8f9fa; 
-            /* 이미지 참조 파스텔 칼라 */
-            --color-seongui: #f3ece3; /* 성의회관: 베이지 */
-            --color-omnibus: #d9eada; /* 옴니버스: 민트 */
+            --color-seongui: #f3ece3; /* 성의회관 베이지 */
+            --color-omnibus: #d9eada; /* 옴니버스 민트 */
             --color-a: #d3f9d8; --color-b: #ffec99; --color-c: #ffc9c9;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; }
         body { background: var(--bg); padding: 4px; overflow-x: hidden; }
         .app-container { max-width: 800px; margin: 0 auto; }
         
-        .app-title { font-size: 20px; font-weight: 900; color: #212529; text-align: center; padding: 10px 0; }
+        .app-title { font-size: 20px; font-weight: 900; color: #212529; text-align: center; padding: 8px 0; }
 
         .section-row { 
             display: flex; background: #fff; border-radius: 10px; 
@@ -24,7 +23,6 @@
             box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid #eef0f2;
         }
 
-        /* 셀 여백 최소화 */
         .tab-cell { 
             width: 48px; display: flex; align-items: center; justify-content: center; 
             font-weight: 900; font-size: 11px; color: #495057; background: #f1f3f5;
@@ -35,15 +33,11 @@
             flex-grow: 1; gap: 3px; padding: 4px; 
         }
 
-        /* [지시] 레이블 크기 확대 및 건물별 칼라 적용 */
+        /* 레이블: 크기 확대 및 건물별 칼라 */
         .label-building { 
-            grid-column: span 2; 
-            font-size: 14px; 
-            font-weight: 900; 
+            grid-column: span 2; font-size: 14px; font-weight: 900; 
             display: flex; align-items: center; justify-content: center; 
-            height: 34px; /* 높이 대폭 확대 */
-            border-radius: 6px; 
-            margin-bottom: 2px;
+            height: 34px; border-radius: 6px; margin-bottom: 2px;
         }
         .label-seongui { background: var(--color-seongui); color: #5d564f; border: 1px solid #dcd4c9; }
         .label-omnibus { background: var(--color-omnibus); color: #4d5d4d; border: 1px solid #c2d5c3; }
@@ -57,11 +51,17 @@
         .pos { font-size: 8px; color: #339af0; font-weight: bold; margin-bottom: -1px; }
         .name { font-size: 15px; font-weight: 900; color: #212529; }
 
+        /* 지휘부/반장 전용 중앙 정렬 그리드 (카드 50% 너비 빈칸 적용) */
+        .center-grid {
+            display: grid; 
+            grid-template-columns: 0.5fr 1fr 0.5fr 0.5fr 1fr 0.5fr; /* 50% 빈칸 좌우 배치 */
+            flex-grow: 1; gap: 3px; padding: 4px;
+        }
+
         .row-A .tab-cell { background: var(--color-a); }
         .row-B .tab-cell { background: var(--color-b); }
         .row-C .tab-cell { background: var(--color-c); }
         
-        /* 중앙 정렬용 투명 칸 */
         .empty-card { height: 38px; width: 100%; background: transparent; border: none; }
     </style>
 </head>
@@ -96,27 +96,27 @@
         const container = document.getElementById('main-table');
         let html = '';
 
-        // 1. 지휘부 (중앙 정렬: 2, 4번 칸)
+        // 1. 지휘부 (카드 넓이 50% 빈칸을 좌우에 배치)
         const leaders = staffData.filter(d => d.section === "지휘부");
-        html += `<div class="section-row"><div class="tab-cell">지휘부</div><div class="grid-area">
-                    <div class="empty-card"></div>${createCard(leaders[0])}
-                    <div class="empty-card"></div>${createCard(leaders[1])}
+        html += `<div class="section-row"><div class="tab-cell">지휘부</div><div class="center-grid">
+                    <div class="empty-card"></div>${createCard(leaders[0])}<div class="empty-card"></div>
+                    <div class="empty-card"></div>${createCard(leaders[1])}<div class="empty-card"></div>
                  </div></div>`;
 
-        // 2. 레이블 (건물별 칼라 적용 및 확대)
+        // 2. 레이블 (확대 및 칼라)
         html += `<div style="display:flex; margin-bottom:1px;"><div style="width:48px;"></div>
                     <div class="grid-area" style="padding:0 4px;">
                         <div class="label-building label-seongui">성 의 회 관</div><div class="label-building label-omnibus">옴 니 버 스 파 크</div>
                     </div></div>`;
 
-        // 3. 반장 (중앙 정렬: 2, 4번 칸)
+        // 3. 반장 (카드 넓이 50% 빈칸을 좌우에 배치)
         const chiefs = staffData.filter(d => d.section === "반장");
-        html += `<div class="section-row"><div class="tab-cell">반장</div><div class="grid-area">
-                    <div class="empty-card"></div>${createCard(chiefs[0])}
-                    <div class="empty-card"></div>${createCard(chiefs[1])}
+        html += `<div class="section-row"><div class="tab-cell">반장</div><div class="center-grid">
+                    <div class="empty-card"></div>${createCard(chiefs[0])}<div class="empty-card"></div>
+                    <div class="empty-card"></div>${createCard(chiefs[1])}<div class="empty-card"></div>
                  </div></div>`;
 
-        // 4. A, B, C조 명단 (여백 최소화)
+        // 4. A, B, C조 명단
         ["A조", "B조", "C조"].forEach(g => {
             const members = staffData.filter(d => d.section === g);
             html += `<div class="section-row row-${g[0]}"><div class="tab-cell">${g}</div><div class="grid-area">`;
