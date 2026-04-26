@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>성의교정 통합 시스템</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f1f5f9; margin: 0; -webkit-tap-highlight-color: transparent; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .nav-tab.active { color: #2E4077; border-bottom: 3px solid #2E4077; background-color: white; }
+        .is-vocation { filter: grayscale(0.4); background-color: #fff1f2 !important; position: relative; }
+        .is-vocation::after { content: '🚩연차'; position: absolute; top: 4px; right: 6px; color: #ef4444; font-size: 9px; font-weight: 900; }
+        .custom-table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; table-layout: fixed; background: white; }
+        .custom-table th { background: #f8fafc; color: #1e293b; padding: 6px 1px; border: 1px solid #e2e8f0; font-weight: 800; }
+        .custom-table td { border: 1px solid #e2e8f0; padding: 6px 1px; color: #475569; height: 38px; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border: 1px solid #e2e8f0; background: white; border-radius: 12px; overflow: hidden; }
+        .calendar-cell { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; min-height: 80px; position: relative; }
+    </style>
+</head>
+<body>
+    <div id="main-wrapper" class="max-w-md mx-auto bg-white min-h-screen shadow-lg flex flex-col relative">
+        <div class="bg-[#2E4077] p-5 text-center text-white">
+            <h1 class="text-lg font-black italic">🛡️ 성의교정 통합 시스템</h1>
+            <p id="clock" class="text-[10px] opacity-70 mt-1 font-bold">데이터 연결 중...</p>
+        </div>
+
+        <div class="flex border-b bg-slate-50 sticky top-0 z-50">
+            <button onclick="openTab('status')" id="btn-status" class="nav-tab active flex-1 py-4 text-[11px] font-black">🕒 실시간현황</button>
+            <button onclick="openTab('schedule')" id="btn-schedule" class="nav-tab flex-1 py-4 text-[11px] font-black text-slate-400">📅 근무편성표</button>
+            <button onclick="openTab('calendar')" id="btn-calendar" class="nav-tab flex-1 py-4 text-[11px] font-black text-slate-400">🏥 근무달력</button>
+        </div>
+
+        <div id="status" class="tab-content active p-3 space-y-4"> 
+            <div id="time-msg" class="bg-white p-5 rounded-2xl border text-center font-black text-[#2E4077] shadow-sm">데이터를 불러오는 중입니다...</div>
+            <div id="worker-cards" class="grid grid-cols-2 gap-2"></div>
+            <div class="overflow-hidden rounded-xl border border-slate-200">
+                <table class="custom-table" id="status-table"></table>
+            </div>
+        </div>
+
+        <div id="schedule" class="tab-content p-3">
+            <div class="overflow-hidden rounded-xl border border-slate-200">
+                <table class="custom-table" id="schedule-list"></table>
+            </div>
+        </div>
+
+        <div id="calendar" class="tab-content p-3 space-y-3">
+            <div id="calendarBody"></div>
+        </div>
+    </div>
+
+    <script>
+        // 1. 설정 및 Firebase (오타 수정 완료: vacation_system)
+        firebase.initializeApp({ apiKey: "AIzaSyCXNQ3b9qcaJjQAGua3-vcgRZ2j0wASaXM", projectId: "catholic-security-system" });
+        const db = firebase.firestore();
+        const docRef = db.collection("vacation_system").doc("data");
+
+        let vData = {}, config = { baseDate: '2025-01-01', shifts: ['C', 'A', 'B'] };
+        const DATA_LIST = [["07:00", "08:00", "보안실", "로비", "로비", "휴게"], ["08:00", "09:00", "보안실", "휴게", "휴게", "로비"], ["09:00", "10:00", "보안실", "순찰", "휴게", "로비"], ["10:00", "11:00", "휴게", "보안실", "로비", "휴게"], ["11:00", "12:00", "보안실", "중식", "로비", "중식"], ["12:00", "13:00", "중식", "보안실", "중식", "로비"], ["13:00", "14:00", "보안실", "휴게", "순찰", "로비"], ["14:00", "15:00", "순찰", "보안실", "로비", "휴게"], ["15:00", "16:00", "보안실", "휴게", "로비", "휴게"], ["16:00", "17:00", "휴게", "보안실", "휴게", "로비"], ["17:00", "18:00", "보안실", "휴게", "휴게", "로비"], ["18:00", "19:00", "보안실", "석식", "로비", "석식"], ["19:00", "20:00", "보안실", "보안실", "석식", "로비"], ["20:00", "21:00", "석식", "보안실", "로비", "휴게"], ["21:00", "22:00", "보안실", "순찰", "로비", "휴게"], ["22:00", "23:00", "순찰", "보안실", "순찰", "로비"], ["23:00", "00:00", "보안실", "휴게", "휴게", "로비"], ["00:00", "01:00", "보안실", "휴게", "휴게", "로비"], ["01:00", "01:40", "보안실", "휴게", "휴게", "로비"], ["01:40", "02:00", "보안실", "보안실", "로비", "로비"], ["02:00", "03:00", "휴게", "보안실", "로비", "휴게"], ["03:00", "04:00", "휴게", "보안실", "로비", "휴게"], ["04:00", "05:00", "휴게", "보안실", "로비", "휴게"], ["05:00", "06:00", "보안실", "순찰", "로비", "순찰"], ["06:00", "07:00", "보안실", "정리", "로비", "정리"]];
+
+        // 2. 연차 판별 (이미지 1의 "8, 14" 텍스트 대응)
+        function checkV(name, date) {
+            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const day = String(date.getDate());
+            if (!vData[key] || !vData[key][name]) return false;
+            return String(vData[key][name]).split(',').map(v => v.trim()).includes(day);
+        }
+
+        // 3. 근무자 로직 (의산연 연차 시 회관 교대)
+        function getWorkers(date) {
+            const base = new Date(config.baseDate); base.setHours(0,0,0,0);
+            const target = new Date(date); target.setHours(0,0,0,0);
+            const diffDays = Math.round((target - base) / 86400000);
+            const dutyCount = Math.floor(diffDays / 3);
+            const members = ["김태언", "이정석", "이태원"];
+            const hallIdx = Math.floor(((dutyCount % 6) + 6) % 6 / 2);
+            let hallW = members[hallIdx], medA, medB;
+            const remains = members.filter(m => m !== hallW);
+            [medA, medB] = (dutyCount % 2 === 0) ? remains : [remains[1], remains[0]];
+
+            if (checkV(medA, target)) [hallW, medA] = [medA, hallW];
+            else if (checkV(medB, target)) [hallW, medB] = [medB, hallW];
+
+            return [
+                {p:"조장", n:"황재업", v:checkV("황재업", target)},
+                {p:"회관", n:hallW, v:checkV(hallW, target)},
+                {p:"의산A", n:medA, v:checkV(medA, target)},
+                {p:"의산B", n:medB, v:checkV(medB, target)}
+            ];
+        }
+
+        function getShiftName(date) {
+            const base = new Date(config.baseDate); base.setHours(0,0,0,0);
+            const diff = Math.round((new Date(date).setHours(0,0,0,0) - base) / 86400000);
+            return config.shifts[((diff % 3) + 3) % 3];
+        }
+
+        // 4. 화면 렌더링
+        function renderStatus() {
+            const now = new Date();
+            const sName = getShiftName(now);
+            const ws = getWorkers(now);
+            document.getElementById('time-msg').innerText = sName === 'C' ? "🛡️ 현재 C조 근무 중" : "☕ 오늘은 C조 휴무일";
+            document.getElementById('worker-cards').innerHTML = ws.map(w => `
+                <div class="bg-white p-3 rounded-xl border ${w.v?'is-vocation':''}" style="border-left:5px solid #2E4077">
+                    <div class="text-[10px] font-bold text-slate-400">${w.p}</div>
+                    <div class="text-sm font-black">${w.n}</div>
+                </div>`).join('');
+            let h = `<thead><tr><th>시간</th><th>조장</th><th>회관</th><th>의산A</th><th>의산B</th></tr></thead><tbody>`;
+            DATA_LIST.forEach(r => { h += `<tr><td>${r[0]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td></tr>`; });
+            document.getElementById('status-table').innerHTML = h + "</tbody>";
+        }
+
+        function renderSchedule() {
+            let h = `<thead><tr><th>날짜</th><th>조장</th><th>회관</th><th>의산A</th><th>의산B</th></tr></thead><tbody>`;
+            let d = new Date(); d.setHours(12,0,0,0);
+            for(let i=0; i<30; i++) {
+                let t = new Date(d); t.setDate(d.getDate()+i);
+                if(getShiftName(t) === 'C') {
+                    const ws = getWorkers(t);
+                    h += `<tr><td class="bg-slate-50 font-bold">${t.getMonth()+1}/${t.getDate()}</td>` + 
+                         ws.map(w => `<td class="${w.v?'text-red-500 font-bold':''}">${w.n}${w.v?'🚩':''}</td>`).join('') + `</tr>`;
+                }
+            }
+            document.getElementById('schedule-list').innerHTML = h + "</tbody>";
+        }
+
+        function openTab(id) {
+            document.querySelectorAll('.tab-content, .nav-tab').forEach(el => el.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.getElementById('btn-'+id).classList.add('active');
+            if(id === 'status') renderStatus();
+            else if(id === 'schedule') renderSchedule();
+        }
+
+        window.onload = () => {
+            docRef.onSnapshot(doc => {
+                if (doc.exists) {
+                    vData = doc.data().vacation || {};
+                    openTab('status');
+                }
+            });
+            setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleString(); }, 1000);
+        };
+    </script>
+</body>
+</html>
