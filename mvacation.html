@@ -27,7 +27,7 @@
         .pos-text { font-size: 7px; font-weight: 900; color: #64748b; margin-top: -3px; }
         .name { font-size: 13px; font-weight: 900; color: #1e293b; line-height: 1.1; }
         
-        /* 조명칭 파스텔톤 */
+        /* 조명칭 파스텔톤 배경 */
         .row-A .tab-cell { background: #ffeaa7; color: #d6a312; } 
         .row-B .tab-cell { background: #ffcccc; color: #cc3333; } 
         .row-C .tab-cell { background: #dff9fb; color: #30336b; } 
@@ -41,20 +41,22 @@
         #modal, #listModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 15px; }
         .modal-content { background: white; width: 100%; max-width: 400px; border-radius: 16px; padding: 16px; max-height: 85vh; overflow-y: auto; }
 
-        /* 입력 모달 (격자형 + 토글 기능) */
+        /* 격자형 입력 모달 디자인 */
         .month-input-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
-        .input-box { background: #f8fafc; padding: 5px; border-radius: 6px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; align-items: center; }
-        .input-box label { font-size: 11px; font-weight: 900; color: #64748b; margin-bottom: 2px; cursor: pointer; }
+        .input-box { background: #f8fafc; padding: 5px; border-radius: 6px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .input-box.active { border-color: #6366f1; background: #eef2ff; }
+        .input-box label { font-size: 11px; font-weight: 900; color: #64748b; margin-bottom: 2px; pointer-events: none; }
         .input-box input { width: 100%; text-align: center; font-weight: 900; color: #2563eb; font-size: 12px; background: transparent; outline: none; border: none; margin-bottom: 2px; }
         .input-box input:disabled { color: #94a3b8; }
-        .btn-toggle { font-size: 10px; font-weight: 900; padding: 2px 0; border-radius: 3px; color: white; width: 100%; }
-        .btn-edit { background: #6366f1; }
-        .btn-save { background: #10b981; }
+        .status-tag { font-size: 9px; font-weight: 900; padding: 1px 6px; border-radius: 3px; color: white; width: 100%; text-align: center; }
+        .tag-lock { background: #94a3b8; }
+        .tag-edit { background: #10b981; }
 
-        /* 리스트 스타일 */
-        .list-item { display: flex; align-items: center; gap: 4px; padding: 6px; background: white; border-bottom: 1px solid #f1f3f5; font-size: 12px; font-weight: 900; }
-        .badge-g { font-size: 10px; padding: 1px 4px; border-radius: 3px; color: white; min-width: 18px; text-align: center; }
-        .badge-b { font-size: 10px; padding: 1px 5px; border-radius: 3px; color: white; }
+        /* 연차 리스트 스타일 */
+        .list-item { display: flex; align-items: center; gap: 4px; padding: 6px; background: white; border-bottom: 1px solid #f1f3f5; font-size: 11px; font-weight: 900; }
+        .badge-date { font-size: 11px; color: #2563eb; min-width: 65px; }
+        .badge-g { font-size: 9px; padding: 1px 4px; border-radius: 3px; color: white; min-width: 18px; text-align: center; }
+        .badge-b { font-size: 9px; padding: 1px 5px; border-radius: 3px; color: white; }
     </style>
 </head>
 <body class="p-2">
@@ -65,7 +67,7 @@
             </div>
             <div class="flex items-center gap-2">
                 <select id="monthSelect" class="flex-1 border border-slate-200 bg-slate-50 outline-none" onchange="showMonthlyList()">
-                    <option value="">월 선택 (명단확인)</option>
+                    <option value="">월 선택 (날짜순 명단확인)</option>
                     <script>for(let i=1; i<=12; i++) document.write(`<option value="${i}">${i}월 연차자</option>`);</script>
                 </select>
                 <a href="calendar.html" class="btn-cal bg-slate-800 text-white flex items-center shadow-sm">근무달력</a>
@@ -89,7 +91,7 @@
         <div class="section-row row-C"><div class="tab-cell">C조</div><div class="grid-area" id="group-C"></div></div>
     </div>
 
-    <div id="modal" onclick="closeModal()"><div class="modal-content" onclick="event.stopPropagation()"><h2 id="modalName" class="font-black text-lg mb-4 text-slate-800 border-b pb-2 text-center"></h2><div class="month-input-grid" id="monthGrid"></div><button onclick="closeModal()" class="w-full mt-4 py-3 bg-slate-800 text-white rounded-xl font-black text-sm">닫기</button></div></div>
+    <div id="modal" onclick="closeModal()"><div class="modal-content" onclick="event.stopPropagation()"><h2 id="modalName" class="font-black text-lg mb-4 text-slate-800 border-b pb-2 text-center"></h2><div class="month-input-grid" id="monthGrid"></div><button onclick="closeModal()" class="w-full mt-4 py-3 bg-slate-800 text-white rounded-xl font-black text-sm">입력 완료 및 닫기</button></div></div>
     <div id="listModal" onclick="this.style.display='none'"><div class="modal-content" onclick="event.stopPropagation()"><div id="listContainer"></div></div></div>
 
     <script>
@@ -144,28 +146,31 @@
                 const mk = `2026-${String(i).padStart(2,'0')}`;
                 const val = allVData[mk]?.[activeUser] || "";
                 grid.innerHTML += `
-                <div class="input-box">
-                    <label onclick="toggleEdit('${mk}')">${i}월</label>
-                    <input type="text" id="input-${mk}" value="${val}" disabled>
-                    <button id="btn-${mk}" onclick="toggleEdit('${mk}')" class="btn-toggle btn-edit">수정</button>
+                <div class="input-box" id="box-${mk}" onclick="toggleBoxEdit('${mk}')">
+                    <label>${i}월</label>
+                    <input type="text" id="input-${mk}" value="${val}" disabled onclick="event.stopPropagation()">
+                    <div id="status-${mk}" class="status-tag tag-lock">잠김/저장</div>
                 </div>`;
             }
             document.getElementById('modal').style.display = 'flex';
         }
 
-        async function toggleEdit(mk) {
+        async function toggleBoxEdit(mk) {
+            const box = document.getElementById(`box-${mk}`);
             const input = document.getElementById(`input-${mk}`);
-            const btn = document.getElementById(`btn-${mk}`);
-            if (input.disabled) {
-                input.disabled = false; input.focus();
-                btn.innerText = "저장"; btn.className = "btn-toggle btn-save";
-            } else {
+            const status = document.getElementById(`status-${mk}`);
+            
+            if (input.disabled) { // 수정 모드로 전환
+                input.disabled = false; box.classList.add('active');
+                status.innerText = "수정 입력중"; status.className = "status-tag tag-edit";
+                input.focus();
+            } else { // 저장 및 잠금 모드로 전환
                 const val = input.value;
                 if(!allVData[mk]) allVData[mk] = {};
                 allVData[mk][activeUser] = val;
                 await docRef.update({ vocation: allVData });
-                input.disabled = true;
-                btn.innerText = "수정"; btn.className = "btn-toggle btn-edit";
+                input.disabled = true; box.classList.remove('active');
+                status.innerText = "잠김/저장"; status.className = "status-tag tag-lock";
             }
         }
 
@@ -178,32 +183,36 @@
             const allMembers = [{n:'이규용', t:'sung', g:'-'}, {n:'박상현', t:'-', g:'-'}, {n:'유정수', t:'sung', g:'-'}, {n:'오제준', t:'omni', g:'-'}, ...members.A.map(x=>({...x, g:'A'})), ...members.B.map(x=>({...x, g:'B'})), ...members.C.map(x=>({...x, g:'C'}))];
             
             const dateMap = {};
+            const days = ["일", "월", "화", "수", "목", "금", "토"];
             Object.entries(rawData).forEach(([name, dates]) => {
                 if(!dates.trim()) return;
                 const info = allMembers.find(x => x.n === name);
                 dates.split(',').forEach(d => {
-                    const day = d.trim(); if(!day) return;
-                    if(!dateMap[day]) dateMap[day] = [];
-                    dateMap[day].push({ name, info });
+                    const dayNum = d.trim(); if(!dayNum) return;
+                    const dateObj = new Date(2026, parseInt(m)-1, parseInt(dayNum));
+                    const dayLabel = days[dateObj.getDay()];
+                    const key = `${dayNum}(${dayLabel})`;
+                    if(!dateMap[key]) dateMap[key] = [];
+                    dateMap[key].push({ name, info, dayInt: parseInt(dayNum) });
                 });
             });
 
-            let html = `<h2 class="text-lg font-black mb-3 text-slate-800 text-center">${m}월 연차자 명단</h2><div class="space-y-1">`;
-            const sortedDates = Object.keys(dateMap).sort((a,b) => parseInt(a) - parseInt(b));
+            let html = `<h2 class="text-lg font-black mb-3 text-slate-800 text-center">${m}월 연차자 현황</h2><div class="space-y-1">`;
+            const sortedKeys = Object.keys(dateMap).sort((a,b) => parseInt(a) - parseInt(b));
             
-            if(sortedDates.length === 0) html += `<div class="text-center py-6 text-slate-400 font-bold text-sm">등록된 연차가 없습니다.</div>`;
+            if(sortedKeys.length === 0) html += `<div class="text-center py-6 text-slate-400 font-bold text-sm">등록된 연차가 없습니다.</div>`;
             else {
-                sortedDates.forEach(date => {
-                    const people = dateMap[date];
+                sortedKeys.forEach(key => {
+                    const people = dateMap[key];
                     const sungNames = people.filter(p => p.info.t === 'sung').map(p=>p.name).join(',');
                     const omniNames = people.filter(p => p.info.t === 'omni').map(p=>p.name).join(',');
-                    const gBadge = people[0].info.g;
-                    const gColor = gBadge === 'A' ? '#f59e0b' : gBadge === 'B' ? '#ef4444' : (gBadge === 'C' ? '#3b82f6' : '#64748b');
+                    const representative = people[0].info.g;
+                    const gColor = representative === 'A' ? '#f59e0b' : representative === 'B' ? '#ef4444' : (representative === 'C' ? '#3b82f6' : '#64748b');
 
                     html += `
                     <div class="list-item">
-                        <span class="badge-date w-12 text-blue-600">${m}/${date}(요일)</span>
-                        <span class="badge-g" style="background:${gColor}">${gBadge}</span>
+                        <span class="badge-date text-blue-600 font-black">${m}/${key}</span>
+                        <span class="badge-g" style="background:${gColor}">${representative}</span>
                         <span class="badge-b bg-[#a855f7]">성의</span> <span class="flex-grow">${sungNames || '-'}</span>
                         <span class="badge-b bg-[#f97316]">옴니</span> <span class="flex-grow">${omniNames || '-'}</span>
                     </div>`;
