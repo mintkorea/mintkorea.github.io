@@ -10,53 +10,45 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
-        /* 헤더 여백 축소 */
         .unified-header { background: white; border-radius: 0.75rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; }
-        
         #monthSelect { font-size: 12px !important; font-weight: 700; padding: 0 4px !important; height: 30px !important; border-radius: 4px; }
         .btn-cal { height: 30px !important; padding: 0 8px !important; font-size: 12px !important; font-weight: 900; border-radius: 4px; }
 
         .section-row { display: flex; background: #fff; border-radius: 6px; margin-bottom: 3px; border: 1px solid #f1f3f5; overflow: hidden; }
-        .tab-cell { width: 42px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #495057; background: #f1f3f5; flex-shrink: 0; }
-        
-        /* 카드 영역 여백 축소 */
+        .tab-cell { width: 42px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: white; flex-shrink: 0; }
         .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 4px; padding: 4px; }
         
-        .span-2-center { grid-column: span 2; display: flex; justify-content: center; align-items: center; }
-        .span-2-center .card { width: 100%; max-width: 120px; } 
+        /* 카드 높이 7% 증가 (약 34px -> 36.5px) 및 조별 배경색 제거 */
+        .card { border-radius: 4px; height: 36.5px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; border-width: 2px !important; background-color: #fff; }
+        
+        /* 아웃라인 컬러 고정 (성의: 베이지, 옴니: 녹색, 지휘부: 회색) */
+        .border-sung { border-color: #e5dbcd !important; }
+        .border-omni { border-color: #c9decb !important; }
+        .border-leader { border-color: #cbd5e1 !important; }
 
-        /* 카드 높이 축소 및 기본 스타일 */
-        .card { border-radius: 4px; height: 34px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; border-width: 2px !important; transition: opacity 0.1s; }
-        .card:active { opacity: 0.7; }
-
-        /* [핵심] 조별 칼라코드 적용 (스크린샷 배지 색상 기준) */
-        .row-A .card { background-color: #fef3c7; border-color: #f59e0b !important; } /* A조: 주황/노랑 */
-        .row-B .card { background-color: #fee2e2; border-color: #ef4444 !important; } /* B조: 빨강 */
-        .row-C .card { background-color: #dbeafe; border-color: #3b82f6 !important; } /* C조: 파랑 */
-        .border-leader { border-color: #cbd5e1 !important; background-color: #f8fafc; }
+        .name { font-size: 13px; font-weight: 900; color: #1e293b; }
+        /* 카드 내 조 이름 표시 */
+        .group-tag { position: absolute; top: 1px; left: 2px; font-size: 7px; font-weight: 900; }
+        .tag-A { color: #f59e0b; } .tag-B { color: #ef4444; } .tag-C { color: #3b82f6; }
 
         .label-building { font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center; height: 28px; border-radius: 4px; width: 100%; }
         .bg-sung { background-color: #f3ece3; color: #5d564f; border: 1px solid #e5dbcd; }
         .bg-omni { background-color: #d9eada; color: #4d5d4d; border: 1px solid #c9decb; }
 
-        .pos { font-size: 7px; font-weight: 900; color: #64748b; margin-top: -2px; }
-        .name { font-size: 13px; font-weight: 900; color: #1e293b; line-height: 1; }
-        
-        /* 뱃지 위치 및 크기 조정 */
         .v-badge { position: absolute; top: -5px; right: -3px; background: #ef4444; color: white; font-size: 9px; font-weight: 900; min-width: 16px; height: 16px; border-radius: 8px; display: none; align-items: center; justify-content: center; border: 1px solid white; z-index: 10; }
         
-        .row-A .tab-cell { background: #f59e0b; color: white; }
-        .row-B .tab-cell { background: #ef4444; color: white; }
-        .row-C .tab-cell { background: #3b82f6; color: white; }
+        .row-A .tab-cell { background: #f59e0b; } .row-B .tab-cell { background: #ef4444; } .row-C .tab-cell { background: #3b82f6; }
 
         #modal, #listModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 15px; }
         .modal-content { background: white; width: 100%; max-width: 400px; border-radius: 16px; padding: 16px; max-height: 85vh; overflow-y: auto; }
-        
-        /* 리스트 배지 스타일 */
-        .badge-group { font-size: 10px; font-weight: 900; padding: 1px 5px; border-radius: 3px; color: white; margin: 0 2px; }
-        .badge-loc { font-size: 10px; font-weight: 900; padding: 1px 5px; border-radius: 3px; }
-        .loc-sung { background-color: #a855f7; color: white; }
-        .loc-omni { background-color: #f97316; color: white; }
+
+        /* 연차 입력 모달 스타일 (폰트 12px) */
+        .input-row { display: flex; align-items: center; background: #f8fafc; padding: 6px; border-radius: 8px; border: 1px solid #e2e8f0; gap: 4px; }
+        .input-v { flex: 1; text-align: center; font-weight: 700; color: #2563eb; font-size: 12px; background: transparent; outline: none; }
+        .input-v:disabled { color: #64748b; }
+        .btn-toggle { font-size: 10px; font-weight: 900; padding: 4px 8px; border-radius: 4px; color: white; min-width: 45px; }
+        .btn-edit { background: #6366f1; }
+        .btn-save { background: #10b981; }
     </style>
 </head>
 <body class="p-2">
@@ -75,10 +67,10 @@
         </div>
 
         <div class="section-row">
-            <div class="tab-cell">지휘부</div>
+            <div class="tab-cell" style="background:#64748b">지휘부</div>
             <div class="grid-area">
-                <div class="span-2-center"><div class="card border-leader" onclick="openModal('이규용')"><span class="v-badge"></span><span class="pos">보안소장</span><span class="name">이규용</span></div></div>
-                <div class="span-2-center"><div class="card border-leader" onclick="openModal('박상현')"><span class="v-badge"></span><span class="pos">부소장</span><span class="name">박상현</span></div></div>
+                <div class="grid col-span-2 flex justify-center"><div class="card border-leader w-full max-w-[120px]" onclick="openModal('이규용')"><span class="v-badge"></span><span class="name">이규용</span></div></div>
+                <div class="grid col-span-2 flex justify-center"><div class="card border-leader w-full max-w-[120px]" onclick="openModal('박상현')"><span class="v-badge"></span><span class="name">박상현</span></div></div>
             </div>
         </div>
 
@@ -87,10 +79,10 @@
         </div></div>
 
         <div class="section-row">
-            <div class="tab-cell">반장</div>
+            <div class="tab-cell" style="background:#475569">반장</div>
             <div class="grid-area">
-                <div class="span-2-center"><div class="card" style="border-color:#e5dbcd !important; background-color:#fefce8;" onclick="openModal('유정수')"><span class="v-badge"></span><span class="name">유정수</span></div></div>
-                <div class="span-2-center"><div class="card" style="border-color:#c9decb !important; background-color:#f0fdf4;" onclick="openModal('오제준')"><span class="v-badge"></span><span class="name">오제준</span></div></div>
+                <div class="grid col-span-2 flex justify-center"><div class="card border-sung w-full max-w-[120px]" onclick="openModal('유정수')"><span class="v-badge"></span><span class="name">유정수</span></div></div>
+                <div class="grid col-span-2 flex justify-center"><div class="card border-omni w-full max-w-[120px]" onclick="openModal('오제준')"><span class="v-badge"></span><span class="name">오제준</span></div></div>
             </div>
         </div>
 
@@ -99,8 +91,8 @@
         <div class="section-row row-C"><div class="tab-cell">C조</div><div class="grid-area" id="group-C"></div></div>
     </div>
 
+    <div id="modal" onclick="closeModal()"><div class="modal-content" onclick="event.stopPropagation()"><h2 id="modalName" class="font-black text-lg mb-4 text-slate-800 border-b pb-2"></h2><div class="grid grid-cols-1 gap-2" id="monthGrid"></div><button onclick="closeModal()" class="w-full mt-4 py-3 bg-slate-800 text-white rounded-xl font-black text-sm">닫기</button></div></div>
     <div id="listModal" onclick="this.style.display='none'"><div class="modal-content" onclick="event.stopPropagation()"><div id="listContainer"></div></div></div>
-    <div id="modal" onclick="closeModal()"><div class="modal-content" onclick="event.stopPropagation()"><h2 id="modalName" class="font-black text-lg mb-4 text-slate-800"></h2><div class="grid grid-cols-3 gap-2" id="monthGrid"></div><button onclick="closeModal()" class="w-full mt-4 py-3 bg-slate-100 rounded-xl font-bold text-slate-600">닫기</button></div></div>
 
     <script>
         const members = {
@@ -114,7 +106,8 @@
                 const container = document.getElementById(`group-${g}`);
                 let html = '';
                 members[g].forEach(m => {
-                    html += `<div class="card" onclick="openModal('${m.n}')"><span class="v-badge"></span><span class="name">${m.n}</span></div>`;
+                    const bc = m.t === 'sung' ? 'border-sung' : 'border-omni';
+                    html += `<div class="card ${bc}" onclick="openModal('${m.n}')"><span class="group-tag tag-${g}">${g}</span><span class="v-badge"></span><span class="name">${m.n}</span></div>`;
                 });
                 container.innerHTML = html;
             });
@@ -147,17 +140,44 @@
 
         function openModal(name) {
             activeUser = name;
-            document.getElementById('modalName').innerText = name + " 연차 설정";
+            document.getElementById('modalName').innerText = name + " 연차 설정 (12px)";
             const grid = document.getElementById('monthGrid'); grid.innerHTML = '';
             for(let i=1; i<=12; i++) {
                 const mk = `2026-${String(i).padStart(2,'0')}`;
                 const val = allVData[mk]?.[activeUser] || "";
-                grid.innerHTML += `<div class="bg-slate-50 p-1.5 rounded border border-slate-100 text-center"><div class="text-[9px] font-bold text-slate-400">${i}월</div><input type="text" class="w-full text-center font-bold text-blue-600 outline-none bg-transparent text-sm" value="${val}" onchange="saveData('${mk}', this.value)"></div>`;
+                grid.innerHTML += `
+                <div class="input-row">
+                    <div class="text-[10px] font-bold text-slate-400 w-8">${i}월</div>
+                    <input type="text" id="input-${mk}" class="input-v" value="${val}" disabled placeholder="연차 날짜 입력">
+                    <button id="btn-${mk}" onclick="toggleEdit('${mk}')" class="btn-toggle btn-edit">수정</button>
+                </div>`;
             }
             document.getElementById('modal').style.display = 'flex';
         }
 
-        async function saveData(mk, val) { if(!allVData[mk]) allVData[mk] = {}; allVData[mk][activeUser] = val; await docRef.update({ vocation: allVData }); }
+        async function toggleEdit(mk) {
+            const input = document.getElementById(`input-${mk}`);
+            const btn = document.getElementById(`btn-${mk}`);
+            
+            if (input.disabled) {
+                // 수정 모드로 전환
+                input.disabled = false;
+                input.focus();
+                btn.innerText = "저장";
+                btn.className = "btn-toggle btn-save";
+            } else {
+                // 저장 및 잠금 모드로 전환
+                const val = input.value;
+                if(!allVData[mk]) allVData[mk] = {};
+                allVData[mk][activeUser] = val;
+                await docRef.update({ vocation: allVData });
+                
+                input.disabled = true;
+                btn.innerText = "수정";
+                btn.className = "btn-toggle btn-edit";
+            }
+        }
+
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
         function showMonthlyList() {
@@ -166,30 +186,18 @@
             const data = allVData[mk] || {};
             let html = `<h2 class="text-lg font-black mb-3 text-slate-800">${m}월 연차자 명단</h2><div class="space-y-1.5">`;
             let hasData = false;
-            
             const allMembers = [
                 {n:'이규용', t:'sung', g:'-'}, {n:'박상현', t:'-', g:'-'}, {n:'유정수', t:'sung', g:'-'}, {n:'오제준', t:'omni', g:'-'},
                 ...members.A.map(x=>({...x, g:'A'})), ...members.B.map(x=>({...x, g:'B'})), ...members.C.map(x=>({...x, g:'C'}))
             ];
-
             Object.entries(data).sort().forEach(([name, dates]) => {
                 if(dates.trim()) {
                     const info = allMembers.find(x => x.n === name);
                     const gColor = info?.g === 'A' ? '#f59e0b' : info?.g === 'B' ? '#ef4444' : (info?.g === 'C' ? '#3b82f6' : '#64748b');
-                    const locClass = info?.t === 'sung' ? 'loc-sung' : 'loc-omni';
-                    const locName = info?.t === 'sung' ? '성의' : (info?.t === 'omni' ? '옴니' : '-');
-
-                    html += `
-                    <div class="flex items-center p-2 bg-white border border-slate-200 rounded-lg shadow-sm">
-                        <span class="text-blue-600 font-black text-xs min-w-[40px]">${dates}</span>
-                        ${info?.g !== '-' ? `<span class="badge-group" style="background-color:${gColor}">${info.g}</span>` : ''}
-                        ${info?.t ? `<span class="badge-loc ${locClass}">${locName}</span>` : ''}
-                        <span class="flex-1 text-right font-black text-slate-800 text-sm">${name}</span>
-                    </div>`;
+                    html += `<div class="flex items-center p-2 bg-white border border-slate-200 rounded-lg shadow-sm"><span class="text-blue-600 font-black text-xs min-w-[40px]">${dates}</span><span class="badge-group" style="background-color:${gColor}; font-size:10px; color:white; padding:1px 5px; border-radius:3px; margin:0 4px;">${info?.g}</span><span class="flex-1 text-right font-black text-slate-800 text-sm">${name}</span></div>`;
                     hasData = true;
                 }
             });
-            
             if(!hasData) html += `<div class="text-center py-6 text-slate-400 font-bold text-sm">등록된 연차가 없습니다.</div>`;
             html += `</div><button onclick="document.getElementById('listModal').style.display='none'" class="w-full mt-4 py-3 bg-slate-800 text-white rounded-xl font-black text-sm">확인</button>`;
             document.getElementById('listContainer').innerHTML = html;
