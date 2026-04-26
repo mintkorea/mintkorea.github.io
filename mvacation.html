@@ -1,214 +1,35 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
-        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        
-        .unified-header { background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e5e7eb; padding: 1.25rem; margin-bottom: 1rem; }
-        
-        .section-row { display: flex; background: #fff; border-radius: 8px; margin-bottom: 4px; border: 1px solid #f1f3f5; overflow: hidden; }
-        .tab-cell { width: 48px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; color: #495057; background: #f1f3f5; flex-shrink: 0; }
-        .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 8px; padding: 8px; }
-        
-        /* [수정] 상단 소장/반장 카드 크기 최적화 (절반 크기) */
-        .half-grid { grid-template-columns: repeat(2, 1fr) !important; }
-        .card { background: #fff; border-radius: 6px; height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; border-width: 2.5px !important; }
-        
-        /* 아웃라인 색상 구분 */
-        .border-sung { border-color: #e5dbcd !important; }  /* 성의: 베이지 */
-        .border-omni { border-color: #c9decb !important; }  /* 옴니: 녹색 */
-        .border-leader { border-color: #cbd5e1 !important; } /* 지휘부: 회색 */
+<style>
+    /* 셀렉트 박스 자체 스타일 수정 */
+    #monthSelect {
+        flex: 1;
+        h-10; /* 높이 유지 */
+        border-radius: 0.5rem;
+        border: 1px solid #e2e8f0;
+        padding: 0 0.5rem;
+        font-weight: 700;
+        font-size: 13px; /* 폰트 크기 축소 */
+        color: #475569;
+        background-color: #f8fafc;
+        outline: none;
+        appearance: none; /* 브라우저 기본 스타일 제거 */
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23475569'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='with9 5l7 7-7 7'%3E%3C/path%3E%3C/svg%3E"); /* 화살표 아이콘 추가 */
+        background-repeat: no-repeat;
+        background-position: right 0.5rem center;
+        background-size: 1rem;
+    }
 
-        .label-building { font-size: 13px; font-weight: 900; display: flex; align-items: center; justify-content: center; height: 34px; border-radius: 6px; width: 100%; }
-        .bg-sung { background-color: #f3ece3; color: #5d564f; border: 1px solid #e5dbcd; }
-        .bg-omni { background-color: #d9eada; color: #4d5d4d; border: 1px solid #c9decb; }
+    /* 셀렉트 박스 클릭 시 나타나는 옵션 목록 스타일 (시스템 기본 폰트 영향 최소화) */
+    #monthSelect option {
+        font-size: 12px; /* 옵션 글자 크기 대폭 축소 */
+        padding: 4px 0; /* 줄 간격 좁게 조정 */
+    }
+</style>
 
-        .pos { font-size: 8px; font-weight: 900; color: #64748b; margin-bottom: -1px; }
-        .name { font-size: 15px; font-weight: 900; color: #1e293b; }
-        .v-badge { position: absolute; top: -6px; right: -4px; background: #ef4444; color: white; font-size: 10px; font-weight: 900; min-width: 18px; height: 18px; border-radius: 9px; display: none; align-items: center; justify-content: center; border: 1.5px solid white; z-index: 10; }
-        
-        .row-A .tab-cell { background: #d3f9d8; }
-        .row-B .tab-cell { background: #ffec99; }
-        .row-C .tab-cell { background: #ffc9c9; }
-
-        #modal, #listModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 15px; }
-        .modal-content { background: white; width: 100%; max-width: 420px; border-radius: 20px; padding: 20px; max-height: 80vh; overflow-y: auto; }
-        
-        /* [수정] 리스트 화면 복구용 스타일 */
-        .list-item { display: flex; align-items: center; padding: 12px; background: #f8fafc; border-radius: 12px; margin-bottom: 8px; border: 1px solid #f1f3f5; }
-        .list-date { font-weight: 900; font-size: 15px; color: #334155; width: 80px; }
-        .badge-s { padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 900; margin-right: 6px; color: white; }
-        .badge-b { padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 900; color: white; }
-    </style>
-</head>
-<body class="p-4">
-    <div class="max-w-xl mx-auto">
-        <div class="unified-header">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center gap-2"><h1 class="text-xl font-black text-slate-800">📅 보안 연차 현황</h1></div>
-                <div class="text-[10px] font-bold text-slate-300">● 실시간 연결됨</div>
-            </div>
-            <div class="flex items-center gap-3">
-                <select id="monthSelect" class="flex-1 h-10 rounded-lg border border-slate-200 px-3 font-bold text-slate-600 bg-slate-50 outline-none" onchange="showMonthlyList()">
-                    <option value="">월 선택 (명단확인)</option>
-                    <script>for(let i=1; i<=12; i++) document.write(`<option value="${i}">${i}월 연차자</option>`);</script>
-                </select>
-                <a href="calendar.html" class="bg-slate-800 text-white px-5 h-10 rounded-lg font-bold text-sm flex items-center shadow-sm">근무달력</a>
-            </div>
-        </div>
-
-        <div class="section-row">
-            <div class="tab-cell">지휘부</div>
-            <div class="grid-area half-grid">
-                <div class="card border-leader" onclick="openModal('이규용')"><span class="v-badge"></span><span class="pos">보안소장</span><span class="name">이규용</span></div>
-                <div class="card border-leader" onclick="openModal('박상현')"><span class="v-badge"></span><span class="pos">부소장</span><span class="name">박상현</span></div>
-            </div>
-        </div>
-
-        <div class="flex mb-2 mt-2"><div style="width:48px;"></div><div class="flex flex-grow gap-2 px-2">
-            <div class="label-building bg-sung">성 의 회 관</div><div class="label-building bg-omni">옴니버스 파크</div>
-        </div></div>
-
-        <div class="section-row">
-            <div class="tab-cell">반장</div>
-            <div class="grid-area half-grid">
-                <div class="card border-sung" onclick="openModal('유정수')"><span class="v-badge"></span><span class="name">유정수</span></div>
-                <div class="card border-omni" onclick="openModal('오제준')"><span class="v-badge"></span><span class="name">오제준</span></div>
-            </div>
-        </div>
-
-        <div class="section-row row-A"><div class="tab-cell">A조</div><div class="grid-area" id="group-A"></div></div>
-        <div class="section-row row-B"><div class="tab-cell">B조</div><div class="grid-area" id="group-B"></div></div>
-        <div class="section-row row-C"><div class="tab-cell">C조</div><div class="grid-area" id="group-C"></div></div>
-    </div>
-
-    <div id="listModal" onclick="this.style.display='none'"><div class="modal-content" onclick="event.stopPropagation()"><div id="listContainer"></div></div></div>
-    
-    <div id="modal" onclick="closeModal()"><div class="modal-content" onclick="event.stopPropagation()"><h2 id="modalName" class="font-black text-lg mb-4 text-slate-800 text-center"></h2><div class="grid grid-cols-3 gap-3" id="monthGrid"></div><button onclick="closeModal()" class="w-full mt-6 py-3 bg-slate-100 rounded-xl font-bold text-slate-600">닫기</button></div></div>
-
+<select id="monthSelect" onchange="showMonthlyList()">
+    <option value="">월 선택 (명단확인)</option>
     <script>
-        const members = {
-            'A': { sung: ['배준용','이명구'], omni: ['손병휘','권순호','김영중','김삼동','김전식'] },
-            'B': { sung: ['심규천','임종현'], omni: ['황일범','이상길','권영국','전준수','허용'] },
-            'C': { sung: ['황재업','이태원'], omni: ['피재영','남형민','김태언','이정석','강경훈'] }
-        };
-
-        // 소속/조 매핑 정보 (리스트 복구용)
-        const staffMap = {};
-        ['A','B','C'].forEach(g => {
-            members[g].sung.forEach(n => staffMap[n] = { s: g, b: 'sung', bName: '성의회관' });
-            members[g].omni.forEach(n => staffMap[n] = { s: g, b: 'omni', bName: '옴니버스' });
-        });
-        ['이규용','박상현','유정수','오제준'].forEach(n => staffMap[n] = staffMap[n] || { s: '-', b: n==='오제준'?'omni':'sung', bName: n==='오제준'?'옴니버스':'성의회관' });
-
-        function renderMembers() {
-            ['A','B','C'].forEach(g => {
-                const container = document.getElementById(`group-${g}`);
-                let html = '';
-                members[g].sung.forEach(n => { html += `<div class="card border-sung" onclick="openModal('${n}')"><span class="v-badge"></span><span class="name">${n}</span></div>`; });
-                members[g].omni.forEach(n => { html += `<div class="card border-omni" onclick="openModal('${n}')"><span class="v-badge"></span><span class="name">${n}</span></div>`; });
-                container.innerHTML = html;
-            });
-        }
-        renderMembers();
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyAu38FXMBUgoeYy1GDViTetsJ68ivHsGyM",
-            authDomain: "catholic-security-system.firebaseapp.com",
-            projectId: "catholic-security-system",
-            storageBucket: "catholic-security-system.firebasestorage.app",
-            messagingSenderId: "978946205343",
-            appId: "1:978946205343:web:38c30a21bf0dd522f9a4aa"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const docRef = db.collection("vacation_system").doc("data");
-        let allVData = {};
-        let activeUser = "";
-
-        docRef.onSnapshot(doc => { if (doc.exists) { allVData = doc.data().vocation || {}; updateMainBadges(); } });
-
-        function updateMainBadges() {
-            document.querySelectorAll('.card').forEach(card => {
-                const name = card.querySelector('.name')?.innerText;
-                const badge = card.querySelector('.v-badge');
-                if(!name || !badge) return;
-                let total = 0;
-                for(let m=1; m<=12; m++) {
-                    const mk = `2026-${String(m).padStart(2,'0')}`;
-                    const val = allVData[mk]?.[name] || "";
-                    if(val) total += val.split(',').filter(x => x.trim()).length;
-                }
-                if(total > 0) { badge.innerText = total; badge.style.display = 'flex'; }
-                else { badge.style.display = 'none'; }
-            });
-        }
-
-        function openModal(name) {
-            activeUser = name;
-            document.getElementById('modalName').innerText = name + " 연차 설정";
-            const grid = document.getElementById('monthGrid'); grid.innerHTML = '';
-            for(let i=1; i<=12; i++) {
-                const mk = `2026-${String(i).padStart(2,'0')}`;
-                const val = allVData[mk]?.[activeUser] || "";
-                grid.innerHTML += `<div class="bg-slate-50 p-2 rounded-lg border border-slate-100 text-center"><div class="text-[10px] font-bold text-slate-400">${i}월</div><input type="text" class="w-full text-center font-bold text-blue-600 outline-none bg-transparent" value="${val}" onchange="saveData('${mk}', this.value)"></div>`;
-            }
-            document.getElementById('modal').style.display = 'flex';
-        }
-
-        async function saveData(mk, val) {
-            if(!allVData[mk]) allVData[mk] = {};
-            allVData[mk][activeUser] = val;
-            await docRef.update({ vocation: allVData });
-        }
-        function closeModal() { document.getElementById('modal').style.display = 'none'; }
-
-        // [복구] 고퀄리티 연차자 리스트 출력 함수
-        function showMonthlyList() {
-            const m = document.getElementById('monthSelect').value;
-            if(!m) return;
-            const mk = `2026-${m.padStart(2,'0')}`;
-            const data = allVData[mk] || {};
-            let list = [];
-            Object.entries(data).forEach(([name, dates]) => {
-                if(dates.trim()) {
-                    dates.split(',').forEach(d => {
-                        const day = d.trim();
-                        if(day) {
-                            const dateObj = new Date(2026, m-1, day);
-                            const week = ['일','월','화','수','목','금','토'][dateObj.getDay()];
-                            list.push({ name, day: parseInt(day), week, ...staffMap[name] });
-                        }
-                    });
-                }
-            });
-            list.sort((a,b) => a.day - b.day);
-
-            let html = `<div class="flex justify-between items-center mb-6"><h2 class="text-xl font-black">${m}월 연차자 명단</h2><button class="text-xs font-bold text-slate-400">과거포함 보기</button></div>`;
-            if(list.length === 0) html += `<div class="text-center py-10 text-slate-400">데이터가 없습니다.</div>`;
-            
-            list.forEach(item => {
-                const sColor = item.s==='A'?'bg-green-500':item.s==='B'?'bg-orange-400':'bg-red-400';
-                const bColor = item.b==='sung'?'bg-purple-500':'bg-orange-500';
-                html += `
-                <div class="list-item">
-                    <div class="list-date">${m}/${item.day} (${item.week})</div>
-                    <span class="badge-s ${sColor}">${item.s}</span>
-                    <span class="badge-b ${bColor}">${item.bName}</span>
-                    <div class="ml-auto font-black text-slate-800 text-lg">${item.name}</div>
-                </div>`;
-            });
-            
-            html += `<button onclick="document.getElementById('listModal').style.display='none'" class="w-full mt-6 py-4 bg-slate-800 text-white rounded-xl font-bold">확인</button>`;
-            document.getElementById('listContainer').innerHTML = html;
-            document.getElementById('listModal').style.display = 'flex';
+        for(let i=1; i<=12; i++) {
+            document.write(`<option value="${i}">${i}월 연차자</option>`);
         }
     </script>
-</body>
-</html>
+</select>
