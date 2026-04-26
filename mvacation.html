@@ -3,80 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>보안 연차 관리</title>
+    <title>보안 연차 현황</title>
     <style>
         :root { 
-            --bg: #f1f3f5; 
+            --calendar-blue: #007bff; /* 달력 이미지의 메인 파란색 */
+            --bg: #ffffff; 
             --color-seongui: #f3ece3; --color-omnibus: #d9eada;
             --color-a: #d3f9d8; --color-b: #ffec99; --color-c: #ffc9c9;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; line-height: 1.2; }
-        body { background: var(--bg); padding: 4px; overflow: hidden; } /* 스크롤 방지 */
-        .app-container { max-width: 500px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; }
+        body { background: #fff; padding: 0; overflow: hidden; } /* 여백 제거 및 스크롤 방지 */
         
-        /* 상단 헤더 압축 */
-        .calendar-header {
-            display: flex; justify-content: space-between; align-items: center;
-            background: #fff; padding: 6px 10px; border-radius: 8px; margin-bottom: 4px; border: 1px solid #dee2e6;
+        .app-container { max-width: 500px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; }
+
+        /* [핵심] 달력 이미지와 동일한 스타일의 헤더 */
+        .header-bar {
+            background-color: var(--calendar-blue);
+            height: 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            color: #fff;
         }
-        .select-box { padding: 2px 6px; border-radius: 6px; border: 1.5px solid #339af0; font-size: 14px; font-weight: 900; color: #339af0; outline: none; }
-        .header-title { font-size: 16px; font-weight: 900; color: #212529; }
-        .calendar-link-btn { text-decoration: none; background: #f8f9fa; color: #495057; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; border: 1px solid #dee2e6; }
+        .header-title { font-size: 18px; font-weight: bold; }
+        .month-nav { display: flex; align-items: center; gap: 20px; font-size: 18px; font-weight: bold; }
+        .nav-arrow { cursor: pointer; font-size: 20px; padding: 5px; }
+        .calendar-btn { font-size: 14px; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 4px; color: #fff; text-decoration: none; }
+
+        /* 메인 컨텐츠 영역 */
+        .content { padding: 4px; flex-grow: 1; }
 
         .section-row { 
-            display: flex; background: #fff; border-radius: 8px; 
-            margin-bottom: 3px; overflow: hidden; border: 1px solid #eef0f2;
+            display: flex; background: #fff; border-radius: 6px; 
+            margin-bottom: 2px; overflow: hidden; border: 1px solid #eef0f2;
         }
         .tab-cell { 
-            width: 42px; display: flex; align-items: center; justify-content: center; 
+            width: 40px; display: flex; align-items: center; justify-content: center; 
             font-weight: 900; font-size: 10px; color: #495057; background: #f1f3f5; flex-shrink: 0;
         }
-        .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 2px; padding: 3px; }
+        .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 2px; padding: 2px; }
 
-        /* 건물 배지: 크기 확대 및 칼라 */
         .label-building { 
-            grid-column: span 2; font-size: 13px; font-weight: 900; 
+            grid-column: span 2; font-size: 12px; font-weight: 900; 
             display: flex; align-items: center; justify-content: center; 
-            height: 28px; border-radius: 4px; margin-bottom: 1px;
+            height: 26px; border-radius: 4px;
         }
         .label-seongui { background: var(--color-seongui); color: #5d564f; border: 1px solid #dcd4c9; }
         .label-omnibus { background: var(--color-omnibus); color: #4d5d4d; border: 1px solid #c2d5c3; }
 
-        /* 카드: 높이 최소 압축 ★★★ */
         .card { 
-            background: #fff; border-radius: 4px; height: 32px; 
+            background: #fff; border-radius: 4px; height: 30px; 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             border: 1px solid #eee; width: 100%;
         }
-        .pos { font-size: 7px; color: #339af0; font-weight: bold; margin-bottom: -2px; }
+        .pos { font-size: 7px; color: #339af0; font-weight: bold; margin-top: -2px; }
         .name { font-size: 14px; font-weight: 900; color: #212529; }
 
-        /* 중앙 정렬: 50% 빈칸 적용 */
-        .center-grid { display: grid; grid-template-columns: 0.5fr 1fr 0.5fr 0.5fr 1fr 0.5fr; flex-grow: 1; gap: 2px; padding: 3px; }
+        .center-grid { display: grid; grid-template-columns: 0.5fr 1fr 0.5fr 0.5fr 1fr 0.5fr; flex-grow: 1; gap: 2px; padding: 2px; }
 
         .row-A .tab-cell { background: var(--color-a); }
         .row-B .tab-cell { background: var(--color-b); }
         .row-C .tab-cell { background: var(--color-c); }
-        .empty-card { height: 32px; width: 100%; background: transparent; border: none; }
+        .empty-card { height: 30px; width: 100%; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
-    <div class="calendar-header">
-        <select class="select-box"><option selected>4월</option></select>
+    <div class="header-bar">
+        <div class="month-nav">
+            <span class="nav-arrow">〈</span>
+            <span>2026.04</span>
+            <span class="nav-arrow">〉</span>
+        </div>
         <div class="header-title">보안 연차 현황</div>
-        <a href="#" class="calendar-link-btn">근무달력 🔗</a>
+        <a href="#" class="calendar-btn">달력</a>
     </div>
 
-    <div id="main-content">
+    <div class="content">
         <div class="section-row"><div class="tab-cell">지휘부</div><div class="center-grid">
             <div class="empty-card"></div><div class="card"><span class="pos">보안소장</span><span class="name">이규용</span></div><div class="empty-card"></div>
             <div class="empty-card"></div><div class="card"><span class="pos">부소장</span><span class="name">박상현</span></div><div class="empty-card"></div>
         </div></div>
 
-        <div style="display:flex; margin-bottom:1px;"><div style="width:42px;"></div>
-            <div class="grid-area" style="padding:0 3px;">
+        <div style="display:flex; margin: 1px 0;"><div style="width:40px;"></div>
+            <div class="grid-area" style="padding:0 2px;">
                 <div class="label-building label-seongui">성 의 회 관</div><div class="label-building label-omnibus">옴 니 버 스 파 크</div>
             </div></div>
 
@@ -85,27 +97,23 @@
             <div class="empty-card"></div><div class="card"><span class="name">오제준</span></div><div class="empty-card"></div>
         </div></div>
 
-        <div id="group-rows"></div>
+        <div id="staff-rows"></div>
     </div>
 </div>
 
 <script>
-    const groups = [
+    const data = [
         { t: "A조", n: ["배준용","이명구","손병휘","권순호","김영중","김삼동","김전식"] },
         { t: "B조", n: ["심규천","임종현","황일범","이상길","권영국","전준수","허용"] },
         { t: "C조", n: ["황재업","이태원","피재영","남형민","김태언","이정석","강경훈"] }
     ];
 
-    let gHtml = '';
-    groups.forEach(g => {
-        gHtml += `<div class="section-row row-${g.t[0]}"><div class="tab-cell">${g.t}</div><div class="grid-area">`;
-        for(let i=0; i<8; i++) {
-            if(g.n[i]) gHtml += `<div class="card"><span class="name">${g.n[i]}</span></div>`;
-            else gHtml += `<div class="empty-card"></div>`;
-        }
-        gHtml += `</div></div>`;
-    });
-    document.getElementById('group-rows').innerHTML = gHtml;
+    document.getElementById('staff-rows').innerHTML = data.map(g => `
+        <div class="section-row row-${g.t[0]}"><div class="tab-cell">${g.t}</div>
+        <div class="grid-area">${Array.from({length:8}, (_,i)=> g.n[i] 
+            ? `<div class="card"><span class="name">${g.n[i]}</span></div>` 
+            : `<div class="empty-card"></div>`).join('')}
+        </div></div>`).join('');
 </script>
 </body>
 </html>
