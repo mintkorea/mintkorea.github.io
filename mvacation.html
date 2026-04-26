@@ -7,34 +7,37 @@
     <style>
         :root { --bg: #f2f4f7; --color-a: #d3f9d8; --color-b: #ffec99; --color-c: #ffc9c9; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; }
-        body { background: var(--bg); padding: 5px; } /* 외부 여백 최소화 */
-        .app-container { max-width: 800px; margin: 0 auto; }
+        body { background: var(--bg); padding: 5px; overflow: hidden; } /* 스크롤 방지 */
+        .app-container { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; height: 98vh; }
         
+        /* [추가] 타이틀: 공간을 최소로 차지하게 설정 */
+        .app-title { font-size: 18px; font-weight: 900; color: #212529; text-align: center; padding: 5px 0; }
+
         .section-row { 
-            display: flex; background: #fff; border-radius: 12px; 
-            margin-bottom: 6px; overflow: hidden; /* 행 간격 대폭 축소 */
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eef0f2;
+            display: flex; background: #fff; border-radius: 10px; 
+            margin-bottom: 4px; overflow: hidden; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #eef0f2;
         }
         .tab-cell { 
-            width: 50px; display: flex; align-items: center; justify-content: center; 
-            font-weight: 900; font-size: 12px; color: #495057; background: #f1f3f5;
+            width: 45px; display: flex; align-items: center; justify-content: center; 
+            font-weight: 900; font-size: 11px; color: #495057; background: #f1f3f5;
             flex-shrink: 0; text-align: center;
         }
-        .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 5px; padding: 8px; }
+        .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 4px; padding: 6px; }
 
         .label-building { 
             grid-column: span 2; background: #495057; color: #fff; font-size: 9px; 
             font-weight: bold; display: flex; align-items: center; justify-content: center; 
-            height: 20px; border-radius: 4px; margin-bottom: 0px;
+            height: 18px; border-radius: 4px;
         }
 
         .card { 
-            background: #fff; border-radius: 8px; height: 38px; /* 카드 높이 축소 */
+            background: #fff; border-radius: 6px; height: 35px; /* 높이 극단적 축소 */
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             border: 1px solid #eee;
         }
-        .pos { font-size: 8px; color: #339af0; font-weight: bold; margin-bottom: 0px; }
-        .name { font-size: 14px; font-weight: 900; color: #212529; }
+        .pos { font-size: 7px; color: #339af0; font-weight: bold; margin-bottom: -2px; }
+        .name { font-size: 13px; font-weight: 900; color: #212529; }
 
         .row-A .tab-cell { background: var(--color-a); }
         .row-B .tab-cell { background: var(--color-b); }
@@ -44,7 +47,11 @@
 </head>
 <body>
 
-<div class="app-container" id="main-table"></div>
+<div class="app-container">
+    <div class="app-title">연차 관리</div>
+
+    <div id="main-table"></div>
+</div>
 
 <script>
     const staffData = [
@@ -70,24 +77,28 @@
         const container = document.getElementById('main-table');
         let html = '';
 
-        // 1. 지휘부 (소장 회관중앙, 부소장 옴니중앙 정렬)
+        // 1. 지휘부 (중앙 정렬)
         const leaders = staffData.filter(d => d.section === "지휘부");
         html += `<div class="section-row"><div class="tab-cell">지휘부</div><div class="grid-area">
-                    <div class="empty-card"></div>${createCard(leaders[0])} <div class="empty-card"></div>${createCard(leaders[1])} </div></div>`;
+                    <div class="empty-card"></div>${createCard(leaders[0])}
+                    <div class="empty-card"></div>${createCard(leaders[1])}
+                 </div></div>`;
 
         // 2. 레이블 (반장 위)
         html += `<div style="display:flex; margin-bottom:2px;">
-                    <div style="width:50px;"></div>
-                    <div class="grid-area" style="padding:0 8px;">
+                    <div style="width:45px;"></div>
+                    <div class="grid-area" style="padding:0 6px;">
                         <div class="label-building">성 의 회 관</div><div class="label-building">옴 니 버 스 파 크</div>
                     </div></div>`;
 
-        // 3. 반장 (각각 중앙 정렬)
+        // 3. 반장 (각 라인 중앙)
         const chiefs = staffData.filter(d => d.section === "반장");
         html += `<div class="section-row"><div class="tab-cell">반장</div><div class="grid-area">
-                    <div class="empty-card"></div>${createCard(chiefs[0])} <div class="empty-card"></div>${createCard(chiefs[1])} </div></div>`;
+                    <div class="empty-card"></div>${createCard(chiefs[0])}
+                    <div class="empty-card"></div>${createCard(chiefs[1])}
+                 </div></div>`;
 
-        // 4. A, B, C조 (여백 최소화)
+        // 4. A, B, C조
         ["A조", "B조", "C조"].forEach(g => {
             const members = staffData.filter(d => d.section === g);
             html += `<div class="section-row row-${g[0]}"><div class="tab-cell">${g}</div><div class="grid-area">`;
