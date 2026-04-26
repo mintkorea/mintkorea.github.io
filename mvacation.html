@@ -8,10 +8,8 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
-        /* 타이틀 디자인 (요청하신 제목으로 수정) */
         header { background: white; border-radius: 0.75rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); border: 1px solid #e5e7eb; margin-bottom: 0.75rem; padding: 0.75rem; }
 
-        /* 연차 관리 카드 레이아웃 */
         .section-row { 
             display: flex; background: #fff; border-radius: 8px; 
             margin-bottom: 4px; overflow: hidden; border: 1px solid #f1f3f5;
@@ -22,17 +20,15 @@
         }
         .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 4px; padding: 6px; }
 
-        /* [수정] 건물 레이블 - 가독성 높이고 글자 안 깨지게 조정 */
+        /* 건물 레이블 - 가독성 및 정렬 최적화 */
         .label-building { 
             grid-column: span 2; font-size: 15px; font-weight: 900; 
             display: flex; align-items: center; justify-content: center; 
-            height: 40px; border-radius: 6px;
-            letter-spacing: 1px;
+            height: 40px; border-radius: 6px; letter-spacing: 1px;
         }
         .bg-sung { background-color: #f3ece3; color: #5d564f; border: 1px solid #e5dbcd; }
         .bg-omni { background-color: #d9eada; color: #4d5d4d; border: 1px solid #c9decb; }
 
-        /* 이름 카드 */
         .card { 
             background: #fff; border-radius: 5px; height: 34px; 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -97,10 +93,28 @@
                     <div class="card"><span class="name">배준용</span></div><div class="card"><span class="name">이명구</span></div>
                     <div class="card"><span class="name">손병휘</span></div><div class="card"><span class="name">권순호</span></div>
                     <div class="card"><span class="name">김영중</span></div><div class="card"><span class="name">김삼동</span></div>
-                    <div class="card"><span class="name">김전식</span></div><div></div>
+                    <div class="card"><span class="name">김전식</span></div><div class="card" style="border:1px dashed #eee"></div>
                 </div>
             </div>
+
+            <div class="section-row row-B"><div class="tab-cell">B조</div>
+                <div class="grid-area">
+                    <div class="card"><span class="name">심규천</span></div><div class="card"><span class="name">임종현</span></div>
+                    <div class="card"><span class="name">황일범</span></div><div class="card"><span class="name">이상길</span></div>
+                    <div class="card"><span class="name">권영국</span></div><div class="card"><span class="name">전준수</span></div>
+                    <div class="card"><span class="name">허용</span></div><div class="card" style="border:1px dashed #eee"></div>
+                </div>
             </div>
+
+            <div class="section-row row-C"><div class="tab-cell">C조</div>
+                <div class="grid-area">
+                    <div class="card"><span class="name">황재업</span></div><div class="card"><span class="name">이태원</span></div>
+                    <div class="card"><span class="name">피재영</span></div><div class="card"><span class="name">남형민</span></div>
+                    <div class="card"><span class="name">김태언</span></div><div class="card"><span class="name">이정석</span></div>
+                    <div class="card"><span class="name">강경훈</span></div><div class="card" style="border:1px dashed #eee"></div>
+                </div>
+            </div>
+        </div>
     </div>
 </body>
 </html>
