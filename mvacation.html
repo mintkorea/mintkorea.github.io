@@ -6,35 +6,58 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
-        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; }
         
-        .section-row { display: flex; background: #fff; border-radius: 8px; margin-bottom: 4px; border: 1px solid #e2e2e2; overflow: hidden; }
-        .tab-cell { width: 44px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; background: #eee; flex-shrink: 0; }
-        .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 4px; padding: 6px; }
-        
-        /* 사진 기준 컬러 구분 (좌: 회관-베이지 / 우: 옴니-그린) */
-        .border-leader { border: 2.5px solid #999 !important; }
-        .border-sung { border: 2.5px solid #dccfbf !important; } 
-        .border-omni { border: 2.5px solid #b7d5b9 !important; } 
-        
-        .card { background: #fff; border-radius: 4px; height: 38px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
-        .name { font-size: 14px; font-weight: 900; color: #000; }
-        .pos { font-size: 8px; font-weight: 800; color: #777; }
+        /* 헤더: 드롭박스 60% */
+        .select-wrapper { width: 60%; position: relative; }
+        .select-custom {
+            appearance: none; width: 100%; height: 40px; border-radius: 8px; border: 1px solid #dee2e6;
+            padding: 0 12px; font-size: 15px; font-weight: 900; background: white;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23495057'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 0.7rem center; background-size: 0.9rem;
+        }
 
-        /* 모달 월 표시 크게 */
-        #modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; }
-        .modal-content { background: white; width: 90%; max-width: 340px; border-radius: 15px; padding: 20px; }
-        .month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .month-box { border: 2px solid #eee; border-radius: 10px; padding: 12px 0; text-align: center; }
-        .month-name { font-size: 24px; font-weight: 900; color: #000; }
-        .month-input { width: 100%; border: none; text-align: center; font-size: 18px; font-weight: 900; color: #007aff; outline: none; }
+        /* 구역 디자인 */
+        .section-row { display: flex; background: #fff; border-radius: 10px; margin-bottom: 5px; border: 1px solid #e9ecef; overflow: hidden; }
+        .tab-cell { width: 45px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; background: #f1f3f5; flex-shrink: 0; }
+        .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 5px; padding: 8px; }
+        
+        /* [중요] 컬러 구분: 좌(성의회관-베이지) / 우(옴니버스-그린) */
+        .border-leader { border: 2.5px solid #adb5bd !important; }
+        .border-sung { border: 2.5px solid #dccfbf !important; background-color: #fffaf5; } /* 성의회관 */
+        .border-omni { border: 2.5px solid #b7d5b9 !important; background-color: #f6fff6; } /* 옴니버스 */
+        
+        .card { border-radius: 6px; height: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
+        .name { font-size: 14px; font-weight: 900; color: #212529; }
+        .pos { font-size: 8px; font-weight: 800; color: #868e96; margin-bottom: 1px; }
+
+        /* 모달: 월 표시 아주 크게 */
+        #modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; padding: 15px; }
+        .modal-content { background: white; width: 100%; max-width: 340px; border-radius: 24px; padding: 20px; }
+        .month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
+        .month-box { border: 2px solid #f1f3f5; border-radius: 12px; padding: 12px 5px; text-align: center; cursor: pointer; }
+        .month-name { font-size: 26px; font-weight: 900; color: #1e293b; margin-bottom: 2px; } /* 대형 월 표시 */
+        .month-input { width: 100%; border: none; background: transparent; text-align: center; font-size: 18px; font-weight: 900; color: #3b82f6; outline: none; }
+        .month-box.editing { background: #fff9db; border-color: #fab005; }
+        .month-box.locked { background: #f8fafc; }
+
+        .row-A .tab-cell { background: #e7f5ff; }
+        .row-B .tab-cell { background: #fff4e6; }
+        .row-C .tab-cell { background: #f3f0ff; }
     </style>
 </head>
 <body class="p-2">
     <div class="max-w-md mx-auto">
-        <header class="flex items-center justify-between mb-4 px-1">
-            <h1 class="text-2xl font-black text-black">연차 현황</h1>
-            <a href="calendar.html" class="px-3 py-1.5 bg-black text-white rounded font-bold text-xs">근무달력 🔗</a>
+        <header class="bg-white rounded-xl p-3 border mb-3 shadow-sm">
+            <div class="flex items-center justify-between mb-3 px-1">
+                <h1 class="text-xl font-black text-slate-800 italic uppercase">Vacation Map</h1>
+            </div>
+            <div class="flex gap-2">
+                <div class="select-wrapper">
+                    <select class="select-custom"><option>2026년 연차 관리</option></select>
+                </div>
+                <a href="calendar.html" class="flex-1 h-10 bg-slate-800 text-white rounded-lg font-bold flex items-center justify-center text-xs">근무달력 🔗</a>
+            </div>
         </header>
 
         <div class="section-row">
@@ -45,10 +68,10 @@
             </div>
         </div>
 
-        <div class="flex mt-2 mb-1"><div style="width:44px;"></div>
-            <div class="grid-area" style="padding:0 6px; gap:4px;">
-                <div class="col-span-2 bg-[#e5dbcd] text-black text-[10px] font-black h-5 rounded flex items-center justify-center">성 의 회 관</div>
-                <div class="col-span-2 bg-[#c9decb] text-black text-[10px] font-black h-5 rounded flex items-center justify-center">옴 니 버 스</div>
+        <div class="flex mt-2 mb-1"><div style="width:45px;"></div>
+            <div class="grid-area" style="padding:0 8px; gap:5px;">
+                <div class="col-span-2 bg-[#f3ece3] text-[#5d564f] text-[10px] font-black h-6 rounded flex items-center justify-center">성 의 회 관 (좌)</div>
+                <div class="col-span-2 bg-[#d9eada] text-[#4d5d4d] text-[10px] font-black h-6 rounded flex items-center justify-center">옴 니 버 스 (우)</div>
             </div>
         </div>
 
@@ -60,7 +83,7 @@
             </div>
         </div>
 
-        <div class="section-row"><div class="tab-cell">A조</div>
+        <div class="section-row row-A"><div class="tab-cell">A조</div>
             <div class="grid-area">
                 <div class="card border-sung" onclick="openModal('배준용')"><span class="name">배준용</span></div>
                 <div class="card border-sung" onclick="openModal('이명구')"><span class="name">이명구</span></div>
@@ -69,10 +92,11 @@
                 <div class="card border-omni" onclick="openModal('김영중')"><span class="name">김영중</span></div>
                 <div class="card border-omni" onclick="openModal('김삼동')"><span class="name">김삼동</span></div>
                 <div class="card border-omni" onclick="openModal('김전식')"><span class="name">김전식</span></div>
+                <div class="card border-omni border-dashed opacity-20"></div>
             </div>
         </div>
 
-        <div class="section-row"><div class="tab-cell">B조</div>
+        <div class="section-row row-B"><div class="tab-cell">B조</div>
             <div class="grid-area">
                 <div class="card border-sung" onclick="openModal('심규천')"><span class="name">심규천</span></div>
                 <div class="card border-sung" onclick="openModal('임종현')"><span class="name">임종현</span></div>
@@ -81,10 +105,11 @@
                 <div class="card border-omni" onclick="openModal('권영국')"><span class="name">권영국</span></div>
                 <div class="card border-omni" onclick="openModal('전준수')"><span class="name">전준수</span></div>
                 <div class="card border-omni" onclick="openModal('허용')"><span class="name">허용</span></div>
+                <div class="card border-omni border-dashed opacity-20"></div>
             </div>
         </div>
 
-        <div class="section-row"><div class="tab-cell">C조</div>
+        <div class="section-row row-C"><div class="tab-cell">C조</div>
             <div class="grid-area">
                 <div class="card border-sung" onclick="openModal('황재업')"><span class="name">황재업</span></div>
                 <div class="card border-sung" onclick="openModal('이태원')"><span class="name">이태원</span></div>
@@ -93,27 +118,46 @@
                 <div class="card border-omni" onclick="openModal('김태언')"><span class="name">김태언</span></div>
                 <div class="card border-omni" onclick="openModal('이정석')"><span class="name">이정석</span></div>
                 <div class="card border-omni" onclick="openModal('강경훈')"><span class="name">강경훈</span></div>
+                <div class="card border-omni border-dashed opacity-20"></div>
             </div>
+        </div>
+
+        <div class="mt-4 p-3 bg-slate-100 rounded-lg border text-[11px] text-slate-500 font-medium">
+            <span class="font-black text-slate-700 uppercase">Guide :</span> 
+            이름 클릭 → <span class="text-blue-600">월(Month) 클릭(입력모드)</span> → 숫자 수정 → 다시 클릭(잠금)
         </div>
     </div>
 
-    <div id="modal" onclick="this.style.display='none'">
+    <div id="modal" onclick="closeModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <h2 id="modalName" class="font-black text-lg mb-4 border-b pb-2"></h2>
+            <div class="flex justify-between items-center border-b pb-3 mb-2">
+                <h2 id="modalName" class="font-black text-lg text-slate-800"></h2>
+                <button onclick="document.getElementById('modal').style.display='none'" class="text-2xl text-slate-300">✕</button>
+            </div>
             <div class="month-grid" id="monthGrid"></div>
-            <button onclick="document.getElementById('modal').style.display='none'" class="w-full mt-6 py-3 bg-black text-white font-black rounded-lg">확인</button>
+            <button onclick="document.getElementById('modal').style.display='none'" class="w-full mt-6 py-4 bg-blue-600 text-white font-black rounded-xl shadow-lg">저장 완료</button>
         </div>
     </div>
 
     <script>
         function openModal(name) {
-            document.getElementById('modalName').innerText = name;
+            document.getElementById('modalName').innerText = name + ' 연차 관리';
             const grid = document.getElementById('monthGrid'); grid.innerHTML = '';
             for(let i=1; i<=12; i++) {
-                grid.innerHTML += `<div class="month-box"><div class="month-name">${i}월</div><input type="number" class="month-input" value="0"></div>`;
+                const box = document.createElement('div'); box.className = 'month-box locked';
+                box.innerHTML = `<div class="month-name">${i}월</div><input type="number" class="month-input" value="0" readonly>`;
+                box.onclick = function() {
+                    const input = this.querySelector('input');
+                    if(this.classList.contains('locked')) {
+                        document.querySelectorAll('.month-box').forEach(b => { b.classList.replace('editing', 'locked'); b.querySelector('input').readOnly = true; });
+                        this.classList.replace('locked', 'editing'); input.readOnly = false; input.focus();
+                    } else { this.classList.replace('editing', 'locked'); input.readOnly = true; }
+                };
+                grid.appendChild(box);
             }
             document.getElementById('modal').style.display = 'flex';
         }
+        function closeModal(e) { if(e.target.id === 'modal') e.target.style.display = 'none'; }
     </script>
 </body>
 </html>
