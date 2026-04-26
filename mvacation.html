@@ -9,50 +9,39 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
-        
         .unified-header { background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e5e7eb; padding: 1.25rem; margin-bottom: 1rem; }
         
-        /* 섹션 레이아웃 */
         .section-row { display: flex; background: #fff; border-radius: 8px; margin-bottom: 4px; border: 1px solid #f1f3f5; overflow: hidden; }
         .tab-cell { width: 48px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; flex-shrink: 0; }
         
-        /* [중요] 한 줄 7열 그리드 (좌4 + 우3) */
-        .grid-area { display: grid; grid-template-columns: repeat(7, 1fr); flex-grow: 1; gap: 4px; padding: 8px; }
-        
-        /* 지휘부/반장용 배치 */
-        .span-4 { grid-column: span 4; display: flex; justify-content: center; }
-        .span-3 { grid-column: span 3; display: flex; justify-content: center; }
+        /* [중요] 사용자 지침: 2x4 그리드 (한 줄에 4칸) */
+        .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 8px; padding: 8px; }
 
         .card { background: #fff; border-radius: 6px; height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; border-width: 2.5px !important; width: 100%; }
         
-        /* 테두리 컬러 고정 */
-        .border-sung { border-color: #e5dbcd !important; }  /* 좌측: 성의/의산연 */
-        .border-omni { border-color: #c9decb !important; }  /* 우측: 옴니버스 */
+        /* 테두리 컬러 */
+        .border-sung { border-color: #e5dbcd !important; } 
+        .border-omni { border-color: #c9decb !important; } 
         .border-leader { border-color: #cbd5e1 !important; }
 
-        .label-building { font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center; height: 34px; border-radius: 6px; width: 100%; }
-        .bg-sung { background-color: #f3ece3; color: #5d564f; border: 1px solid #e5dbcd; }
-        .bg-omni { background-color: #d9eada; color: #4d5d4d; border: 1px solid #c9decb; }
-
+        .name { font-size: 14px; font-weight: 900; color: #1e293b; }
         .pos { font-size: 8px; font-weight: 900; color: #64748b; margin-bottom: -2px; }
-        .name { font-size: 13px; font-weight: 900; color: #1e293b; }
         .v-badge { position: absolute; top: -6px; right: -4px; background: #ef4444; color: white; font-size: 10px; font-weight: 900; min-width: 18px; height: 18px; border-radius: 9px; display: none; align-items: center; justify-content: center; border: 1.5px solid white; z-index: 10; }
         
-        /* 조별 배경색 */
         .row-A .tab-cell { background: #d3f9d8; color: #2b8a3e; } 
         .row-B .tab-cell { background: #fff3bf; color: #e67700; } 
         .row-C .tab-cell { background: #ffe3e3; color: #c92a2a; } 
 
         #modal, #listModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 15px; }
-        .modal-content { background: white; width: 100%; max-width: 450px; border-radius: 24px; padding: 24px; max-height: 85vh; overflow-y: auto; }
+        .modal-content { background: white; width: 100%; max-width: 480px; border-radius: 20px; padding: 20px; max-height: 85vh; overflow-y: auto; }
     </style>
 </head>
 <body class="p-4">
-    <div class="max-w-2xl mx-auto">
+    <div class="max-w-xl mx-auto">
         <div class="unified-header text-center">
             <h1 class="text-xl font-black text-slate-800 mb-4">📅 보안 연차 현황</h1>
             <div class="flex gap-2">
-                <select id="monthSelect" class="flex-1 h-12 rounded-xl border border-slate-200 px-4 font-bold text-slate-600 bg-slate-50 outline-none appearance-none" onchange="showMonthlyList()">
+                <select id="monthSelect" class="flex-1 h-12 rounded-xl border border-slate-200 px-4 font-bold text-slate-600 bg-slate-50 outline-none" onchange="showMonthlyList()">
                     <option value="">월 선택 (명단확인)</option>
                     <script>for(let i=1; i<=12; i++) document.write(`<option value="${i}">${i}월 연차자</option>`);</script>
                 </select>
@@ -61,23 +50,12 @@
         </div>
 
         <div class="section-row mb-4">
-            <div class="tab-cell">지휘부</div>
+            <div class="tab-cell">관리</div>
             <div class="grid-area">
-                <div class="span-4"><div class="card border-leader" onclick="openModal('이규용')"><span class="v-badge"></span><span class="pos">보안소장</span><span class="name">이규용</span></div></div>
-                <div class="span-3"><div class="card border-leader" onclick="openModal('박상현')"><span class="v-badge"></span><span class="pos">부소장</span><span class="name">박상현</span></div></div>
-            </div>
-        </div>
-
-        <div class="flex mb-2"><div style="width:48px;"></div><div class="grid grid-cols-7 flex-grow gap-1 px-2">
-            <div class="col-span-4 label-building bg-sung">성 의 회 관 (좌 4)</div>
-            <div class="col-span-3 label-building bg-omni">옴니버스 파크 (우 3)</div>
-        </div></div>
-
-        <div class="section-row mb-4">
-            <div class="tab-cell">반장</div>
-            <div class="grid-area">
-                <div class="span-4"><div class="card border-sung" onclick="openModal('유정수')"><span class="v-badge"></span><span class="name">유정수</span></div></div>
-                <div class="span-3"><div class="card border-omni" onclick="openModal('오제준')"><span class="v-badge"></span><span class="name">오제준</span></div></div>
+                <div class="card border-leader" onclick="openModal('이규용')"><span class="pos">보안소장</span><span class="name">이규용</span></div>
+                <div class="card border-leader" onclick="openModal('박상현')"><span class="pos">부소장</span><span class="name">박상현</span></div>
+                <div class="card border-sung" onclick="openModal('유정수')"><span class="pos">반장</span><span class="name">유정수</span></div>
+                <div class="card border-omni" onclick="openModal('오제준')"><span class="pos">반장</span><span class="name">오제준</span></div>
             </div>
         </div>
 
@@ -87,10 +65,9 @@
     </div>
 
     <div id="listModal" onclick="this.style.display='none'"><div class="modal-content" onclick="event.stopPropagation()"><div id="listContainer"></div></div></div>
-    <div id="modal" onclick="closeModal()"><div class="modal-content" onclick="event.stopPropagation()"><h2 id="modalName" class="font-black text-xl mb-6"></h2><div class="grid grid-cols-3 gap-3" id="monthGrid"></div><button onclick="closeModal()" class="w-full mt-8 py-4 bg-slate-100 rounded-2xl font-bold text-slate-600">닫기</button></div></div>
+    <div id="modal" onclick="closeModal()"><div class="modal-content" onclick="event.stopPropagation()"><h2 id="modalName" class="font-black text-xl mb-6 text-center"></h2><div class="grid grid-cols-3 gap-3" id="monthGrid"></div><button onclick="closeModal()" class="w-full mt-6 py-4 bg-slate-800 text-white rounded-xl font-bold">닫기</button></div></div>
 
     <script>
-        // 비상연락망 기반 좌 4(회관), 우 3(옴니) 데이터
         const members = {
             'A': { sung: ['배준용','이명구','김영중','김삼동'], omni: ['손병휘','권순호','김전식'] },
             'B': { sung: ['심규천','임종현','권영국','전준수'], omni: ['황일범','이상길','허용'] },
@@ -101,7 +78,9 @@
             ['A','B','C'].forEach(g => {
                 const container = document.getElementById(`group-${g}`);
                 let html = '';
+                // 1행: 회관 4명
                 members[g].sung.forEach(n => html += `<div class="card border-sung" onclick="openModal('${n}')"><span class="v-badge"></span><span class="name">${n}</span></div>`);
+                // 2행: 옴니 3명
                 members[g].omni.forEach(n => html += `<div class="card border-omni" onclick="openModal('${n}')"><span class="v-badge"></span><span class="name">${n}</span></div>`);
                 container.innerHTML = html;
             });
@@ -140,34 +119,28 @@
             });
         }
 
-        // 연차자 리스트 출력 (스크린샷 스타일 반영)
         function showMonthlyList() {
             const m = document.getElementById('monthSelect').value;
             if(!m) return;
             const mk = `2026-${m.padStart(2,'0')}`;
             const data = allVData[mk] || {};
-            
-            let html = `<div class="flex justify-between items-center mb-6"><h2 class="text-xl font-black">${m}월 연차자 명단</h2><button onclick="document.getElementById('listModal').style.display='none'" class="text-slate-400 text-2xl">✕</button></div><div class="space-y-3">`;
-            
+            let html = `<div class="flex justify-between items-center mb-6"><h2 class="text-lg font-black">${m}월 연차자 명단</h2><button onclick="document.getElementById('listModal').style.display='none'" class="text-2xl">✕</button></div><div class="space-y-2">`;
             let hasData = false;
             Object.entries(data).forEach(([name, dates]) => {
                 if(!dates.trim()) return;
                 hasData = true;
-                const building = Object.values(members).some(g => g.sung.includes(name)) ? "성의회관" : "옴니버스";
-                const group = Object.keys(members).find(k => members[k].sung.includes(name) || members[k].omni.includes(name)) || "";
-                
+                const isSung = Object.values(members).some(g => g.sung.includes(name)) || name === '유정수' || name === '이규용';
+                const group = Object.keys(members).find(k => members[k].sung.includes(name) || members[k].omni.includes(name)) || "-";
                 html += `
-                <div class="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <span class="text-blue-600 font-black min-w-[40px]">${dates}</span>
-                    <span class="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-md font-bold">${group}</span>
-                    <span class="${building==='성의회관'?'bg-purple-100 text-purple-700':'bg-orange-100 text-orange-700'} text-[10px] px-1.5 py-0.5 rounded-md font-bold">${building}</span>
+                <div class="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <span class="text-blue-600 font-black min-w-[45px]">${dates}</span>
+                    <span class="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">${group}</span>
+                    <span class="${isSung?'bg-purple-100 text-purple-700':'bg-green-100 text-green-700'} text-[10px] px-1.5 py-0.5 rounded font-bold">${isSung?'회관':'옴니'}</span>
                     <span class="flex-1 text-right font-black text-slate-800">${name}</span>
                 </div>`;
             });
-
-            if(!hasData) html += `<div class="text-center py-16 text-slate-400 font-bold">등록된 연차가 없습니다.</div>`;
-            html += `</div>`;
-            document.getElementById('listContainer').innerHTML = html;
+            if(!hasData) html += `<div class="text-center py-10 text-slate-400">데이터가 없습니다.</div>`;
+            document.getElementById('listContainer').innerHTML = html + `</div>`;
             document.getElementById('listModal').style.display = 'flex';
         }
 
@@ -178,7 +151,7 @@
             for(let i=1; i<=12; i++) {
                 const mk = `2026-${String(i).padStart(2,'0')}`;
                 const val = allVData[mk]?.[activeUser] || "";
-                grid.innerHTML += `<div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center"><div class="text-[10px] font-black text-slate-400 mb-1">${i}월</div><input type="text" class="w-full text-center font-bold text-blue-600 outline-none bg-transparent" value="${val}" onchange="saveData('${mk}', this.value)"></div>`;
+                grid.innerHTML += `<div class="bg-slate-50 p-2 rounded-lg border border-slate-100 text-center"><div class="text-[9px] font-bold text-slate-400">${i}월</div><input type="text" class="w-full text-center font-bold text-blue-600 outline-none bg-transparent" value="${val}" onchange="saveData('${mk}', this.value)"></div>`;
             }
             document.getElementById('modal').style.display = 'flex';
         }
