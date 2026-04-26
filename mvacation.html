@@ -10,61 +10,60 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
-        .unified-header { background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e5e7eb; padding: 0.75rem 1rem; margin-bottom: 1rem; }
+        /* 헤더 여백 축소 */
+        .unified-header { background: white; border-radius: 0.75rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; }
         
-        /* [핵심 수정] 드롭박스 폰트 12px 및 여백 최소화 */
-        #monthSelect { 
-            font-size: 12px !important; 
-            font-weight: 700; 
-            padding: 0 4px !important; 
-            height: 32px !important;
-            letter-spacing: -0.5px;
-            border-radius: 4px;
-        }
-        .btn-cal { height: 32px !important; padding: 0 10px !important; font-size: 12px !important; font-weight: 900; border-radius: 4px; }
+        #monthSelect { font-size: 12px !important; font-weight: 700; padding: 0 4px !important; height: 30px !important; border-radius: 4px; }
+        .btn-cal { height: 30px !important; padding: 0 8px !important; font-size: 12px !important; font-weight: 900; border-radius: 4px; }
 
-        .section-row { display: flex; background: #fff; border-radius: 8px; margin-bottom: 4px; border: 1px solid #f1f3f5; overflow: hidden; }
-        .tab-cell { width: 48px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; color: #495057; background: #f1f3f5; flex-shrink: 0; }
-        .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 8px; padding: 8px; }
+        .section-row { display: flex; background: #fff; border-radius: 6px; margin-bottom: 3px; border: 1px solid #f1f3f5; overflow: hidden; }
+        .tab-cell { width: 42px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #495057; background: #f1f3f5; flex-shrink: 0; }
+        
+        /* 카드 영역 여백 축소 */
+        .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 4px; padding: 4px; }
         
         .span-2-center { grid-column: span 2; display: flex; justify-content: center; align-items: center; }
-        .span-2-center .card { width: 100%; max-width: 125px; } 
+        .span-2-center .card { width: 100%; max-width: 120px; } 
 
-        .card { background: #fff; border-radius: 6px; height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; border-width: 2.5px !important; }
-        .border-sung { border-color: #e5dbcd !important; } 
-        .border-omni { border-color: #c9decb !important; } 
-        .border-leader { border-color: #cbd5e1 !important; }
+        /* 카드 높이 축소 및 기본 스타일 */
+        .card { border-radius: 4px; height: 34px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; border-width: 2px !important; transition: opacity 0.1s; }
+        .card:active { opacity: 0.7; }
 
-        .label-building { font-size: 13px; font-weight: 900; display: flex; align-items: center; justify-content: center; height: 34px; border-radius: 6px; width: 100%; }
+        /* [핵심] 조별 칼라코드 적용 (스크린샷 배지 색상 기준) */
+        .row-A .card { background-color: #fef3c7; border-color: #f59e0b !important; } /* A조: 주황/노랑 */
+        .row-B .card { background-color: #fee2e2; border-color: #ef4444 !important; } /* B조: 빨강 */
+        .row-C .card { background-color: #dbeafe; border-color: #3b82f6 !important; } /* C조: 파랑 */
+        .border-leader { border-color: #cbd5e1 !important; background-color: #f8fafc; }
+
+        .label-building { font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center; height: 28px; border-radius: 4px; width: 100%; }
         .bg-sung { background-color: #f3ece3; color: #5d564f; border: 1px solid #e5dbcd; }
         .bg-omni { background-color: #d9eada; color: #4d5d4d; border: 1px solid #c9decb; }
 
-        .pos { font-size: 8px; font-weight: 900; color: #64748b; margin-bottom: -1px; }
-        .name { font-size: 15px; font-weight: 900; color: #1e293b; }
-        .v-badge { position: absolute; top: -6px; right: -4px; background: #ef4444; color: white; font-size: 10px; font-weight: 900; min-width: 18px; height: 18px; border-radius: 9px; display: none; align-items: center; justify-content: center; border: 1.5px solid white; z-index: 10; }
+        .pos { font-size: 7px; font-weight: 900; color: #64748b; margin-top: -2px; }
+        .name { font-size: 13px; font-weight: 900; color: #1e293b; line-height: 1; }
         
-        .row-A .tab-cell { background: #d3f9d8; }
-        .row-B .tab-cell { background: #ffec99; }
-        .row-C .tab-cell { background: #ffc9c9; }
+        /* 뱃지 위치 및 크기 조정 */
+        .v-badge { position: absolute; top: -5px; right: -3px; background: #ef4444; color: white; font-size: 9px; font-weight: 900; min-width: 16px; height: 16px; border-radius: 8px; display: none; align-items: center; justify-content: center; border: 1px solid white; z-index: 10; }
+        
+        .row-A .tab-cell { background: #f59e0b; color: white; }
+        .row-B .tab-cell { background: #ef4444; color: white; }
+        .row-C .tab-cell { background: #3b82f6; color: white; }
 
         #modal, #listModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 15px; }
-        .modal-content { background: white; width: 100%; max-width: 420px; border-radius: 20px; padding: 20px; max-height: 80vh; overflow-y: auto; }
+        .modal-content { background: white; width: 100%; max-width: 400px; border-radius: 16px; padding: 16px; max-height: 85vh; overflow-y: auto; }
         
-        /* 명단 리스트 배지 스타일 (스크린샷 기반) */
-        .badge-group { font-size: 11px; font-weight: 900; padding: 2px 6px; border-radius: 4px; color: white; margin: 0 4px; }
-        .bg-a-group { background-color: #f59e0b; }
-        .bg-b-group { background-color: #ef4444; }
-        .bg-c-group { background-color: #3b82f6; }
-        .badge-loc { font-size: 11px; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
+        /* 리스트 배지 스타일 */
+        .badge-group { font-size: 10px; font-weight: 900; padding: 1px 5px; border-radius: 3px; color: white; margin: 0 2px; }
+        .badge-loc { font-size: 10px; font-weight: 900; padding: 1px 5px; border-radius: 3px; }
         .loc-sung { background-color: #a855f7; color: white; }
         .loc-omni { background-color: #f97316; color: white; }
     </style>
 </head>
-<body class="p-4">
+<body class="p-2">
     <div class="max-w-xl mx-auto">
         <div class="unified-header">
-            <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center gap-2"><span class="text-xl">📅</span><h1 class="text-lg font-black text-slate-800">보안 연차 현황</h1></div>
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-1.5"><span class="text-lg">📅</span><h1 class="text-base font-black text-slate-800">보안 연차 현황</h1></div>
             </div>
             <div class="flex items-center gap-2">
                 <select id="monthSelect" class="flex-1 border border-slate-200 bg-slate-50 outline-none" onchange="showMonthlyList()">
@@ -83,15 +82,15 @@
             </div>
         </div>
 
-        <div class="flex mb-2 mt-2"><div style="width:48px;"></div><div class="flex flex-grow gap-2 px-2">
+        <div class="flex mb-1 mt-1"><div style="width:42px;"></div><div class="flex flex-grow gap-1.5 px-1">
             <div class="label-building bg-sung">성 의 회 관</div><div class="label-building bg-omni">옴니버스 파크</div>
         </div></div>
 
         <div class="section-row">
             <div class="tab-cell">반장</div>
             <div class="grid-area">
-                <div class="span-2-center"><div class="card border-sung" onclick="openModal('유정수')"><span class="v-badge"></span><span class="name">유정수</span></div></div>
-                <div class="span-2-center"><div class="card border-omni" onclick="openModal('오제준')"><span class="v-badge"></span><span class="name">오제준</span></div></div>
+                <div class="span-2-center"><div class="card" style="border-color:#e5dbcd !important; background-color:#fefce8;" onclick="openModal('유정수')"><span class="v-badge"></span><span class="name">유정수</span></div></div>
+                <div class="span-2-center"><div class="card" style="border-color:#c9decb !important; background-color:#f0fdf4;" onclick="openModal('오제준')"><span class="v-badge"></span><span class="name">오제준</span></div></div>
             </div>
         </div>
 
@@ -101,7 +100,7 @@
     </div>
 
     <div id="listModal" onclick="this.style.display='none'"><div class="modal-content" onclick="event.stopPropagation()"><div id="listContainer"></div></div></div>
-    <div id="modal" onclick="closeModal()"><div class="modal-content" onclick="event.stopPropagation()"><h2 id="modalName" class="font-black text-lg mb-4 text-slate-800"></h2><div class="grid grid-cols-3 gap-3" id="monthGrid"></div><button onclick="closeModal()" class="w-full mt-6 py-3 bg-slate-100 rounded-xl font-bold text-slate-600">닫기</button></div></div>
+    <div id="modal" onclick="closeModal()"><div class="modal-content" onclick="event.stopPropagation()"><h2 id="modalName" class="font-black text-lg mb-4 text-slate-800"></h2><div class="grid grid-cols-3 gap-2" id="monthGrid"></div><button onclick="closeModal()" class="w-full mt-4 py-3 bg-slate-100 rounded-xl font-bold text-slate-600">닫기</button></div></div>
 
     <script>
         const members = {
@@ -115,8 +114,7 @@
                 const container = document.getElementById(`group-${g}`);
                 let html = '';
                 members[g].forEach(m => {
-                    const bc = m.t === 'sung' ? 'border-sung' : 'border-omni';
-                    html += `<div class="card ${bc}" onclick="openModal('${m.n}')"><span class="v-badge"></span><span class="name">${m.n}</span></div>`;
+                    html += `<div class="card" onclick="openModal('${m.n}')"><span class="v-badge"></span><span class="name">${m.n}</span></div>`;
                 });
                 container.innerHTML = html;
             });
@@ -154,7 +152,7 @@
             for(let i=1; i<=12; i++) {
                 const mk = `2026-${String(i).padStart(2,'0')}`;
                 const val = allVData[mk]?.[activeUser] || "";
-                grid.innerHTML += `<div class="bg-slate-50 p-2 rounded-lg border border-slate-100 text-center"><div class="text-[10px] font-bold text-slate-400">${i}월</div><input type="text" class="w-full text-center font-bold text-blue-600 outline-none bg-transparent" value="${val}" onchange="saveData('${mk}', this.value)"></div>`;
+                grid.innerHTML += `<div class="bg-slate-50 p-1.5 rounded border border-slate-100 text-center"><div class="text-[9px] font-bold text-slate-400">${i}월</div><input type="text" class="w-full text-center font-bold text-blue-600 outline-none bg-transparent text-sm" value="${val}" onchange="saveData('${mk}', this.value)"></div>`;
             }
             document.getElementById('modal').style.display = 'flex';
         }
@@ -166,7 +164,7 @@
             const m = document.getElementById('monthSelect').value; if(!m) return;
             const mk = `2026-${m.padStart(2,'0')}`;
             const data = allVData[mk] || {};
-            let html = `<h2 class="text-xl font-black mb-4 text-slate-800">${m}월 연차자 명단</h2><div class="space-y-2">`;
+            let html = `<h2 class="text-lg font-black mb-3 text-slate-800">${m}월 연차자 명단</h2><div class="space-y-1.5">`;
             let hasData = false;
             
             const allMembers = [
@@ -174,26 +172,26 @@
                 ...members.A.map(x=>({...x, g:'A'})), ...members.B.map(x=>({...x, g:'B'})), ...members.C.map(x=>({...x, g:'C'}))
             ];
 
-            Object.entries(data).forEach(([name, dates]) => {
+            Object.entries(data).sort().forEach(([name, dates]) => {
                 if(dates.trim()) {
                     const info = allMembers.find(x => x.n === name);
-                    const gClass = info?.g === 'A' ? 'bg-a-group' : info?.g === 'B' ? 'bg-b-group' : 'bg-c-group';
+                    const gColor = info?.g === 'A' ? '#f59e0b' : info?.g === 'B' ? '#ef4444' : (info?.g === 'C' ? '#3b82f6' : '#64748b');
                     const locClass = info?.t === 'sung' ? 'loc-sung' : 'loc-omni';
-                    const locName = info?.t === 'sung' ? '성의회관' : (info?.t === 'omni' ? '옴니버스' : '-');
+                    const locName = info?.t === 'sung' ? '성의' : (info?.t === 'omni' ? '옴니' : '-');
 
                     html += `
-                    <div class="flex items-center p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
-                        <span class="text-blue-600 font-black text-sm min-w-[45px]">${dates}</span>
-                        ${info?.g !== '-' ? `<span class="badge-group ${gClass}">${info.g}</span>` : ''}
+                    <div class="flex items-center p-2 bg-white border border-slate-200 rounded-lg shadow-sm">
+                        <span class="text-blue-600 font-black text-xs min-w-[40px]">${dates}</span>
+                        ${info?.g !== '-' ? `<span class="badge-group" style="background-color:${gColor}">${info.g}</span>` : ''}
                         ${info?.t ? `<span class="badge-loc ${locClass}">${locName}</span>` : ''}
-                        <span class="flex-1 text-right font-black text-slate-800 text-base">${name}</span>
+                        <span class="flex-1 text-right font-black text-slate-800 text-sm">${name}</span>
                     </div>`;
                     hasData = true;
                 }
             });
             
-            if(!hasData) html += `<div class="text-center py-10 text-slate-400 font-bold">등록된 연차가 없습니다.</div>`;
-            html += `</div><button onclick="document.getElementById('listModal').style.display='none'" class="w-full mt-6 py-4 bg-slate-800 text-white rounded-xl font-black">확인</button>`;
+            if(!hasData) html += `<div class="text-center py-6 text-slate-400 font-bold text-sm">등록된 연차가 없습니다.</div>`;
+            html += `</div><button onclick="document.getElementById('listModal').style.display='none'" class="w-full mt-4 py-3 bg-slate-800 text-white rounded-xl font-black text-sm">확인</button>`;
             document.getElementById('listContainer').innerHTML = html;
             document.getElementById('listModal').style.display = 'flex';
         }
