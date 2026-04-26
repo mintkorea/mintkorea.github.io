@@ -7,47 +7,46 @@
     <style>
         :root { --bg: #f2f4f7; --color-a: #d3f9d8; --color-b: #ffec99; --color-c: #ffc9c9; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; }
-        body { background: var(--bg); padding: 2px; overflow: hidden; } /* 여백 최소화 */
-        .app-container { max-width: 800px; margin: 0 auto; height: 98vh; display: flex; flex-direction: column; }
+        body { background: var(--bg); padding: 5px; overflow-x: hidden; }
+        .app-container { max-width: 800px; margin: 0 auto; }
         
-        .app-title { font-size: 19px; font-weight: 900; color: #212529; text-align: center; padding: 4px 0; }
+        /* 타이틀 */
+        .app-title { font-size: 20px; font-weight: 900; color: #212529; text-align: center; padding: 10px 0; }
 
         .section-row { 
-            display: flex; background: #fff; border-radius: 8px; 
-            margin-bottom: 3px; overflow: hidden; 
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05); border: 1px solid #eef0f2;
+            display: flex; background: #fff; border-radius: 12px; 
+            margin-bottom: 6px; overflow: hidden; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #eef0f2;
         }
         .tab-cell { 
-            width: 45px; display: flex; align-items: center; justify-content: center; 
-            font-weight: 900; font-size: 11px; color: #495057; background: #f1f3f5;
+            width: 50px; display: flex; align-items: center; justify-content: center; 
+            font-weight: 900; font-size: 12px; color: #495057; background: #f1f3f5;
             flex-shrink: 0;
         }
-        .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 3px; padding: 4px; }
+        .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 6px; padding: 8px; }
 
         /* [지시] 레이블 30% 크게 */
         .label-building { 
             grid-column: span 2; background: #495057; color: #fff; font-size: 13px; 
             font-weight: bold; display: flex; align-items: center; justify-content: center; 
-            height: 26px; border-radius: 4px;
+            height: 28px; border-radius: 5px;
         }
 
-        /* [지시] 카드 높이 7% 크게 & 여백 압축 */
+        /* [지시] 모든 카드의 크기는 동일함 (가로/세로 고정) */
         .card { 
-            background: #fff; border-radius: 5px; height: 42px; 
+            background: #fff; border-radius: 8px; height: 42px; /* 카드 높이 7% 확대 반영 */
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            border: 1px solid #eee;
+            border: 1px solid #eee; width: 100%;
         }
         .pos { font-size: 8px; color: #339af0; font-weight: bold; margin-bottom: -1px; }
-        .name { font-size: 14px; font-weight: 900; color: #212529; }
+        .name { font-size: 15px; font-weight: 900; color: #212529; }
 
         .row-A .tab-cell { background: var(--color-a); }
         .row-B .tab-cell { background: var(--color-b); }
         .row-C .tab-cell { background: var(--color-c); }
-        .empty-card { border: none; background: transparent; }
-
-        /* 소장, 부소장, 반장 전용 중앙 정렬 */
-        .center-wrapper { grid-column: span 2; display: flex; justify-content: center; }
-        .center-wrapper .card { width: 85%; } 
+        
+        /* 빈 칸도 카드와 동일한 공간 점유 (테두리만 없음) */
+        .empty-card { height: 42px; width: 100%; background: transparent; border: none; }
     </style>
 </head>
 <body>
@@ -81,27 +80,27 @@
         const container = document.getElementById('main-table');
         let html = '';
 
-        // 1. 지휘부 (중앙 정렬)
+        // 1. 지휘부 (중앙 정렬을 위해 1번, 3번 칸을 비움)
         const leaders = staffData.filter(d => d.section === "지휘부");
         html += `<div class="section-row"><div class="tab-cell">지휘부</div><div class="grid-area">
-                    <div class="center-wrapper">${createCard(leaders[0])}</div>
-                    <div class="center-wrapper">${createCard(leaders[1])}</div>
+                    <div class="empty-card"></div>${createCard(leaders[0])}
+                    <div class="empty-card"></div>${createCard(leaders[1])}
                  </div></div>`;
 
         // 2. 레이블 (30% 확대)
-        html += `<div style="display:flex; margin-bottom:1px;"><div style="width:45px;"></div>
-                    <div class="grid-area" style="padding:0 4px;">
+        html += `<div style="display:flex; margin-bottom:2px;"><div style="width:50px;"></div>
+                    <div class="grid-area" style="padding:0 8px;">
                         <div class="label-building">성 의 회 관</div><div class="label-building">옴 니 버 스 파 크</div>
                     </div></div>`;
 
-        // 3. 반장 (중앙 정렬)
+        // 3. 반장 (중앙 정렬을 위해 1번, 3번 칸을 비움)
         const chiefs = staffData.filter(d => d.section === "반장");
         html += `<div class="section-row"><div class="tab-cell">반장</div><div class="grid-area">
-                    <div class="center-wrapper">${createCard(chiefs[0])}</div>
-                    <div class="center-wrapper">${createCard(chiefs[1])}</div>
+                    <div class="empty-card"></div>${createCard(chiefs[0])}
+                    <div class="empty-card"></div>${createCard(chiefs[1])}
                  </div></div>`;
 
-        // 4. 조원 명단
+        // 4. A, B, C조 명단 (동일한 4열 그리드 유지)
         ["A조", "B조", "C조"].forEach(g => {
             const members = staffData.filter(d => d.section === g);
             html += `<div class="section-row row-${g[0]}"><div class="tab-cell">${g}</div><div class="grid-area">`;
@@ -113,7 +112,7 @@
     }
 
     function createCard(person) {
-        if(!person) return `<div class="card empty-card"></div>`;
+        if(!person) return `<div class="empty-card"></div>`;
         const posLabel = person.pos ? `<span class="pos">${person.pos}</span>` : '';
         return `<div class="card">${posLabel}<span class="name">${person.name}</span></div>`;
     }
