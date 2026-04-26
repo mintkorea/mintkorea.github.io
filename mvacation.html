@@ -9,41 +9,34 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        
         .unified-header { background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e5e7eb; padding: 1.25rem; margin-bottom: 1rem; }
-        
         .section-row { display: flex; background: #fff; border-radius: 8px; margin-bottom: 4px; border: 1px solid #f1f3f5; overflow: hidden; }
         .tab-cell { width: 48px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; flex-shrink: 0; }
         .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 8px; padding: 8px; }
-        
-        .span-2-center { grid-column: span 2; display: flex; justify-content: center; align-items: center; }
         .card { background: #fff; border-radius: 6px; height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; border-width: 2.5px !important; width: 100%; }
         
-        /* 건물별 테두리 및 배지 컬러 (캘린더 일치) */
+        /* [중요] 컬러코드 캘린더와 100% 일치 */
         .border-sung { border-color: #a855f7 !important; }  /* 성의: 보라 */
-        .border-omni { border-color: #f97316 !important; }  /* 옴니: 주황 */
+        .border-omni { border-color: #16a34a !important; }  /* 옴니: 녹색 (스크린샷 기준) */
         .border-leader { border-color: #cbd5e1 !important; }
 
         .label-building { font-size: 13px; font-weight: 900; display: flex; align-items: center; justify-content: center; height: 34px; border-radius: 6px; width: 100%; }
         .bg-sung { background-color: #f3e8ff; color: #6b21a8; border: 1px solid #a855f7; }
-        .bg-omni { background-color: #ffedd5; color: #9a3412; border: 1px solid #f97316; }
+        .bg-omni { background-color: #dcfce7; color: #166534; border: 1px solid #16a34a; }
 
         .name { font-size: 15px; font-weight: 900; color: #1e293b; }
         .v-badge { position: absolute; top: -6px; right: -4px; background: #ef4444; color: white; font-size: 10px; font-weight: 900; min-width: 18px; height: 18px; border-radius: 9px; display: none; align-items: center; justify-content: center; border: 1.5px solid white; z-index: 10; }
         
-        /* 조별 배경색 (캘린더 일치) */
+        /* 조별 컬러코드 (A-노랑, B-빨강, C-파랑) */
         .row-A .tab-cell { background: #fffbeb; color: #d97706; } 
         .row-B .tab-cell { background: #fef2f2; color: #dc2626; } 
         .row-C .tab-cell { background: #eff6ff; color: #2563eb; } 
 
-        /* 리스트 모달 내 배지 스타일 */
         .badge-group { padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 900; color: white; }
-        .badge-A { background-color: #f59e0b; }
-        .badge-B { background-color: #ef4444; }
-        .badge-C { background-color: #3b82f6; }
+        .badge-A { background-color: #f59e0b; } .badge-B { background-color: #ef4444; } .badge-C { background-color: #3b82f6; }
 
         #modal, #listModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 15px; }
-        .modal-content { background: white; width: 100%; max-width: 450px; border-radius: 24px; padding: 24px; max-height: 85vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+        .modal-content { background: white; width: 100%; max-width: 450px; border-radius: 24px; padding: 24px; max-height: 85vh; overflow-y: auto; }
     </style>
 </head>
 <body class="p-4">
@@ -69,18 +62,17 @@
     </div>
 
     <div id="listModal" onclick="this.style.display='none'"><div class="modal-content" onclick="event.stopPropagation()"><div id="listContainer"></div></div></div>
-    
-    <div id="modal" onclick="closeModal()"><div class="modal-content" onclick="event.stopPropagation()"><h2 id="modalName" class="font-black text-xl mb-6"></h2><div class="grid grid-cols-3 gap-3" id="monthGrid"></div><button onclick="closeModal()" class="w-full mt-8 py-4 bg-slate-100 rounded-2xl font-bold text-slate-600">설정 닫기</button></div></div>
+    <div id="modal" onclick="closeModal()"><div class="modal-content" onclick="event.stopPropagation()"><h2 id="modalName" class="font-black text-xl mb-6"></h2><div class="grid grid-cols-3 gap-3" id="monthGrid"></div><button onclick="closeModal()" class="w-full mt-8 py-4 bg-slate-100 rounded-2xl font-bold text-slate-600">닫기</button></div></div>
 
     <script>
-        // [수정] 비상연락망 기준 소속 완전 교정
+        // [지침 반영] 좌 4명(sung), 우 3명(omni) 구조 절대 고정
         const members = {
             'A': { sung: ['배준용','이명구','김영중','김삼동'], omni: ['손병휘','권순호','김전식'] },
             'B': { sung: ['심규천','임종현','권영국','전준수'], omni: ['황일범','이상길','허용'] },
             'C': { sung: ['황재업','이태원','김태언','이정석'], omni: ['피재영','남형민','강경훈'] }
         };
 
-        const memberInfo = {}; // 역방향 참조용 (이름 -> {조, 소속})
+        const memberInfo = {};
         function initMemberInfo() {
             Object.entries(members).forEach(([group, locs]) => {
                 locs.sung.forEach(n => memberInfo[n] = { group, loc: '성의회관' });
@@ -93,7 +85,9 @@
             ['A','B','C'].forEach(g => {
                 const container = document.getElementById(`group-${g}`);
                 let html = '';
+                // 좌측 성의/의산연 4명 배치
                 members[g].sung.forEach(n => html += `<div class="card border-sung" onclick="openModal('${n}')"><span class="v-badge"></span><span class="name">${n}</span></div>`);
+                // 우측 옴니버스 3명 배치
                 members[g].omni.forEach(n => html += `<div class="card border-omni" onclick="openModal('${n}')"><span class="v-badge"></span><span class="name">${n}</span></div>`);
                 container.innerHTML = html;
             });
@@ -132,14 +126,11 @@
             });
         }
 
-        // [수정] 연차자 리스트 출력 (날짜별 정렬 및 배지 디자인 적용)
         function showMonthlyList() {
             const m = document.getElementById('monthSelect').value;
             if(!m) return;
             const mk = `2026-${m.padStart(2,'0')}`;
             const data = allVData[mk] || {};
-            
-            // 날짜별로 데이터 재정리
             const dayMap = {};
             Object.entries(data).forEach(([name, dates]) => {
                 if(!dates.trim()) return;
@@ -151,7 +142,6 @@
             });
 
             const sortedDays = Object.keys(dayMap).sort((a,b) => Number(a)-Number(b));
-            
             let html = `<div class="flex justify-between items-center mb-6"><h2 class="text-xl font-black">${m}월 연차자 명단</h2><button onclick="document.getElementById('listModal').style.display='none'" class="text-slate-400 text-2xl">✕</button></div><div class="space-y-3">`;
             
             if(sortedDays.length === 0) {
@@ -160,12 +150,12 @@
                 sortedDays.forEach(day => {
                     dayMap[day].forEach(name => {
                         const info = memberInfo[name] || { group: '-', loc: '-' };
-                        const locClass = info.loc === '성의회관' ? 'bg-sung' : 'bg-omni';
+                        const locBadgeClass = info.loc === '성의회관' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700';
                         html += `
-                        <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm">
                             <div class="text-sm font-black text-slate-800 min-w-[50px]">${m}/${day}</div>
-                            <div class="badge-group badge-${info.group}">${info.group}</div>
-                            <div class="badge-group ${locClass}" style="color:inherit; font-size:10px;">${info.loc}</div>
+                            <div class="badge-group badge-${info.group}">${info.group}조</div>
+                            <div class="px-2 py-0.5 rounded font-bold text-[10px] ${locBadgeClass}">${info.loc}</div>
                             <div class="flex-1 text-right font-black text-slate-900">${name}</div>
                         </div>`;
                     });
@@ -183,7 +173,7 @@
             for(let i=1; i<=12; i++) {
                 const mk = `2026-${String(i).padStart(2,'0')}`;
                 const val = allVData[mk]?.[activeUser] || "";
-                grid.innerHTML += `<div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center"><div class="text-[10px] font-black text-slate-400 mb-1">${i}월</div><input type="text" class="w-full text-center font-bold text-blue-600 outline-none bg-transparent" value="${val}" placeholder="날짜입력" onchange="saveData('${mk}', this.value)"></div>`;
+                grid.innerHTML += `<div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center"><div class="text-[10px] font-black text-slate-400 mb-1">${i}월</div><input type="text" class="w-full text-center font-bold text-blue-600 outline-none bg-transparent" value="${val}" onchange="saveData('${mk}', this.value)"></div>`;
             }
             document.getElementById('modal').style.display = 'flex';
         }
