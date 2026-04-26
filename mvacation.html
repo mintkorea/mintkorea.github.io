@@ -20,19 +20,24 @@
         }
         .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 4px; padding: 6px; }
 
-        /* 건물 레이블 - 가독성 및 정렬 최적화 */
+        /* 건물 레이블 */
         .label-building { 
             grid-column: span 2; font-size: 15px; font-weight: 900; 
             display: flex; align-items: center; justify-content: center; 
             height: 40px; border-radius: 6px; letter-spacing: 1px;
         }
+
+        /* [핵심 핵심 핵심 수정] 카드 아웃라인을 건물배지 칼라로 */
+        .border-sung { border: 2px solid #e5dbcd; } /* 성의회관 배지 칼라 */
+        .border-omni { border: 2px solid #c9decb; } /* 옴니버스 배지 칼라 */
+
         .bg-sung { background-color: #f3ece3; color: #5d564f; border: 1px solid #e5dbcd; }
         .bg-omni { background-color: #d9eada; color: #4d5d4d; border: 1px solid #c9decb; }
 
+        /* 이름 카드 - 기존 border 제거하고 border 클래스 사용 */
         .card { 
             background: #fff; border-radius: 5px; height: 34px; 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            border: 1px solid #f1f3f5;
         }
         .pos { font-size: 7px; color: #3b82f6; font-weight: 800; margin-bottom: 1px; }
         .name { font-size: 14px; font-weight: 900; color: #1e293b; }
@@ -68,8 +73,8 @@
             <div class="section-row">
                 <div class="tab-cell">지휘부</div>
                 <div class="center-grid">
-                    <div></div><div class="card"><span class="pos">보안소장</span><span class="name">이규용</span></div><div></div>
-                    <div></div><div class="card"><span class="pos">부소장</span><span class="name">박상현</span></div><div></div>
+                    <div></div><div class="card border-sung"><span class="pos">보안소장</span><span class="name">이규용</span></div><div></div>
+                    <div></div><div class="card border-omni"><span class="pos">부소장</span><span class="name">박상현</span></div><div></div>
                 </div>
             </div>
 
@@ -83,23 +88,23 @@
             <div class="section-row">
                 <div class="tab-cell">반장</div>
                 <div class="center-grid">
-                    <div></div><div class="card"><span class="name">유정수</span></div><div></div>
-                    <div></div><div class="card"><span class="name">오제준</span></div><div></div>
+                    <div></div><div class="card border-sung"><span class="name">유정수</span></div><div></div>
+                    <div></div><div class="card border-omni"><span class="name">오제준</span></div><div></div>
                 </div>
             </div>
 
             <div class="section-row row-A"><div class="tab-cell">A조</div>
                 <div class="grid-area">
-                    <div class="card"><span class="name">배준용</span></div><div class="card"><span class="name">이명구</span></div>
-                    <div class="card"><span class="name">손병휘</span></div><div class="card"><span class="name">권순호</span></div>
-                    <div class="card"><span class="name">김영중</span></div><div class="card"><span class="name">김삼동</span></div>
-                    <div class="card"><span class="name">김전식</span></div><div class="card" style="border:1px dashed #eee"></div>
+                    <div class="card border-sung"><span class="name">배준용</span></div><div class="card border-sung"><span class="name">이명구</span></div>
+                    <div class="card border-omni"><span class="name">손병휘</span></div><div class="card border-omni"><span class="name">권순호</span></div>
+                    <div class="card border-omni"><span class="name">김영중</span></div><div class="card border-omni"><span class="name">김삼동</span></div>
+                    <div class="card border-omni"><span class="name">김전식</span></div><div class="card border-omni" style="border:1px dashed #c9decb"></div>
                 </div>
             </div>
 
             <div class="section-row row-B"><div class="tab-cell">B조</div>
                 <div class="grid-area">
-                    <div class="card"><span class="name">심규천</span></div><div class="card"><span class="name">임종현</span></div>
+                    <div class="card border-sung"><span class="name">심규천</span></div><div class="card border-sung"><span class="name">임종현</span></div>
                     <div class="card"><span class="name">황일범</span></div><div class="card"><span class="name">이상길</span></div>
                     <div class="card"><span class="name">권영국</span></div><div class="card"><span class="name">전준수</span></div>
                     <div class="card"><span class="name">허용</span></div><div class="card" style="border:1px dashed #eee"></div>
@@ -108,7 +113,7 @@
 
             <div class="section-row row-C"><div class="tab-cell">C조</div>
                 <div class="grid-area">
-                    <div class="card"><span class="name">황재업</span></div><div class="card"><span class="name">이태원</span></div>
+                    <div class="card border-sung"><span class="name">황재업</span></div><div class="card border-sung"><span class="name">이태원</span></div>
                     <div class="card"><span class="name">피재영</span></div><div class="card"><span class="name">남형민</span></div>
                     <div class="card"><span class="name">김태언</span></div><div class="card"><span class="name">이정석</span></div>
                     <div class="card"><span class="name">강경훈</span></div><div class="card" style="border:1px dashed #eee"></div>
