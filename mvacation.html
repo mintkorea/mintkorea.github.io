@@ -8,47 +8,51 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
-        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; }
         
-        .unified-header { background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e5e7eb; padding: 1.25rem; margin-bottom: 1rem; }
+        /* 헤더 디자인: 스크린샷 반영 */
+        .unified-header { background: white; border-radius: 1.5rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); padding: 1.5rem; margin-bottom: 1.5rem; }
         
         /* 섹션 레이아웃 */
-        .section-row { display: flex; background: #fff; border-radius: 8px; margin-bottom: 4px; border: 1px solid #f1f3f5; overflow: hidden; }
-        .tab-cell { width: 48px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; flex-shrink: 0; }
+        .section-row { display: flex; background: #fff; border-radius: 12px; margin-bottom: 8px; border: 1px solid #f1f3f5; overflow: hidden; }
+        .tab-cell { width: 48px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; flex-shrink: 0; }
         
-        /* [핵심] 조당 2x4 그리드 시스템 */
-        .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 8px; padding: 8px; }
+        /* [중요] 한 조당 2행 4열 그리드 고정 */
+        .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 8px; padding: 10px; }
 
-        .card { background: #fff; border-radius: 6px; height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; border-width: 2.5px !important; width: 100%; }
+        .card { background: #fff; border-radius: 8px; height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; border-width: 2.5px !important; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         
-        /* 테두리 컬러 고정 */
-        .border-sung { border-color: #e5dbcd !important; }  /* 성의회관: 베이지 */
-        .border-omni { border-color: #c9decb !important; }  /* 옴니버스: 연녹색 */
-        .border-leader { border-color: #cbd5e1 !important; } /* 지휘부: 회색 */
+        /* 테두리 컬러: 성의(베이지), 옴니(연녹색), 지휘부(그레이) */
+        .border-sung { border-color: #e5dbcd !important; } 
+        .border-omni { border-color: #c9decb !important; } 
+        .border-leader { border-color: #cbd5e1 !important; }
 
-        .name { font-size: 14px; font-weight: 900; color: #1e293b; }
-        .pos { font-size: 8px; font-weight: 900; color: #64748b; margin-bottom: -2px; }
-        .v-badge { position: absolute; top: -6px; right: -4px; background: #ef4444; color: white; font-size: 10px; font-weight: 900; min-width: 18px; height: 18px; border-radius: 9px; display: none; align-items: center; justify-content: center; border: 1.5px solid white; z-index: 10; }
+        .name { font-size: 15px; font-weight: 900; color: #1e293b; }
+        .pos { font-size: 9px; font-weight: 900; color: #64748b; margin-bottom: -1px; }
+        .v-badge { position: absolute; top: -8px; right: -6px; background: #ef4444; color: white; font-size: 10px; font-weight: 900; min-width: 20px; height: 20px; border-radius: 10px; display: none; align-items: center; justify-content: center; border: 2px solid white; z-index: 10; }
         
-        /* 조별 배경색 */
-        .row-A .tab-cell { background: #d3f9d8; color: #2b8a3e; } 
-        .row-B .tab-cell { background: #fff3bf; color: #e67700; } 
-        .row-C .tab-cell { background: #ffe3e3; color: #c92a2a; } 
+        /* 조별 컬러: 스크린샷 기준 */
+        .row-A .tab-cell { background: #dcfce7; color: #166534; } 
+        .row-B .tab-cell { background: #fef9c3; color: #854d0e; } 
+        .row-C .tab-cell { background: #fee2e2; color: #991b1b; } 
 
-        #modal, #listModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 15px; }
-        .modal-content { background: white; width: 100%; max-width: 480px; border-radius: 20px; padding: 24px; max-height: 85vh; overflow-y: auto; }
+        #modal, #listModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 15px; }
+        .modal-content { background: white; width: 100%; max-width: 450px; border-radius: 24px; padding: 24px; max-height: 80vh; overflow-y: auto; }
     </style>
 </head>
 <body class="p-4">
     <div class="max-w-xl mx-auto">
-        <div class="unified-header text-center">
-            <h1 class="text-xl font-black text-slate-800 mb-4">📅 보안 연차 현황</h1>
-            <div class="flex gap-2">
-                <select id="monthSelect" class="flex-1 h-12 rounded-xl border border-slate-200 px-4 font-bold text-slate-600 bg-slate-50 outline-none" onchange="showMonthlyList()">
+        <div class="unified-header">
+            <div class="flex items-center gap-3 mb-6">
+                <img src="https://cdn-icons-png.flaticon.com/512/3652/3652191.png" class="w-8 h-8">
+                <h1 class="text-xl font-black text-slate-800">보안 연차 현황</h1>
+            </div>
+            <div class="flex gap-3">
+                <select id="monthSelect" class="flex-1 h-12 rounded-xl border border-slate-200 px-4 font-bold text-slate-600 bg-slate-50 outline-none appearance-none" onchange="showMonthlyList()">
                     <option value="">월 선택 (명단확인)</option>
                     <script>for(let i=1; i<=12; i++) document.write(`<option value="${i}">${i}월 연차자</option>`);</script>
                 </select>
-                <a href="calendar.html" class="bg-slate-800 text-white px-6 h-12 rounded-xl font-bold flex items-center shadow-lg">근무달력</a>
+                <a href="calendar.html" class="bg-slate-800 text-white px-6 h-12 rounded-xl font-bold flex items-center shadow-md">근무달력</a>
             </div>
         </div>
 
@@ -68,10 +72,11 @@
     </div>
 
     <div id="listModal" onclick="this.style.display='none'"><div class="modal-content" onclick="event.stopPropagation()"><div id="listContainer"></div></div></div>
-    <div id="modal" onclick="closeModal()"><div class="modal-content" onclick="event.stopPropagation()"><h2 id="modalName" class="font-black text-xl mb-6 text-center"></h2><div class="grid grid-cols-3 gap-3" id="monthGrid"></div><button onclick="closeModal()" class="w-full mt-6 py-4 bg-slate-800 text-white rounded-xl font-bold text-lg">저장 및 닫기</button></div></div>
+    
+    <div id="modal" onclick="closeModal()"><div class="modal-content" onclick="event.stopPropagation()"><h2 id="modalName" class="font-black text-xl mb-6 text-center"></h2><div class="grid grid-cols-3 gap-3" id="monthGrid"></div><button onclick="closeModal()" class="w-full mt-6 py-4 bg-slate-800 text-white rounded-2xl font-bold text-lg shadow-lg">저장 및 닫기</button></div></div>
 
     <script>
-        // 지시하신 순서 그대로 명단 데이터 구성 (좌측 2칸 회관, 우측 2칸 옴니)
+        // 비상연락망 이미지 순서 및 건물 구분 (회관-회관-옴니-옴니 구조)
         const members = {
             'A': [
                 {name:'배준용', type:'sung'}, {name:'이명구', type:'sung'}, {name:'손병휘', type:'omni'}, {name:'권순호', type:'omni'},
@@ -137,22 +142,27 @@
             if(!m) return;
             const mk = `2026-${m.padStart(2,'0')}`;
             const data = allVData[mk] || {};
-            let html = `<div class="flex justify-between items-center mb-6"><h2 class="text-xl font-black">${m}월 연차자 명단</h2><button onclick="document.getElementById('listModal').style.display='none'" class="text-3xl text-slate-400">✕</button></div><div class="space-y-2">`;
+            
+            let html = `<div class="flex justify-between items-center mb-6"><h2 class="text-xl font-black text-slate-800">${m}월 연차자 명단</h2><button onclick="document.getElementById('listModal').style.display='none'" class="text-3xl text-slate-300">✕</button></div><div class="space-y-3">`;
+            
             let hasData = false;
-            Object.entries(data).forEach(([name, dates]) => {
+            Object.entries(data).sort().forEach(([name, dates]) => {
                 if(!dates.trim()) return;
                 hasData = true;
-                const building = Object.values(members).flat().find(m => m.name === name)?.type === 'sung' ? "성의회관" : "옴니버스";
+                const mData = Object.values(members).flat().find(m => m.name === name);
+                const building = mData?.type === 'sung' ? "성의회관" : "옴니버스";
                 const group = Object.keys(members).find(k => members[k].some(m => m.name === name)) || "-";
+                
                 html += `
-                <div class="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <span class="text-blue-600 font-black min-w-[45px]">${dates}</span>
-                    <span class="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-md font-bold">${group}</span>
-                    <span class="${building==='성의회관'?'bg-purple-100 text-purple-700':'bg-green-100 text-green-700'} text-[10px] px-2 py-0.5 rounded-md font-bold">${building==='성의회관'?'회관':'옴니'}</span>
+                <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span class="text-blue-600 font-black text-lg min-w-[55px]">${dates}</span>
+                    <span class="bg-red-500 text-white text-[11px] px-2 py-0.5 rounded-lg font-bold">${group}</span>
+                    <span class="${building==='성의회관'?'bg-purple-100 text-purple-700':'bg-orange-100 text-orange-700'} text-[11px] px-2 py-0.5 rounded-lg font-bold">${building==='성의회관'?'회관':'옴니'}</span>
                     <span class="flex-1 text-right font-black text-slate-800 text-lg">${name}</span>
                 </div>`;
             });
-            if(!hasData) html += `<div class="text-center py-16 text-slate-400 font-bold">등록된 연차가 없습니다.</div>`;
+
+            if(!hasData) html += `<div class="text-center py-20 text-slate-400 font-bold">등록된 연차가 없습니다.</div>`;
             document.getElementById('listContainer').innerHTML = html + `</div>`;
             document.getElementById('listModal').style.display = 'flex';
         }
@@ -164,7 +174,7 @@
             for(let i=1; i<=12; i++) {
                 const mk = `2026-${String(i).padStart(2,'0')}`;
                 const val = allVData[mk]?.[activeUser] || "";
-                grid.innerHTML += `<div class="bg-slate-50 p-2 rounded-xl border border-slate-100 text-center"><div class="text-[10px] font-bold text-slate-400 mb-1">${i}월</div><input type="text" class="w-full text-center font-bold text-blue-600 outline-none bg-transparent" value="${val}" onchange="saveData('${mk}', this.value)"></div>`;
+                grid.innerHTML += `<div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center"><div class="text-[11px] font-bold text-slate-400 mb-1">${i}월</div><input type="text" class="w-full text-center font-bold text-blue-600 outline-none bg-transparent" value="${val}" onchange="saveData('${mk}', this.value)"></div>`;
             }
             document.getElementById('modal').style.display = 'flex';
         }
