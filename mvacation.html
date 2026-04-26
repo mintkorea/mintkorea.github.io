@@ -6,58 +6,48 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
-        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; }
         
-        /* 타이틀 디자인 (요청대로 원본 복사) */
-        header { background: white; border-radius: 0.75rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); border: 1px solid #e5e7eb; margin-bottom: 0.75rem; padding: 0.75rem; }
-        .month-btn { px-4; font-weight: bold; color: #94a3b8; font-size: 1.125rem; }
-        .month-title { font-size: 0.875rem; font-weight: 900; color: #334155; flex: 1; text-align: center; }
-
-        /* 연차 관리 카드 (여백 최소화 레이아웃) */
-        .section-row { 
-            display: flex; background: #fff; border-radius: 8px; 
-            margin-bottom: 4px; overflow: hidden; border: 1px solid #f1f3f5;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-        }
-        .tab-cell { 
-            width: 44px; display: flex; align-items: center; justify-content: center; 
-            font-weight: 900; font-size: 11px; color: #495057; background: #f1f3f5; flex-shrink: 0;
-        }
-        .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 4px; padding: 6px; }
-
-        /* 건물 레이블 */
+        /* [수정] 건물 레이블 - 가독성 향상 (폰트 18px, 높이 46px) */
         .label-building { 
-            grid-column: span 2; font-size: 11px; font-weight: 900; 
+            grid-column: span 2; font-size: 18px; font-weight: 900; 
             display: flex; align-items: center; justify-content: center; 
-            height: 26px; border-radius: 4px;
+            height: 46px; border-radius: 10px; margin-bottom: 2px;
+            letter-spacing: 2px;
         }
         .bg-sung { background-color: #f3ece3; color: #5d564f; border: 1px solid #e5dbcd; }
         .bg-omni { background-color: #d9eada; color: #4d5d4d; border: 1px solid #c9decb; }
 
-        /* 이름 카드 */
-        .card { 
-            background: #fff; border-radius: 5px; height: 34px; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            border: 1px solid #f1f3f5;
+        .section-row { 
+            display: flex; background: #fff; border-radius: 10px; 
+            margin-bottom: 4px; overflow: hidden; border: 1px solid #e2e8f0;
         }
-        .pos { font-size: 7px; color: #3b82f6; font-weight: 800; margin-bottom: 1px; }
-        .name { font-size: 14px; font-weight: 900; color: #1e293b; }
+        .tab-cell { 
+            width: 52px; display: flex; align-items: center; justify-content: center; 
+            font-weight: 900; font-size: 13px; color: #475569; background: #f1f5f9; flex-shrink: 0;
+        }
+        .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 4px; padding: 8px; }
+        .card { 
+            background: #fff; border-radius: 6px; height: 40px; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border: 1px solid #f1f5f9;
+        }
+        .name { font-size: 15px; font-weight: 900; color: #1e293b; }
+        .pos { font-size: 8px; color: #3b82f6; font-weight: 900; }
 
-        .center-grid { display: grid; grid-template-columns: 0.5fr 1fr 0.5fr 0.5fr 1fr 0.5fr; flex-grow: 1; gap: 4px; padding: 6px; }
-        
-        /* 조별 색상 */
-        .row-A .tab-cell { background: #d3f9d8; }
-        .row-B .tab-cell { background: #ffec99; }
-        .row-C .tab-cell { background: #ffc9c9; }
+        .center-grid { display: grid; grid-template-columns: 0.5fr 1fr 0.5fr 0.5fr 1fr 0.5fr; flex-grow: 1; gap: 4px; padding: 8px; }
+        .row-A .tab-cell { background: #dcfce7; }
+        .row-B .tab-cell { background: #fef9c3; }
+        .row-C .tab-cell { background: #fee2e2; }
     </style>
 </head>
 <body class="p-2">
     <div class="max-w-md mx-auto">
-        <header>
+        <header class="bg-white rounded-xl shadow-sm border border-gray-200 mb-3 p-3">
             <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
                     <span class="text-xl">📅</span>
-                    <h1 class="text-lg font-black text-slate-800">성의교정 근무달력</h1>
+                    <h1 class="text-lg font-black text-slate-800">보안 연차 현황</h1>
                 </div>
                 <div class="text-[8px] font-bold text-slate-400">● 연결됨</div>
             </div>
@@ -72,56 +62,27 @@
         </header>
 
         <div class="space-y-1">
-            <div class="section-row">
-                <div class="tab-cell">지휘부</div>
+            <div class="section-row"><div class="tab-cell">지휘부</div>
                 <div class="center-grid">
                     <div></div><div class="card"><span class="pos">보안소장</span><span class="name">이규용</span></div><div></div>
                     <div></div><div class="card"><span class="pos">부소장</span><span class="name">박상현</span></div><div></div>
                 </div>
             </div>
 
-            <div class="flex"><div style="width:44px;"></div>
-                <div class="grid-area" style="padding:0 8px; gap:4px;">
+            <div class="flex"><div style="width:52px;"></div>
+                <div class="grid-area" style="padding:4px 8px; gap:6px;">
                     <div class="label-building bg-sung">성 의 회 관</div>
                     <div class="label-building bg-omni">옴 니 버 스 파 크</div>
                 </div>
             </div>
 
-            <div class="section-row">
-                <div class="tab-cell">반장</div>
+            <div class="section-row"><div class="tab-cell">반장</div>
                 <div class="center-grid">
                     <div></div><div class="card"><span class="name">유정수</span></div><div></div>
                     <div></div><div class="card"><span class="name">오제준</span></div><div></div>
                 </div>
             </div>
-
-            <div class="section-row row-A"><div class="tab-cell">A조</div>
-                <div class="grid-area">
-                    <div class="card"><span class="name">배준용</span></div><div class="card"><span class="name">이명구</span></div>
-                    <div class="card"><span class="name">손병휘</span></div><div class="card"><span class="name">권순호</span></div>
-                    <div class="card"><span class="name">김영중</span></div><div class="card"><span class="name">김삼동</span></div>
-                    <div class="card"><span class="name">김전식</span></div><div></div>
-                </div>
             </div>
-
-            <div class="section-row row-B"><div class="tab-cell">B조</div>
-                <div class="grid-area">
-                    <div class="card"><span class="name">심규천</span></div><div class="card"><span class="name">임종현</span></div>
-                    <div class="card"><span class="name">황일범</span></div><div class="card"><span class="name">이상길</span></div>
-                    <div class="card"><span class="name">권영국</span></div><div class="card"><span class="name">전준수</span></div>
-                    <div class="card"><span class="name">허용</span></div><div></div>
-                </div>
-            </div>
-
-            <div class="section-row row-C"><div class="tab-cell">C조</div>
-                <div class="grid-area">
-                    <div class="card"><span class="name">황재업</span></div><div class="card"><span class="name">이태원</span></div>
-                    <div class="card"><span class="name">피재영</span></div><div class="card"><span class="name">남형민</span></div>
-                    <div class="card"><span class="name">김태언</span></div><div class="card"><span class="name">이정석</span></div>
-                    <div class="card"><span class="name">강경훈</span></div><div></div>
-                </div>
-            </div>
-        </div>
     </div>
 </body>
 </html>
