@@ -112,7 +112,7 @@
 
         <div onclick="navigateTo('rentalm.html')" class="table-card">
             <div class="table-header label-event">오늘<br>행사</div>
-            <div id="event-list" class="table-body"><div class="text-slate-300 text-xs">로드 중...</div></div>
+            <div id="event-list" class="table-body"></div>
         </div>
 
         <div onclick="navigateTo('meal.html')" class="table-card">
@@ -141,52 +141,41 @@
         firebase.initializeApp({ apiKey: "AIzaSyDGDUudF49hnXwU55er7joyeSLEPrme1GU", authDomain: "catholic-security-system.firebaseapp.com", projectId: "catholic-security-system", storageBucket: "catholic-security-system.firebasestorage.app", messagingSenderId: "978946205343", appId: "1:978946205343:web:38c30a21bf0dd522f9a4aa" });
         const db = firebase.firestore();
 
-        const baseDate = '2026-03-09', patterns = ['C', 'A', 'B']; // 기준일 3/9 C조
-        const teamA = ["배준용", "이명구", "김영중", "김삼동"];
-        const teamB = ["심규천", "임종현", "권영국", "전준수"];
+        const baseDate = '2026-03-09', patterns = ['C', 'A', 'B'];
+        const teamA = ["배준용", "이명구", "김영중", "김삼동"], teamB = ["심규천", "임종현", "권영국", "전준수"];
 
         let currentDate = new Date();
         let vData = {}; 
 
+        const Cache = {
+            save: (key, data) => localStorage.setItem(key, JSON.stringify({ data, time: Date.now() })),
+            get: (key) => { const c = localStorage.getItem(key); return c ? JSON.parse(c).data : null; }
+        };
+
         function navigateTo(url) {
-            const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(currentDate.getDate()).padStart(2,'0')}`;
-            window.location.href = `${url}?date=${dateStr}`;
+            const ds = `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(currentDate.getDate()).padStart(2,'0')}`;
+            window.location.href = `${url}?date=${ds}`;
         }
 
-        // C조 스왑 로직 및 연차 체크
         function getShiftNames(shift, diff, date) {
             if (shift === 'A') return [...teamA];
             if (shift === 'B') return [...teamB];
             if (shift === 'C') {
-                const dutyCount = Math.floor(diff / 3);
-                const members = ["김태언", "이정석", "이태원"];
-                const hallIdx = Math.floor(((dutyCount % 6) + 6) % 6 / 2);
-                let hallWorker = members[hallIdx];
-                let medA, medB;
-
-                if (hallWorker === "김태언") { medA = "이태원"; medB = "이정석"; }
-                else if (hallWorker === "이태원") { medA = "김태언"; medB = "이정석"; }
-                else { medA = "김태언"; medB = "이태원"; }
-
-                if (dutyCount % 2 !== 0) [medA, medB] = [medB, medA];
-                let namesArr = ["황재업", hallWorker, medA, medB];
-
-                // 연차 데이터 확인 (통합 DB 구조: vData[yyyy-mm][name])
-                const y = date.getFullYear();
-                const m = `${y}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                const dStr = String(date.getDate());
-                const dailyVocs = vData[m] || {};
-
-                const isV = (name) => {
-                    if (!dailyVocs[name]) return false;
-                    return dailyVocs[name].split(',').map(v => v.trim()).includes(dStr);
-                };
-
-                // 연차자 발생 시 회관(index 1) 자리와 맞교환
-                if (isV(namesArr[2])) { [namesArr[1], namesArr[2]] = [namesArr[2], namesArr[1]]; }
-                else if (isV(namesArr[3])) { [namesArr[1], namesArr[3]] = [namesArr[3], namesArr[1]]; }
-
-                return namesArr;
+                const dc = Math.floor(diff / 3);
+                const m = ["김태언", "이정석", "이태원"];
+                const hi = Math.floor(((dc % 6) + 6) % 6 / 2);
+                let hw = m[hi], ma, mb;
+                if (hw === "김태언") { ma = "이태원"; mb = "이정석"; }
+                else if (hw === "이태원") { ma = "김태언"; mb = "이정석"; }
+                else { ma = "김태언"; mb = "이태원"; }
+                if (dc % 2 !== 0) [ma, mb] = [mb, ma];
+                let arr = ["황재업", hw, ma, mb];
+                const y = date.getFullYear(), mKey = `${y}-${String(date.getMonth() + 1).padStart(2, '0')}`, dStr = String(date.getDate());
+                const dv = vData[mKey] || {};
+                const isV = (n) => dv[n] && dv[n].split(',').map(v => v.trim()).includes(dStr);
+                if (isV(arr[2])) [arr[1], arr[2]] = [arr[2], arr[1]];
+                else if (isV(arr[3])) [arr[1], arr[3]] = [arr[3], arr[1]];
+                return arr;
             }
             return [];
         }
@@ -194,76 +183,41 @@
         function updateDutyUI() {
             const days = ['일','월','화','수','목','금','토'];
             const container = document.getElementById('duty-preview-container');
-            
             const render = (d, op = "") => {
-                const dClone = new Date(d); dClone.setHours(0,0,0,0);
-                const diff = Math.round((dClone - new Date(baseDate).setHours(0,0,0,0)) / 86400000);
+                const dC = new Date(d); dC.setHours(0,0,0,0);
+                const diff = Math.round((dC - new Date(baseDate).setHours(0,0,0,0)) / 86400000);
                 const s = patterns[((diff % 3) + 3) % 3];
-                const namesArr = getShiftNames(s, diff, d);
-                
-                const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                const vocation = vData[mKey] || {};
-                const dVal = String(d.getDate());
-                let vNames = namesArr.filter(n => vocation[n] && vocation[n].split(',').map(v=>v.trim()).includes(dVal));
-
-                const namesDisplay = namesArr.map(name => 
-                    vNames.includes(name) ? `<span class="text-red-400 line-through">${name}</span>` : name
-                ).join(' ');
-
+                const names = getShiftNames(s, diff, d);
+                const mK = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`, dV = String(d.getDate());
+                const voc = vData[mK] || {};
+                let vn = names.filter(n => voc[n] && voc[n].split(',').map(v=>v.trim()).includes(dV));
+                const nd = names.map(n => vn.includes(n) ? `<span class="text-red-400 line-through">${n}</span>` : n).join(' ');
                 if(op === "") {
-                    const badge = document.getElementById('shift-badge');
-                    badge.innerText = `${s}조 근무`;
-                    badge.className = `px-4 py-2 rounded-xl font-black text-[13px] shadow-sm bg-shift-${s} text-white cursor-pointer active:scale-95 transition-transform`;
+                    const b = document.getElementById('shift-badge'); b.innerText = `${s}조 근무`;
+                    b.className = `px-4 py-2 rounded-xl font-black text-[13px] shadow-sm bg-shift-${s} text-white cursor-pointer active:scale-95 transition-transform`;
                 }
-
-                return `
-                <div class="duty-item ${op}">
-                    <div class="duty-main">
-                        <span class="duty-date ${d.getDay()===0?'day-sun':d.getDay()===6?'day-sat':''}">${d.getMonth()+1}/${d.getDate()}(${days[d.getDay()]})</span>
-                        <span class="duty-shift bg-shift-${s}">${s}조</span>
-                        <span class="duty-names">${namesDisplay}</span>
-                    </div>
-                    ${vNames.length ? `<div class="vocation-line">🚩 주간연차: ${vNames.join(', ')}</div>` : ""}
-                </div>`;
+                return `<div class="duty-item ${op}"><div class="duty-main"><span class="duty-date ${d.getDay()===0?'day-sun':d.getDay()===6?'day-sat':''}">${d.getMonth()+1}/${d.getDate()}(${days[d.getDay()]})</span><span class="duty-shift bg-shift-${s}">${s}조</span><span class="duty-names">${nd}</span></div>${vn.length?`<div class="vocation-line">🚩 주간연차: ${vn.join(', ')}</div>`:""}</div>`;
             };
-
             const tom = new Date(currentDate); tom.setDate(currentDate.getDate() + 1);
             container.innerHTML = render(currentDate) + render(tom, "opacity-40");
         }
 
         function openDutyModal() {
-            const listContainer = document.getElementById('modalList');
-            listContainer.innerHTML = '';
+            const list = document.getElementById('modalList'); list.innerHTML = '';
             const days = ['일','월','화','수','목','금','토'];
-
             for (let i = 0; i < 14; i++) {
                 let d = new Date(currentDate); d.setDate(d.getDate() + i);
-                const dClone = new Date(d); dClone.setHours(0,0,0,0);
-                const diff = Math.round((dClone - new Date(baseDate).setHours(0,0,0,0)) / 86400000);
+                const dC = new Date(d); dC.setHours(0,0,0,0);
+                const diff = Math.round((dC - new Date(baseDate).setHours(0,0,0,0)) / 86400000);
                 const s = patterns[((diff % 3) + 3) % 3];
-                const namesArr = getShiftNames(s, diff, d);
-                
-                const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                const vocation = vData[mKey] || {};
-                let vNames = namesArr.filter(n => vocation[n] && vocation[n].split(',').map(v=>v.trim()).includes(String(d.getDate())));
-
-                const namesDisplay = namesArr.map(name => 
-                    vNames.includes(name) ? `<span class="text-red-400 line-through">${name}</span>` : name
-                ).join(', ');
-
-                const item = document.createElement('div');
-                item.className = 'modal-item flex items-start gap-2'; 
-                item.innerHTML = `
-                    <span class="font-bold text-[14px] w-[70px] flex-shrink-0 pt-0.5 ${d.getDay()===0?'day-sun':d.getDay()===6?'day-sat':'text-slate-700'}">
-                        ${d.getMonth()+1}/${d.getDate()}(${days[d.getDay()]})
-                    </span>
-                    <span class="duty-shift bg-shift-${s} px-2 py-0.5 rounded text-white text-[10px] font-black flex-shrink-0 mt-0.5">${s}조</span>
-                    <div class="flex-grow ml-1 min-w-0">
-                        <div class="text-[13px] font-semibold text-slate-600">${namesDisplay}</div>
-                        ${vNames.length ? `<div class="text-red-500 font-bold text-[11px] mt-1">🚩 연차: ${vNames.join(', ')}</div>` : ""}
-                    </div>
-                `;
-                listContainer.appendChild(item);
+                const names = getShiftNames(s, diff, d);
+                const mK = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                const voc = vData[mK] || {};
+                let vn = names.filter(n => voc[n] && voc[n].split(',').map(v=>v.trim()).includes(String(d.getDate())));
+                const nd = names.map(n => vn.includes(n) ? `<span class="text-red-400 line-through">${n}</span>` : n).join(', ');
+                const item = document.createElement('div'); item.className = 'modal-item flex items-start gap-2'; 
+                item.innerHTML = `<span class="font-bold text-[14px] w-[70px] flex-shrink-0 pt-0.5 ${d.getDay()===0?'day-sun':d.getDay()===6?'day-sat':'text-slate-700'}">${d.getMonth()+1}/${d.getDate()}(${days[d.getDay()]})</span><span class="duty-shift bg-shift-${s} px-2 py-0.5 rounded text-white text-[10px] font-black flex-shrink-0 mt-0.5">${s}조</span><div class="flex-grow ml-1 min-w-0"><div class="text-[13px] font-semibold text-slate-600">${nd}</div>${vn.length?`<div class="text-red-500 font-bold text-[11px] mt-1">🚩 연차: ${vn.join(', ')}</div>`:""}</div>`;
+                list.appendChild(item);
             }
             document.getElementById('dutyModal').style.display = 'flex';
         }
@@ -271,39 +225,43 @@
         function closeModal() { document.getElementById('dutyModal').style.display = 'none'; }
 
         async function updateEvents(date) {
-            const dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+            const ds = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+            const c = Cache.get('events_all');
+            if (c) renderEventUI(c, ds);
             try {
                 const res = await fetch(EVENT_API); const data = await res.json();
-                const f = data.filter(r => r.rawDate === dateStr);
-                const hall = f.filter(r => r.bu.includes("성의회관") || r.place.includes("성의회관"));
-                const res_f = f.filter(r => r.bu.includes("의산연") || r.bu.includes("의생명") || r.place.includes("의산연") || r.place.includes("의생명"));
-                const fmt = (p) => p ? p.replace("성의교정", "").trim() : "장소미정";
-                document.getElementById('event-list').innerHTML = `
-                    <div class="mb-4"><span class="building-badge badge-hall">성의회관</span>${hall.length?hall.map(i=>`<div class="event-item"><span class="event-place">📍 ${fmt(i.place)}</span><span class="event-name">${i.event}</span></div>`).join(''):'<div class="text-xs text-slate-300 ml-1">행사 없음</div>'}</div>
-                    <div><span class="building-badge badge-research">의산연</span>${res_f.length?res_f.map(i=>`<div class="event-item"><span class="event-place text-purple-500">📍 ${fmt(i.place)}</span><span class="event-name">${i.event}</span></div>`).join(''):'<div class="text-xs text-slate-300 ml-1">행사 없음</div>'}</div>`;
-            } catch(e) { document.getElementById('event-list').innerHTML = "로드 실패"; }
+                Cache.save('events_all', data); renderEventUI(data, ds);
+            } catch(e) { if(!c) document.getElementById('event-list').innerHTML = "오프라인 상태"; }
+        }
+
+        function renderEventUI(data, ds) {
+            const f = data.filter(r => r.rawDate === ds);
+            const h = f.filter(r => r.bu.includes("성의회관") || r.place.includes("성의회관"));
+            const r_f = f.filter(r => r.bu.includes("의산연") || r.place.includes("의산연") || r.bu.includes("의생명") || r.place.includes("의생명"));
+            const fmt = (p) => p ? p.replace("성의교정", "").trim() : "장소미정";
+            document.getElementById('event-list').innerHTML = `<div class="mb-4"><span class="building-badge badge-hall">성의회관</span>${h.length?h.map(i=>`<div class="event-item"><span class="event-place">📍 ${fmt(i.place)}</span><span>${i.event}</span></div>`).join(''):'<div class="text-xs text-slate-300 ml-1">행사 없음</div>'}</div><div><span class="building-badge badge-research">의산연</span>${r_f.length?r_f.map(i=>`<div class="event-item"><span class="event-place text-purple-500">📍 ${fmt(i.place)}</span><span>${i.event}</span></div>`).join(''):'<div class="text-xs text-slate-300 ml-1">행사 없음</div>'}</div>`;
         }
 
         async function updateMeal(date) {
-            const dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+            const ds = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+            const c = Cache.get('meal_all');
+            if (c) renderMealUI(c, ds);
             try {
                 const res = await fetch(MEAL_API); const data = await res.json();
-                const m = data[dateStr];
-                document.getElementById('lunch-menu').innerText = m ? (m["중식"]?.menu || "정보 없음") : "정보 없음";
-                document.getElementById('night-menu').innerText = m ? (m["야식"]?.menu || "정보 없음") : "정보 없음";
-            } catch(e) { document.getElementById('lunch-menu').innerText = "로드 실패"; }
+                Cache.save('meal_all', data); renderMealUI(data, ds);
+            } catch(e) {}
+        }
+
+        function renderMealUI(data, ds) {
+            const m = data[ds];
+            document.getElementById('lunch-menu').innerText = m ? (m["중식"]?.menu || "정보 없음") : "정보 없음";
+            document.getElementById('night-menu').innerText = m ? (m["야식"]?.menu || "정보 없음") : "정보 없음";
         }
 
         async function loadFirebaseData() {
-            try {
-                // [수정] 통합 컬렉션 vacation_system 및 필드명 vacation 참조
-                db.collection("vacation_system").doc("data").onSnapshot(doc => {
-                    if (doc.exists) { 
-                        vData = doc.data().vacation || {}; 
-                        updateDisplay();
-                    }
-                });
-            } catch(e) { updateDisplay(); }
+            db.collection("vacation_system").doc("data").onSnapshot(doc => {
+                if (doc.exists) { vData = doc.data().vacation || {}; updateDisplay(); }
+            });
         }
 
         function updateDisplay() {
