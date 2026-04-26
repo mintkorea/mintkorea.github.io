@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>성의교정 통합 관리 시스템</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; background: white; width: 100%; }
+        .calendar-cell { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; display: flex; flex-direction: column; position: relative; cursor: pointer; min-height: 80px; }
+        .date-area { height: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; position: relative; z-index: 10; }
+        .shift-area { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 20px; z-index: 5; }
+        .cell-highlighted { color: white !important; }
+        .is-today { border: 2px solid #ef4444 !important; z-index: 20; }
+        .is-today::after { content: 'TODAY'; position: absolute; top: 0; left: 50%; transform: translateX(-50%); background: #ef4444; color: white; font-size: 8px; font-weight: 900; padding: 1px 4px; border-radius: 0 0 4px 4px; z-index: 30; }
+        .sunday { color: #ef4444; }
+        .saturday { color: #3b82f6; }
+        .dot-container { display: flex; gap: 2px; justify-content: center; height: 6px; }
+        .v-dot { width: 5px; height: 5px; border-radius: 50%; }
+        .dot-sung { background-color: #854d0e; } /* 성의회관 구분색 */
+        .dot-omni { background-color: #166534; } /* 옴니버스 구분색 */
+        
+        #floatingList { position: fixed; top: 0; right: -100%; width: 100%; max-width: 448px; height: 100%; background: #f8f9fa; z-index: 400; transition: 0.3s ease; display: flex; flex-direction: column; box-shadow: -5px 0 15px rgba(0,0,0,0.1); }
+        #floatingList.active { right: 50%; transform: translateX(50%); }
+        .list-card { background: white; border-radius: 12px; padding: 10px 14px; margin-bottom: 6px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 10px; }
+        .list-date { font-size: 13px; font-weight: 900; color: #334155; min-width: 65px; }
+        .list-shift { font-size: 10px; font-weight: 900; padding: 2px 6px; border-radius: 4px; color: white; }
+        .v-scroll-area { display: flex; align-items: center; gap: 12px; overflow-x: auto; flex: 1; scrollbar-width: none; }
+        .building-badge { padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 800; color: white; }
+        .bg-sung { background-color: #f3ece3; color: #854d0e; border: 1px solid #e5dbcd; }
+        .bg-omni { background-color: #d9eada; color: #166534; border: 1px solid #c9decb; }
+        .staff-name { font-size: 13px; font-weight: 700; color: #1e293b; }
+        
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(2px); z-index: 500; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: white; width: 100%; max-width: 320px; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+        .modal-header { background-color: #334155; padding: 15px; color: white; font-weight: 800; text-align: center; font-size: 15px; }
+        .modal-item { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; }
+        .fab { position: fixed; bottom: 25px; left: 50%; transform: translateX(150px); width: 60px; height: 60px; background: #334155; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 150; cursor: pointer; }
+        @media (max-width: 448px) { .fab { left: auto; right: 20px; transform: none; } }
+    </style>
+</head>
+<body class="p-2 md:p-4">
+    <div id="appContainer" class="max-w-md mx-auto">
+        <header class="bg-white rounded-xl shadow-sm border border-gray-200 mb-3 p-3">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">📅</span>
+                    <h1 class="text-lg font-black text-slate-800">보안 근무달력</h1>
+                </div>
+                <div id="dbStatus" class="text-[8px] font-bold text-slate-400">● 연결됨</div>
+            </div>
+            <div class="flex items-center gap-2 w-full">
+                <div class="flex items-center bg-white border rounded-lg h-10 flex-1">
+                    <button onclick="changeMonth(-1)" class="px-4 font-bold text-slate-400 text-lg">＜</button>
+                    <span id="monthTitle" class="text-sm font-black text-slate-700 flex-1 text-center"></span>
+                    <button onclick="changeMonth(1)" class="px-4 font-bold text-slate-400 text-lg">＞</button>
+                </div>
+                <select id="shiftSelect" class="text-xs h-10 bg-slate-100 text-gray-700 rounded-lg font-bold border border-slate-200 flex-1 text-center outline-none" onchange="render()"></select>
+            </div>
+        </header>
+
+        <div id="singleView" class="rounded-xl shadow-lg overflow-hidden border border-gray-200 bg-white mb-20">
+            <div id="calendarBody"></div>
+        </div>
+    </div>
+
+    <div id="fabBtn" class="fab" onclick="toggleFloatingList()"><span class="text-sm font-black">명단</span></div>
+
+    <div id="floatingList">
+        <div class="p-4 bg-white border-b flex justify-between items-center sticky top-0 z-10">
+            <h2 class="font-black text-lg text-slate-800">연차자 명단</h2>
+            <div class="flex gap-2">
+                <button id="togglePast" onclick="toggleHidePast()" class="text-[10px] bg-slate-100 px-3 py-1.5 rounded-full font-bold text-slate-500">전체보기</button>
+                <button onclick="toggleFloatingList()" class="text-xl px-2 text-slate-400">✕</button>
+            </div>
+        </div>
+        <div id="listContent" class="p-3 flex-1 overflow-y-auto"></div>
+    </div>
+
+    <div id="commonModal" class="modal-overlay" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div id="modalHeader" class="modal-header"></div>
+            <div id="modalBody" class="p-5 max-h-[60vh] overflow-y-auto"></div>
+            <button onclick="closeModal()" class="w-full p-4 bg-white font-black border-t text-sm text-slate-500">닫기</button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAu38FXMBUgoeYy1GDViTetsJ68ivHsGyM",
+            authDomain: "catholic-security-system.firebaseapp.com",
+            projectId: "catholic-security-system",
+            storageBucket: "catholic-security-system.firebasestorage.app",
+            messagingSenderId: "978946205343",
+            appId: "1:978946205343:web:38c30a21bf0dd522f9a4aa"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // 조별 컬러 코드 고정 적용 (A: 노랑, B: 빨강, C: 파랑)
+        const settings = {
+            baseDate: "2026/03/09",
+            shifts: ['C', 'A', 'B'],
+            colors: { 
+                A: ['#fef9c3', '#854d0e'], // 배경, 폰트(노랑 계열)
+                B: ['#fee2e2', '#991b1b'], // 배경, 폰트(빨강 계열)
+                C: ['#dcfce7', '#166534']  // 배경, 폰트(초록/파랑 계열 - C조 연차앱 컬러 유지)
+            }
+        };
+
+        // 전체 인원 및 소속 데이터 (UI 필터링용)
+        const members = {
+            'A': { sung: ['배준용','이명구'], omni: ['손병휘','권순호','김영중','김삼동','김전식'] },
+            'B': { sung: ['심규천','임종현'], omni: ['황일범','이상길','권영국','전준수','허용'] },
+            'C': { sung: ['황재업','이태원'], omni: ['피재영','남형민','김태언','이정석','강경훈'] },
+            'etc': { sung: ['이규용','박상현','유정수'], omni: ['오제준'] }
+        };
+
+        let vData = {}, hidePast = true;
+        const today = new Date(); today.setHours(0,0,0,0);
+        let currentYear = today.getFullYear(), currentMonth = today.getMonth();
+
+        function getMemberInfo(name) {
+            for (let group in members) {
+                if (members[group].sung.includes(name)) return { g: "성의회관", s: group };
+                if (members[group].omni.includes(name)) return { g: "옴니버스", s: group };
+            }
+            return null;
+        }
+
+        function getDayVocation(mKey, day) {
+            let vList = [], dots = "", hasSung = false, hasOmni = false;
+            const monthV = vData[mKey] || {};
+            for (let name in monthV) {
+                const days = String(monthV[name]).split(',').map(v=>v.trim());
+                if (days.includes(String(day))) {
+                    const info = getMemberInfo(name);
+                    if(info) {
+                        vList.push({ name, g: info.g, s: info.s });
+                        if(info.g === "성의회관") hasSung = true;
+                        else hasOmni = true;
+                    }
+                }
+            }
+            vList.sort((a, b) => a.g === "성의회관" ? -1 : 1);
+            if(hasSung) dots += '<div class="v-dot dot-sung"></div>';
+            if(hasOmni) dots += '<div class="v-dot dot-omni"></div>';
+            return { vList, dots };
+        }
+
+        function createGrid(year, month) {
+            const grid = document.createElement('div');
+            grid.className = 'calendar-grid';
+            ['일','월','화','수','목','금','토'].forEach((day, i) => {
+                grid.innerHTML += `<div class="text-center font-bold text-[10px] py-2 bg-slate-50 border-b text-slate-400 ${i===0?'sunday':i===6?'saturday':''}">${day}</div>`;
+            });
+            const firstDay = new Date(year, month, 1).getDay();
+            const lastDate = new Date(year, month + 1, 0).getDate();
+            const base = new Date(settings.baseDate);
+            const targetShift = document.getElementById('shiftSelect').value;
+            const mKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+            
+            for (let i = 0; i < firstDay; i++) grid.appendChild(Object.assign(document.createElement('div'), { className: 'calendar-cell bg-slate-50/50' }));
+            
+            for (let d = 1; d <= lastDate; d++) {
+                const curr = new Date(year, month, d); curr.setHours(0,0,0,0);
+                const diffDays = Math.round((curr - base) / 86400000); 
+                const sName = settings.shifts[((diffDays % settings.shifts.length) + settings.shifts.length) % settings.shifts.length];
+                const sCol = settings.colors[sName];
+                const {vList, dots} = getDayVocation(mKey, d);
+                
+                const cell = document.createElement('div');
+                cell.className = 'calendar-cell' + (curr.getTime() === today.getTime() ? ' is-today' : '');
+                if (targetShift === sName) { cell.classList.add('cell-highlighted'); cell.style.backgroundColor = sCol[1]; }
+                
+                cell.innerHTML = `
+                    <div class="date-area ${curr.getDay()===0?'sunday':curr.getDay()===6?'saturday':''}">
+                        <span>${d}</span><div class="dot-container">${dots}</div>
+                    </div>
+                    <div class="shift-area" style="background:${targetShift===sName?'transparent':sCol[0]}; color:${sCol[1]}">${sName}</div>
+                `;
+                if (vList.length > 0) cell.onclick = () => showModal(`${month+1}월 ${d}일 연차자`, vList);
+                grid.appendChild(cell);
+            }
+            return grid;
+        }
+
+        function showModal(title, list) {
+            document.getElementById('modalHeader').textContent = title;
+            document.getElementById('modalBody').innerHTML = list.map(item => `
+                <div class="modal-item shadow-sm">
+                    <span class="building-badge ${item.g==='성의회관'?'bg-sung':'bg-omni'}">${item.g}</span>
+                    <span class="text-sm font-black text-slate-700">${item.s}조 ${item.name}</span>
+                </div>`).join('');
+            document.getElementById('commonModal').classList.add('active');
+        }
+
+        function renderFloatingList(mKey) {
+            const container = document.getElementById('listContent');
+            container.innerHTML = '';
+            const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const base = new Date(settings.baseDate);
+            for (let d = 1; d <= lastDate; d++) {
+                const curr = new Date(currentYear, currentMonth, d); curr.setHours(0,0,0,0);
+                if(hidePast && curr < today) continue;
+                const {vList} = getDayVocation(mKey, d);
+                if (vList.length === 0) continue;
+                const diffDays = Math.round((curr - base) / 86400000); 
+                const sName = settings.shifts[((diffDays % settings.shifts.length) + settings.shifts.length) % settings.shifts.length];
+                const sCol = settings.colors[sName];
+                const item = document.createElement('div');
+                item.className = `list-card ${curr.getTime() === today.getTime() ? 'ring-2 ring-red-400' : ''}`;
+                let html = `<div class="list-date">${currentMonth+1}/${d} (${['일','월','화','수','목','금','토'][curr.getDay()]})</div>
+                            <div class="list-shift" style="background:${sCol[1]}">${sName}</div>
+                            <div class="v-scroll-area">`;
+                vList.forEach(v => {
+                    html += `<div class="flex items-center gap-1"><span class="building-badge ${v.g === '성의회관' ? 'bg-sung' : 'bg-omni'}">${v.g}</span>
+                             <span class="staff-name">${v.name}</span></div>`;
+                });
+                item.innerHTML = html + `</div>`;
+                container.appendChild(item);
+            }
+        }
+
+        function render() {
+            const mKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+            document.getElementById('monthTitle').textContent = `${currentYear}년 ${currentMonth + 1}월`;
+            const cb = document.getElementById('calendarBody');
+            cb.innerHTML = '';
+            cb.appendChild(createGrid(currentYear, currentMonth));
+            renderFloatingList(mKey);
+        }
+
+        function closeModal() { document.getElementById('commonModal').classList.remove('active'); }
+        function toggleFloatingList() { document.getElementById('floatingList').classList.toggle('active'); }
+        function toggleHidePast() { hidePast = !hidePast; document.getElementById('togglePast').textContent = hidePast ? "전체보기" : "과거포함 보기"; render(); }
+        function changeMonth(v) { currentMonth += v; if(currentMonth<0){currentMonth=11;currentYear--;} else if(currentMonth>11){currentMonth=0;currentYear++;} render(); }
+
+        function init() {
+            const select = document.getElementById('shiftSelect');
+            select.innerHTML = '<option value="none">조별 강조 선택</option>';
+            ['A', 'B', 'C'].forEach(s => { select.innerHTML += `<option value="${s}">${s}조 근무일</option>`; });
+            
+            // [핵심 수정] 새로운 DB 경로 vacation_system/data 연동
+            db.collection("vacation_system").doc("data").onSnapshot(doc => {
+                if(doc.exists) { 
+                    vData = doc.data().vocation || {}; 
+                    render(); 
+                }
+            });
+        }
+        window.onload = init;
+    </script>
+</body>
+</html>
