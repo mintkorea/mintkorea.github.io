@@ -10,53 +10,55 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
-        .unified-header { background: white; border-radius: 0.75rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; }
-        #monthSelect { font-size: 12px !important; font-weight: 700; height: 30px !important; border-radius: 4px; }
+        .unified-header { background: white; border-radius: 0.75rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; text-align: center; }
+        #monthSelect { font-size: 12px !important; font-weight: 700; height: 30px !important; border-radius: 4px; text-align: center; }
         .btn-cal { height: 30px !important; padding: 0 8px !important; font-size: 12px !important; font-weight: 900; border-radius: 4px; }
 
+        /* 중앙 정렬용 레이아웃 수정 */
         .section-row { display: flex; background: #fff; border-radius: 6px; margin-bottom: 3px; border: 1px solid #f1f3f5; overflow: hidden; }
         .tab-cell { width: 42px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; flex-shrink: 0; }
+        
+        /* flex-grow와 justify-center를 사용하여 무조건 중앙 배치 */
+        .card-container { display: flex; flex-grow: 1; gap: 4px; padding: 4px; justify-content: center; align-items: center; }
         .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 4px; padding: 4px; }
         
-        /* 카드 크기 통일 */
-        .card { border-radius: 4px; height: 36.5px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; border-width: 2px !important; background-color: #fff; width: 100%; }
+        .card { border-radius: 4px; height: 36.5px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; border-width: 2px !important; background-color: #fff; width: 24%; min-width: 70px; text-align: center; }
+        .grid-area .card { width: 100%; min-width: 0; } /* 조별 카드는 격자 유지 */
+
         .border-sung { border-color: #e5dbcd !important; }
         .border-omni { border-color: #c9decb !important; }
         .border-leader { border-color: #cbd5e1 !important; }
 
-        .pos-text { font-size: 7px; font-weight: 900; color: #64748b; margin-top: -3px; }
-        .name { font-size: 13px; font-weight: 900; color: #1e293b; line-height: 1.1; }
+        .pos-text { font-size: 8px; font-weight: 900; color: #64748b; margin-top: -2px; }
+        .name { font-size: 13px; font-weight: 900; color: #1e293b; line-height: 1; }
         
-        /* 조명칭 파스텔톤 배경 */
         .row-A .tab-cell { background: #ffeaa7; color: #d6a312; } 
         .row-B .tab-cell { background: #ffcccc; color: #cc3333; } 
         .row-C .tab-cell { background: #dff9fb; color: #30336b; } 
 
-        .label-building { font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center; height: 28px; border-radius: 4px; width: 100%; }
+        .label-building { font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center; height: 28px; border-radius: 4px; width: 100%; text-align: center; }
         .bg-sung { background-color: #f3ece3; color: #5d564f; border: 1px solid #e5dbcd; }
         .bg-omni { background-color: #d9eada; color: #4d5d4d; border: 1px solid #c9decb; }
 
         .v-badge { position: absolute; top: -5px; right: -3px; background: #ef4444; color: white; font-size: 9px; font-weight: 900; min-width: 16px; height: 16px; border-radius: 8px; display: none; align-items: center; justify-content: center; border: 1px solid white; z-index: 10; }
         
         #modal, #listModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 15px; }
-        .modal-content { background: white; width: 100%; max-width: 400px; border-radius: 16px; padding: 16px; max-height: 85vh; overflow-y: auto; }
+        .modal-content { background: white; width: 100%; max-width: 420px; border-radius: 16px; padding: 16px; max-height: 90vh; overflow-y: auto; text-align: center; }
 
-        /* 격자형 입력 모달 디자인 */
-        .month-input-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
-        .input-box { background: #f8fafc; padding: 5px; border-radius: 6px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        /* 입력 모달 3x4 격자 */
+        .month-input-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .input-box { background: #f8fafc; padding: 8px 4px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center; cursor: pointer; }
         .input-box.active { border-color: #6366f1; background: #eef2ff; }
-        .input-box label { font-size: 11px; font-weight: 900; color: #64748b; margin-bottom: 2px; pointer-events: none; }
-        .input-box input { width: 100%; text-align: center; font-weight: 900; color: #2563eb; font-size: 12px; background: transparent; outline: none; border: none; margin-bottom: 2px; }
-        .input-box input:disabled { color: #94a3b8; }
-        .status-tag { font-size: 9px; font-weight: 900; padding: 1px 6px; border-radius: 3px; color: white; width: 100%; text-align: center; }
-        .tag-lock { background: #94a3b8; }
-        .tag-edit { background: #10b981; }
+        .input-box label { display: block; font-size: 12px; font-weight: 900; color: #64748b; margin-bottom: 4px; pointer-events: none; }
+        .input-box input { width: 100%; text-align: center; font-weight: 900; color: #2563eb; font-size: 12px; background: transparent; outline: none; border: none; }
+        .status-dot { font-size: 9px; font-weight: 900; margin-top: 4px; display: block; }
+        .text-lock { color: #94a3b8; }
+        .text-edit { color: #10b981; }
 
-        /* 연차 리스트 스타일 */
-        .list-item { display: flex; align-items: center; gap: 4px; padding: 6px; background: white; border-bottom: 1px solid #f1f3f5; font-size: 11px; font-weight: 900; }
-        .badge-date { font-size: 11px; color: #2563eb; min-width: 65px; }
-        .badge-g { font-size: 9px; padding: 1px 4px; border-radius: 3px; color: white; min-width: 18px; text-align: center; }
-        .badge-b { font-size: 9px; padding: 1px 5px; border-radius: 3px; color: white; }
+        .list-item { display: flex; align-items: center; gap: 6px; padding: 8px 4px; background: white; border-bottom: 1px solid #f1f3f5; font-size: 12px; font-weight: 900; justify-content: center; }
+        .badge-date { font-size: 12px; color: #2563eb; min-width: 75px; text-align: center; }
+        .badge-g { font-size: 10px; padding: 1px 4px; border-radius: 3px; color: white; min-width: 18px; text-align: center; }
+        .badge-b { font-size: 10px; padding: 2px 6px; border-radius: 3px; color: white; white-space: nowrap; }
     </style>
 </head>
 <body class="p-2">
@@ -67,31 +69,37 @@
             </div>
             <div class="flex items-center gap-2">
                 <select id="monthSelect" class="flex-1 border border-slate-200 bg-slate-50 outline-none" onchange="showMonthlyList()">
-                    <option value="">월 선택 (날짜순 명단확인)</option>
-                    <script>for(let i=1; i<=12; i++) document.write(`<option value="${i}">${i}월 연차자</option>`);</script>
+                    <option value="">월 선택 (명단 확인)</option>
+                    <script>for(let i=1; i<=12; i++) document.write(`<option value="${i}">${i}월 연차자 명단</option>`);</script>
                 </select>
                 <a href="calendar.html" class="btn-cal bg-slate-800 text-white flex items-center shadow-sm">근무달력</a>
             </div>
         </div>
 
-        <div class="section-row"><div class="tab-cell" style="background:#64748b; color:white;">지휘부</div><div class="grid-area">
-            <div class="card border-leader" onclick="openModal('이규용')"><span class="v-badge"></span><span class="pos-text">소장</span><span class="name">이규용</span></div>
-            <div class="card border-leader" onclick="openModal('박상현')"><span class="v-badge"></span><span class="pos-text">부소장</span><span class="name">박상현</span></div>
-        </div></div>
+        <div class="section-row">
+            <div class="tab-cell" style="background:#64748b; color:white;">지휘부</div>
+            <div class="card-container">
+                <div class="card border-leader" onclick="openModal('이규용')"><span class="v-badge"></span><span class="pos-text">소장</span><span class="name">이규용</span></div>
+                <div class="card border-leader" onclick="openModal('박상현')"><span class="v-badge"></span><span class="pos-text">부소장</span><span class="name">박상현</span></div>
+            </div>
+        </div>
 
-        <div class="flex mb-1 mt-1"><div style="width:42px;"></div><div class="flex flex-grow gap-1.5 px-1"><div class="label-building bg-sung">성 의 회 관</div><div class="label-building bg-omni">옴니버스 파크</div></div></div>
+        <div class="flex mb-1 mt-1"><div style="width:42px;"></div><div class="flex flex-grow gap-1.5 px-1"><div class="label-building bg-sung">성 의 회 관</div><div class="label-building bg-omni">옴 니 버 스</div></div></div>
 
-        <div class="section-row"><div class="tab-cell" style="background:#475569; color:white;">반장</div><div class="grid-area">
-            <div class="card border-sung" onclick="openModal('유정수')"><span class="v-badge"></span><span class="name">유정수</span></div>
-            <div class="card border-omni" onclick="openModal('오제준')"><span class="v-badge"></span><span class="name">오제준</span></div>
-        </div></div>
+        <div class="section-row">
+            <div class="tab-cell" style="background:#475569; color:white;">반장</div>
+            <div class="card-container">
+                <div class="card border-sung" onclick="openModal('유정수')"><span class="v-badge"></span><span class="name">유정수</span></div>
+                <div class="card border-omni" onclick="openModal('오제준')"><span class="v-badge"></span><span class="name">오제준</span></div>
+            </div>
+        </div>
 
         <div class="section-row row-A"><div class="tab-cell">A조</div><div class="grid-area" id="group-A"></div></div>
         <div class="section-row row-B"><div class="tab-cell">B조</div><div class="grid-area" id="group-B"></div></div>
         <div class="section-row row-C"><div class="tab-cell">C조</div><div class="grid-area" id="group-C"></div></div>
     </div>
 
-    <div id="modal" onclick="closeModal()"><div class="modal-content" onclick="event.stopPropagation()"><h2 id="modalName" class="font-black text-lg mb-4 text-slate-800 border-b pb-2 text-center"></h2><div class="month-input-grid" id="monthGrid"></div><button onclick="closeModal()" class="w-full mt-4 py-3 bg-slate-800 text-white rounded-xl font-black text-sm">입력 완료 및 닫기</button></div></div>
+    <div id="modal" onclick="closeModal()"><div class="modal-content" onclick="event.stopPropagation()"><h2 id="modalName" class="font-black text-lg mb-4 text-slate-800 border-b pb-2 text-center"></h2><div class="month-input-grid" id="monthGrid"></div><button onclick="closeModal()" class="w-full mt-5 py-3 bg-slate-800 text-white rounded-xl font-black text-sm">확인 및 닫기</button></div></div>
     <div id="listModal" onclick="this.style.display='none'"><div class="modal-content" onclick="event.stopPropagation()"><div id="listContainer"></div></div></div>
 
     <script>
@@ -131,7 +139,7 @@
                 for(let m=1; m<=12; m++) {
                     const mk = `2026-${String(m).padStart(2,'0')}`;
                     const val = allVData[mk]?.[name] || "";
-                    if(val) total += val.split(',').filter(x => x.trim()).length;
+                    if(val.trim()) total += val.split(',').filter(x => x.trim()).length;
                 }
                 if(total > 0) { badge.innerText = total; badge.style.display = 'flex'; }
                 else { badge.style.display = 'none'; }
@@ -149,7 +157,7 @@
                 <div class="input-box" id="box-${mk}" onclick="toggleBoxEdit('${mk}')">
                     <label>${i}월</label>
                     <input type="text" id="input-${mk}" value="${val}" disabled onclick="event.stopPropagation()">
-                    <div id="status-${mk}" class="status-tag tag-lock">잠김/저장</div>
+                    <span id="status-${mk}" class="status-dot text-lock">잠김</span>
                 </div>`;
             }
             document.getElementById('modal').style.display = 'flex';
@@ -159,18 +167,17 @@
             const box = document.getElementById(`box-${mk}`);
             const input = document.getElementById(`input-${mk}`);
             const status = document.getElementById(`status-${mk}`);
-            
-            if (input.disabled) { // 수정 모드로 전환
+            if (input.disabled) {
                 input.disabled = false; box.classList.add('active');
-                status.innerText = "수정 입력중"; status.className = "status-tag tag-edit";
+                status.innerText = "수정중"; status.className = "status-dot text-edit";
                 input.focus();
-            } else { // 저장 및 잠금 모드로 전환
+            } else {
                 const val = input.value;
                 if(!allVData[mk]) allVData[mk] = {};
                 allVData[mk][activeUser] = val;
                 await docRef.update({ vocation: allVData });
                 input.disabled = true; box.classList.remove('active');
-                status.innerText = "잠김/저장"; status.className = "status-tag tag-lock";
+                status.innerText = "잠김"; status.className = "status-dot text-lock";
             }
         }
 
@@ -188,37 +195,36 @@
                 if(!dates.trim()) return;
                 const info = allMembers.find(x => x.n === name);
                 dates.split(',').forEach(d => {
-                    const dayNum = d.trim(); if(!dayNum) return;
-                    const dateObj = new Date(2026, parseInt(m)-1, parseInt(dayNum));
-                    const dayLabel = days[dateObj.getDay()];
-                    const key = `${dayNum}(${dayLabel})`;
+                    const dNum = d.trim(); if(!dNum) return;
+                    const dObj = new Date(2026, parseInt(m)-1, parseInt(dNum));
+                    const key = `${dNum}(${days[dObj.getDay()]})`;
                     if(!dateMap[key]) dateMap[key] = [];
-                    dateMap[key].push({ name, info, dayInt: parseInt(dayNum) });
+                    dateMap[key].push({ name, info, dNum: parseInt(dNum) });
                 });
             });
 
-            let html = `<h2 class="text-lg font-black mb-3 text-slate-800 text-center">${m}월 연차자 현황</h2><div class="space-y-1">`;
+            let html = `<h2 class="text-lg font-black mb-4 text-slate-800 text-center">${m}월 연차자 현황</h2><div class="space-y-1">`;
             const sortedKeys = Object.keys(dateMap).sort((a,b) => parseInt(a) - parseInt(b));
             
-            if(sortedKeys.length === 0) html += `<div class="text-center py-6 text-slate-400 font-bold text-sm">등록된 연차가 없습니다.</div>`;
+            if(sortedKeys.length === 0) html += `<div class="text-center py-10 text-slate-400 font-bold">연차 데이터가 없습니다.</div>`;
             else {
                 sortedKeys.forEach(key => {
                     const people = dateMap[key];
-                    const sungNames = people.filter(p => p.info.t === 'sung').map(p=>p.name).join(',');
-                    const omniNames = people.filter(p => p.info.t === 'omni').map(p=>p.name).join(',');
-                    const representative = people[0].info.g;
-                    const gColor = representative === 'A' ? '#f59e0b' : representative === 'B' ? '#ef4444' : (representative === 'C' ? '#3b82f6' : '#64748b');
+                    const sung = people.filter(p => p.info.t === 'sung').map(p=>p.name).join(',');
+                    const omni = people.filter(p => p.info.t === 'omni').map(p=>p.name).join(',');
+                    const g = people[0].info.g;
+                    const gCol = g === 'A' ? '#f59e0b' : g === 'B' ? '#ef4444' : (g === 'C' ? '#3b82f6' : '#64748b');
 
                     html += `
                     <div class="list-item">
-                        <span class="badge-date text-blue-600 font-black">${m}/${key}</span>
-                        <span class="badge-g" style="background:${gColor}">${representative}</span>
-                        <span class="badge-b bg-[#a855f7]">성의</span> <span class="flex-grow">${sungNames || '-'}</span>
-                        <span class="badge-b bg-[#f97316]">옴니</span> <span class="flex-grow">${omniNames || '-'}</span>
+                        <span class="badge-date font-black">${m}/${key}</span>
+                        <span class="badge-g" style="background:${gCol}">${g}</span>
+                        <span class="badge-b bg-[#a855f7]">성의회관</span> <span class="flex-grow text-center">${sung || '-'}</span>
+                        <span class="badge-b bg-[#10b981]">옴니버스</span> <span class="flex-grow text-center">${omni || '-'}</span>
                     </div>`;
                 });
             }
-            html += `</div><button onclick="document.getElementById('listModal').style.display='none'" class="w-full mt-4 py-3 bg-slate-800 text-white rounded-xl font-black text-sm">확인</button>`;
+            html += `</div><button onclick="document.getElementById('listModal').style.display='none'" class="w-full mt-5 py-3 bg-slate-800 text-white rounded-xl font-black text-sm">확인</button>`;
             document.getElementById('listContainer').innerHTML = html;
             document.getElementById('listModal').style.display = 'flex';
         }
