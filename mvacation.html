@@ -1,35 +1,116 @@
-<style>
-    /* 셀렉트 박스 자체 스타일 수정 */
-    #monthSelect {
-        flex: 1;
-        h-10; /* 높이 유지 */
-        border-radius: 0.5rem;
-        border: 1px solid #e2e8f0;
-        padding: 0 0.5rem;
-        font-weight: 700;
-        font-size: 13px; /* 폰트 크기 축소 */
-        color: #475569;
-        background-color: #f8fafc;
-        outline: none;
-        appearance: none; /* 브라우저 기본 스타일 제거 */
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23475569'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='with9 5l7 7-7 7'%3E%3C/path%3E%3C/svg%3E"); /* 화살표 아이콘 추가 */
-        background-repeat: no-repeat;
-        background-position: right 0.5rem center;
-        background-size: 1rem;
-    }
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        
+        .unified-header { background: white; border-radius: 1rem; border: 1px solid #e5e7eb; padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        
+        .section-row { display: flex; background: #fff; border-radius: 8px; margin-bottom: 4px; border: 1px solid #f1f3f5; overflow: hidden; }
+        .tab-cell { width: 48px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; flex-shrink: 0; }
+        .grid-area { display: grid; grid-template-columns: repeat(4, 1fr); flex-grow: 1; gap: 8px; padding: 8px; }
+        
+        /* 칼렌다와 동일한 조별 컬러코드 적용 */
+        .row-A .tab-cell { background: #fffbeb; color: #f59e0b; } /* A조: 노랑 계열 */
+        .row-B .tab-cell { background: #fef2f2; color: #ef4444; } /* B조: 빨강 계열 */
+        .row-C .tab-cell { background: #eff6ff; color: #3b82f6; } /* C조: 파랑 계열 */
 
-    /* 셀렉트 박스 클릭 시 나타나는 옵션 목록 스타일 (시스템 기본 폰트 영향 최소화) */
-    #monthSelect option {
-        font-size: 12px; /* 옵션 글자 크기 대폭 축소 */
-        padding: 4px 0; /* 줄 간격 좁게 조정 */
-    }
-</style>
+        .card { background: #fff; border-radius: 6px; height: 42px; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; border: 2px solid #f1f3f5; }
+        .border-sung { border-color: #a855f7 !important; } /* 성의 테두리 (보라) */
+        .border-omni { border-color: #f97316 !important; } /* 옴니 테두리 (주황) */
+        
+        .name { font-size: 15px; font-weight: 900; color: #1e293b; }
+        .v-badge { position: absolute; top: -6px; right: -4px; background: #ef4444; color: white; font-size: 10px; font-weight: 900; min-width: 18px; height: 18px; border-radius: 9px; display: none; align-items: center; justify-content: center; border: 1.5px solid white; z-index: 10; }
+    </style>
+</head>
+<body class="p-4">
+    <div class="max-w-md mx-auto">
+        <div class="unified-header">
+            <div class="flex items-center justify-between mb-4">
+                <h1 class="text-xl font-black text-slate-800">📅 연차 관리 (mvacation)</h1>
+                <a href="calendar.html" class="text-xs font-bold text-slate-400">달력보기 ＞</a>
+            </div>
+            <select id="monthSelect" class="w-full h-12 rounded-xl border-2 border-slate-100 px-4 font-bold text-slate-700 bg-white outline-none">
+                <option value="">월 선택</option>
+                <script>for(let i=1; i<=12; i++) document.write(`<option value="${i}">${i}월</option>`);</script>
+            </select>
+        </div>
 
-<select id="monthSelect" onchange="showMonthlyList()">
-    <option value="">월 선택 (명단확인)</option>
+        <div class="section-row row-A"><div class="tab-cell">A조</div><div class="grid-area" id="group-A"></div></div>
+        <div class="section-row row-B"><div class="tab-cell">B조</div><div class="grid-area" id="group-B"></div></div>
+        <div class="section-row row-C"><div class="tab-cell">C조</div><div class="grid-area" id="group-C"></div></div>
+    </div>
+
     <script>
-        for(let i=1; i<=12; i++) {
-            document.write(`<option value="${i}">${i}월 연차자</option>`);
+        const firebaseConfig = {
+            apiKey: "AIzaSyAu38FXMBUgoeYy1GDViTetsJ68ivHsGyM",
+            authDomain: "catholic-security-system.firebaseapp.com",
+            projectId: "catholic-security-system",
+            storageBucket: "catholic-security-system.firebasestorage.app",
+            messagingSenderId: "978946205343",
+            appId: "1:978946205343:web:38c30a21bf0dd522f9a4aa"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        // 칼렌다와 동일한 멤버 구성
+        const members = {
+            'A': { sung: ['배준용','이명구'], omni: ['손병휘','권순호','김영중','김삼동','김전식'] },
+            'B': { sung: ['심규천','임종현'], omni: ['황일범','이상길','권영국','전준수','허용'] },
+            'C': { sung: ['황재업','이태원'], omni: ['피재영','남형민','김태언','이정석','강경훈'] }
+        };
+
+        let allVData = {};
+
+        function render() {
+            ['A','B','C'].forEach(g => {
+                const container = document.getElementById(`group-${g}`);
+                let html = '';
+                members[g].sung.forEach(n => html += `<div class="card border-sung" onclick="edit('${n}')"><span class="v-badge"></span><span class="name">${n}</span></div>`);
+                members[g].omni.forEach(n => html += `<div class="card border-omni" onclick="edit('${n}')"><span class="v-badge"></span><span class="name">${n}</span></div>`);
+                container.innerHTML = html;
+            });
         }
+
+        // 실시간 DB 연동 (vacation_system/data)
+        db.collection("vacation_system").doc("data").onSnapshot(doc => {
+            if (doc.exists) {
+                allVData = doc.data().vocation || {};
+                updateBadges();
+            }
+        });
+
+        function updateBadges() {
+            document.querySelectorAll('.card').forEach(card => {
+                const name = card.querySelector('.name').innerText;
+                let count = 0;
+                Object.values(allVData).forEach(m => { if(m[name]) count += m[name].split(',').filter(x=>x.trim()).length; });
+                const badge = card.querySelector('.v-badge');
+                badge.innerText = count;
+                badge.style.display = count > 0 ? 'flex' : 'none';
+            });
+        }
+
+        async function edit(name) {
+            const m = document.getElementById('monthSelect').value;
+            if(!m) return alert("월을 먼저 선택하세요.");
+            const mk = `2026-${m.padStart(2,'0')}`;
+            const current = allVData[mk]?.[name] || "";
+            const val = prompt(`${m}월 ${name} 연차 날짜 (쉼표 구분)`, current);
+            if(val !== null) {
+                if(!allVData[mk]) allVData[mk] = {};
+                if(val.trim()) allVData[mk][name] = val; else delete allVData[mk][name];
+                await db.collection("vacation_system").doc("data").update({ vocation: allVData });
+            }
+        }
+
+        window.onload = render;
     </script>
-</select>
+</body>
+</html>
