@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>성의교정 연차관리</title>
+    <title>연차 관리 시스템</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <style>
         :root { 
-            --bg: #f2f4f7; --tab-bg: #e9ecef;
+            --bg: #f8f9fa; --tab-grey: #e9ecef;
             --color-a: #d3f9d8; --color-b: #ffec99; --color-c: #ffc9c9;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; }
@@ -16,58 +16,51 @@
 
         .app-container { max-width: 800px; margin: 0 auto; }
         
-        /* 섹션 행 */
         .section-row { 
-            display: flex; background: #fff; border-radius: 15px; 
-            margin-bottom: 10px; overflow: hidden; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e9ecef;
+            display: flex; background: #fff; border-radius: 18px; 
+            margin-bottom: 12px; overflow: hidden; 
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08); border: 1px solid #eef0f2;
         }
 
-        /* 좌측 탭 영역 (65px) */
         .tab-cell { 
             width: 65px; display: flex; align-items: center; justify-content: center; 
             font-weight: 900; font-size: 14px; color: #495057; background: #eee;
             flex-shrink: 0; text-align: center;
         }
 
-        /* 그리드 영역: 좌(2열) 회관, 우(2열) 옴니 */
         .grid-area { 
             display: grid; grid-template-columns: repeat(4, 1fr); 
             flex-grow: 1; gap: 8px; padding: 12px; 
         }
 
-        /* [핵심] 건물명 레이블: 좌측 2칸 회관 / 우측 2칸 옴니 */
-        .label-building { 
+        .building-label { 
             grid-column: span 2; background: #495057; color: #fff; font-size: 11px; 
             font-weight: bold; display: flex; align-items: center; justify-content: center; 
-            height: 24px; border-radius: 4px; margin-bottom: 2px;
+            height: 24px; border-radius: 6px; margin-bottom: 2px;
         }
 
-        /* 모든 카드 크기 동일 */
         .card { 
-            background: #fff; border-radius: 10px; height: 48px;
+            background: #fff; border-radius: 12px; height: 50px;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             border: 1px solid #eee; cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
 
-        /* 텍스트 스타일 */
-        .pos { font-size: 9px; color: #339af0; font-weight: bold; margin-bottom: 1px; }
-        .name { font-size: 15px; font-weight: 900; color: #212529; }
+        /* [핵심] 이름 크기 축소: 이미지와 동일하게 작고 단정하게 유지 */
+        .pos { font-size: 8px; color: #339af0; font-weight: bold; margin-bottom: 1px; }
+        .name { font-size: 14px; font-weight: 900; color: #212529; }
 
-        /* 조별 색상 */
         .row-A .tab-cell { background: var(--color-a); }
         .row-B .tab-cell { background: var(--color-b); }
         .row-C .tab-cell { background: var(--color-c); }
 
-        /* 연차 활성 상태 */
         .active { border: 2.5px solid #339af0 !important; background: #fff !important; }
-        .empty-card { border: 1.2px dashed #ced4da; background: transparent; }
+        .empty-card { border: 1.2px dashed #ced4da; background: transparent; box-shadow: none; }
 
-        /* 모달 생략 (기존과 동일) */
         #modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: flex-end; }
         .modal-content { background: #fff; width: 100%; max-width: 500px; padding: 25px; border-radius: 25px 25px 0 0; }
         .m-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .m-btn { width: 100%; padding: 15px; margin-top: 15px; background: #000; color: #fff; border: none; border-radius: 12px; font-weight: bold; }
+        .m-btn { width: 100%; padding: 15px; margin-top: 15px; background: #212529; color: #fff; border: none; border-radius: 12px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -78,7 +71,7 @@
     <div class="modal-content" onclick="event.stopPropagation()">
         <h3 id="m-name" style="text-align:center; margin-bottom:20px; font-weight:900;"></h3>
         <div class="m-grid" id="m-grid"></div>
-        <button class="m-btn" onclick="save()">데이터 저장</button>
+        <button class="m-btn" onclick="save()">저장하기</button>
     </div>
 </div>
 
@@ -91,7 +84,7 @@
     const currentY = 2026;
 
     for(let i=1; i<=12; i++) {
-        document.getElementById('m-grid').innerHTML += `<div style="text-align:center; background:#f8f9fa; padding:10px; border-radius:10px;"><label style="font-size:11px;">${i}월</label><br><input type="text" id="month-${i}" style="width:100%; border:none; background:transparent; text-align:center; font-size:16px; font-weight:bold; outline:none;"></div>`;
+        document.getElementById('m-grid').innerHTML += `<div style="text-align:center; background:#f8f9fa; padding:10px; border-radius:12px;"><label style="font-size:11px; color:#868e96; font-weight:bold;">${i}월</label><br><input type="text" id="month-${i}" style="width:100%; border:none; background:transparent; text-align:center; font-size:16px; font-weight:bold; color:#339af0; outline:none;"></div>`;
     }
 
     function init() {
@@ -108,37 +101,28 @@
         const container = document.getElementById('main-table');
         container.innerHTML = '';
 
-        // 1. 지휘부 (소장 좌측/부소장 우측 배치)
-        container.appendChild(createSplitSection("지휘부", "보안소장", "부소장"));
+        container.appendChild(createSplitRow("지휘부", s => s.p === "보안소장", s => s.p === "부소장"));
+        container.appendChild(createSplitRow("반장", s => s.g === "반장" && s.n === "유정수", s => s.g === "반장" && s.n === "오제준"));
 
-        // 2. 반장 (성의반장 좌측/옴니반장 우측 배치)
-        container.appendChild(createSplitSection("반장", "성의반장", "옴니반장"));
-
-        // 건물명 레이블 행 (탭 제외하고 좌/우 분할)
         const labelRow = document.createElement('div');
         labelRow.className = 'section-row'; labelRow.style.background = 'transparent'; labelRow.style.border = 'none'; labelRow.style.boxShadow = 'none'; labelRow.style.marginBottom = '2px';
-        labelRow.innerHTML = `<div class="tab-cell" style="background:transparent;"></div><div class="grid-area" style="padding:0 12px;"><div class="label-building">성 의 회 관</div><div class="label-building">옴 니 버 스 파 크</div></div>`;
+        labelRow.innerHTML = `<div class="tab-cell" style="background:transparent;"></div><div class="grid-area" style="padding:0 12px;"><div class="building-label">성 의 회 관</div><div class="building-label">옴 니 버 스 파 크</div></div>`;
         container.appendChild(labelRow);
 
-        // 3. 조별 섹션 (좌측 회관멤버 / 우측 옴니멤버)
-        ["A조", "B조", "C조"].forEach(g => {
-            container.appendChild(createGroupRow(g));
+        ["A조", "B조", "C조"].forEach(group => {
+            container.appendChild(createGroupRow(group));
         });
     }
 
-    function createSplitSection(title, leftFilter, rightFilter) {
+    function createSplitRow(title, leftFilter, rightFilter) {
         const row = document.createElement('div');
         row.className = 'section-row';
         row.innerHTML = `<div class="tab-cell">${title}</div><div class="grid-area"></div>`;
         const grid = row.querySelector('.grid-area');
-
-        // 좌측(2칸) 및 우측(2칸) 배치용 필터링
-        const left = staffList.filter(s => s.p.includes(leftFilter) || (title === "지휘부" && s.p === "보안소장"));
-        const right = staffList.filter(s => s.p.includes(rightFilter) || (title === "지휘부" && s.p === "부소장"));
-
-        [...left, ...new Array(2-left.length).fill(null)].slice(0,2).forEach(s => grid.appendChild(createCard(s)));
-        [...right, ...new Array(2-right.length).fill(null)].slice(0,2).forEach(s => grid.appendChild(createCard(s)));
-
+        const left = staffList.filter(leftFilter);
+        const right = staffList.filter(rightFilter);
+        for(let i=0; i<2; i++) grid.appendChild(createCard(left[i] || null));
+        for(let i=0; i<2; i++) grid.appendChild(createCard(right[i] || null));
         return row;
     }
 
@@ -147,22 +131,10 @@
         row.className = `section-row row-${group[0]}`;
         row.innerHTML = `<div class="tab-cell">${group}</div><div class="grid-area"></div>`;
         const grid = row.querySelector('.grid-area');
-
-        // 좌 회관 / 우 옴니 필터링
         const left = staffList.filter(s => s.g === group && (s.p.includes("성의") || s.p.includes("의산연")));
         const right = staffList.filter(s => s.g === group && s.p.includes("옴니"));
-
-        // 각각 최대 4명씩 가능하나 이미지 스타일(한 줄에 2명씩)을 위해 2명씩 먼저 채움
-        // 실제 데이터 구조에 따라 반복문으로 4칸을 좌/우로 나눠 채웁니다.
-        const leftSorted = left.slice(0,2);
-        const rightSorted = right.slice(0,2);
-
-        leftSorted.forEach(s => grid.appendChild(createCard(s)));
-        if(leftSorted.length < 2) for(let i=0; i<2-leftSorted.length; i++) grid.appendChild(createCard(null));
-
-        rightSorted.forEach(s => grid.appendChild(createCard(s)));
-        if(rightSorted.length < 2) for(let i=0; i<2-rightSorted.length; i++) grid.appendChild(createCard(null));
-
+        for(let i=0; i<2; i++) grid.appendChild(createCard(left[i] || null));
+        for(let i=0; i<2; i++) grid.appendChild(createCard(right[i] || null));
         return row;
     }
 
@@ -170,7 +142,6 @@
         const card = document.createElement('div');
         card.className = 'card';
         if(!s) { card.classList.add('empty-card'); return card; }
-
         const isTop = (s.p === "보안소장" || s.p === "부소장");
         card.innerHTML = `${isTop ? `<span class="pos">${s.p}</span>` : ''}<span class="name">${s.n}</span>`;
         for(let i=1; i<=12; i++) if(vData[`${currentY}-${String(i).padStart(2,'0')}`]?.[s.n]) card.classList.add('active');
@@ -181,7 +152,7 @@
     let selectedUser = null;
     function openModal(s) {
         selectedUser = s;
-        document.getElementById('m-name').innerText = s.n + " 대원 연차";
+        document.getElementById('m-name').innerText = s.n;
         for(let i=1; i<=12; i++) document.getElementById(`month-${i}`).value = vData[`${currentY}-${String(i).padStart(2,'0')}`]?.[s.n] || "";
         document.getElementById('modal').style.display = 'flex';
     }
