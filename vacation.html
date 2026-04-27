@@ -7,51 +7,19 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <style>
-        :root { --sat-bg: #f5faff; --sun-bg: #fff5f5; --today-border: #ff0000; --select-border: #0044ff; --primary-blue: #3498db; }
+        :root { --sat-bg: #f5faff; --sun-bg: #fff5f5; --primary-blue: #3498db; }
         html, body { margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; background: #f0f2f5; }
-        
         .content-area { display: flex; justify-content: center; padding: 20px 10px; min-height: 100vh; box-sizing: border-box; }
-        
-        /* [규격 유지] A4 가로 출력 규격 보존 */
-        #paper { 
-            background: white; 
-            width: 285mm; 
-            padding: 10px; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            position: relative; 
-            box-shadow: 0 0 20px rgba(0,0,0,0.1); 
-            border-radius: 4px;
-            max-width: 100%;
-            overflow: hidden;
-        }
-
+        #paper { background: white; width: 285mm; padding: 10px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 0 20px rgba(0,0,0,0.1); border-radius: 4px; max-width: 100%; overflow: hidden; }
         #viewTitle { text-align: center; margin: 10px 0 20px 0; font-size: 24px; font-weight: bold; text-decoration: underline; text-underline-offset: 5px; letter-spacing: 2px; }
-        
-        #tableWrapper { 
-            width: 100%; 
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            border: 1px solid #ddd;
-        }
-
-        table { 
-            border-collapse: collapse; 
-            width: 100%; 
-            min-width: 1000px;
-            border: 1.5pt solid #000; 
-            table-layout: fixed; 
-            background: white; 
-        }
-        
-        td { border: 0.5pt solid #000; text-align: center; font-weight: bold; height: 18pt; font-size: 11px; padding: 0; }
+        #tableWrapper { width: 100%; overflow-x: auto; border: 1px solid #ddd; }
+        table { border-collapse: collapse; width: 100%; min-width: 1000px; border: 1.5pt solid #000; table-layout: fixed; background: white; }
+        td { border: 0.5pt solid #000; text-align: center; font-weight: bold; height: 18pt; font-size: 11px; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .hdr { background: #f2f2f2 !important; height: 26pt; cursor: pointer; }
         .border-right-bold { border-right: 1.5pt solid #000 !important; }
         .sat { background-color: var(--sat-bg) !important; color: #007bff !important; }
         .sun { background-color: var(--sun-bg) !important; color: #dc3545 !important; }
         .v-mark { background-color: #d4edda !important; color: #28a745; font-weight: bold; cursor: pointer; }
-
         .controls-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; z-index: 2000; }
         #syncStatus { font-size: 11px; font-weight: bold; color: #7f8c8d; background: rgba(255,255,255,0.9); padding: 4px 12px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .floating-bar { display: flex; align-items: center; gap: 8px; background: white; padding: 10px 20px; border-radius: 40px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); border: 1px solid #ddd; }
@@ -59,30 +27,14 @@
         .btn-orange { background: #e67e22; }
         .btn-blue { background: #3498db; }
         .btn-gray { background: #95a5a6; }
-        .admin-btn { background: #34495e; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; color: white; border: none; }
         #adminMenu { display: none; gap: 5px; align-items: center; }
         input[type="month"] { border: 1px solid #ddd; padding: 7px 12px; border-radius: 20px; font-weight: bold; outline: none; }
-
-        @media screen and (max-width: 768px) {
-            #paper { width: 100%; padding: 5px; border-radius: 0; box-shadow: none; }
-            #viewTitle { font-size: 18px; margin-bottom: 10px; }
-            .floating-bar { padding: 5px 10px; scale: 0.85; transform-origin: right bottom; }
-        }
-
         #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; z-index: 3000; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 350px; overflow: hidden; }
         #modalOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 2999; backdrop-filter: blur(2px); }
-        .modal-hdr { background: var(--primary-blue); color: white; padding: 18px; font-weight: bold; text-align: center; font-size: 18px; }
-        .modal-body { padding: 30px 20px; text-align: center; }
-        .close-btn { width: 100%; padding: 15px; background: #f8f9fa; border: none; border-top: 1px solid #eee; cursor: pointer; font-weight: bold; font-size: 16px; }
-
         @media print {
-            @page { size: A4 landscape; margin: 10mm 10mm; }
-            html, body { background: white !important; }
-            .content-area { padding: 0; display: block; }
-            #paper { width: 100% !important; padding: 0 !important; box-shadow: none !important; }
+            @page { size: A4 landscape; margin: 10mm; }
             .controls-container, #modal, #modalOverlay { display: none !important; }
-            table { width: 100% !important; min-width: 100% !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            td { font-size: 9px; height: 15pt; }
+            #paper { box-shadow: none !important; width: 100% !important; padding: 0 !important; }
         }
     </style>
 </head>
@@ -90,9 +42,9 @@
 
 <div id="modalOverlay" onclick="closeModal()"></div>
 <div id="modal">
-    <div class="modal-hdr" id="modalTitle">정보</div>
-    <div class="modal-body" id="modalContent"></div>
-    <button class="close-btn" onclick="closeModal()">닫기</button>
+    <div style="background:var(--primary-blue); color:white; padding:18px; font-weight:bold; text-align:center;" id="modalTitle">정보</div>
+    <div style="padding:30px 20px; text-align:center;" id="modalContent"></div>
+    <button style="width:100%; padding:15px; background:#f8f9fa; border:none; border-top:1px solid #eee; cursor:pointer; font-weight:bold; font-size:16px;" onclick="closeModal()">닫기</button>
 </div>
 
 <div class="content-area">
@@ -107,17 +59,16 @@
 <div class="controls-container">
     <div id="syncStatus">Firestore 연결 대기...</div>
     <div class="floating-bar">
-        <button class="admin-btn" onclick="toggleAdmin()" title="관리자 설정">⚙</button>
+        <button class="btn btn-gray" onclick="toggleAdmin()">⚙</button>
         <div id="adminMenu">
             <button class="btn btn-gray" onclick="backupData()">백업</button>
             <button class="btn btn-gray" onclick="document.getElementById('fileInput').click()">복구</button>
             <input type="file" id="fileInput" style="display:none" accept=".json" onchange="restoreData(event)">
-            <div style="width:1px; height:20px; background:#ddd; margin:0 5px;"></div>
         </div>
         <input type="month" id="targetMonth" onchange="render()">
         <button class="btn btn-orange" onclick="changeTab('ledger')">연차대장</button>
         <button class="btn btn-blue" onclick="changeTab('schedule')">연차일정표</button>
-        <button class="btn btn-blue" onclick="preparePrint()">인쇄</button>
+        <button class="btn btn-blue" onclick="window.print()">인쇄</button>
     </div>
 </div>
 
@@ -133,18 +84,17 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const COLL = "vacation_system";
+    const DOC = "data";
 
-    let currentTab = 'schedule';
-    let activeEditColumn = null;
-    let staffData = [];
-    let vData = {};
+    let currentTab = 'schedule', activeCol = null, staffData = [], vData = {};
 
     function initSync() {
-        db.collection("vocation_app").doc("data").onSnapshot((doc) => {
+        db.collection(COLL).doc(DOC).onSnapshot((doc) => {
             if (doc.exists) {
-                const data = doc.data();
-                staffData = data.staff || [];
-                vData = data.vocation || {};
+                const d = doc.data();
+                staffData = d.staff || [];
+                vData = d.vacation || {};
                 document.getElementById('syncStatus').innerText = "● 실시간 동기화 중";
                 render();
             }
@@ -154,18 +104,17 @@
     function render() {
         const val = document.getElementById('targetMonth').value;
         if(!val) return;
-        const [y, mSelected] = val.split('-').map(Number);
+        const [y, m] = val.split('-').map(Number);
         if (currentTab === 'ledger') renderLedger(y);
-        else renderSchedule(y, mSelected);
-        document.getElementById('tableWrapper').scrollLeft = 0;
+        else renderSchedule(y, m);
     }
 
+    // 일정표 레이아웃 고정[cite: 1]
     function renderSchedule(y, m) {
-        const lastDay = new Date(y, m, 0).getDate();
+        const last = new Date(y, m, 0).getDate();
         document.getElementById('viewTitle').innerText = `성의교정 연차 일정표(${y}년 ${m}월)`;
-        let h = `<colgroup><col style="width:55px;"><col style="width:40px;"><col style="width:45px;"><col style="width:65px;"></colgroup>
-                 <thead><tr class="hdr"><td>구분</td><td>조</td><td>직위</td><td class="border-right-bold">성명</td>`;
-        for(let i=1; i<=lastDay; i++) {
+        let h = `<colgroup><col style="width:55px;"><col style="width:40px;"><col style="width:45px;"><col style="width:65px;"></colgroup><thead><tr class="hdr"><td>구분</td><td>조</td><td>직위</td><td class="border-right-bold">성명</td>`;
+        for(let i=1; i<=last; i++) {
             const we = new Date(y, m-1, i).getDay();
             h += `<td class="${we===0?'sun':we===6?'sat':''}" style="width:23px;" onclick="showDayStatus(${m}, ${i})">${i}</td>`;
         }
@@ -173,54 +122,63 @@
         document.getElementById('displayTable').innerHTML = h;
     }
 
+    // [피드백 반영] 연차대장 셀 넓이 최적화 (앞부분 고정 + 나머지 13등분)[cite: 1]
     function renderLedger(y) {
         document.getElementById('viewTitle').innerText = `성의교정 연차 관리대장(${y}년)`;
-        let h = `<colgroup><col style="width:55px;"><col style="width:40px;"><col style="width:45px;"><col style="width:65px;"></colgroup>
-                 <thead><tr class="hdr"><td>구분</td><td>조</td><td>직위</td><td class="border-right-bold" onclick="toggleEditCol('name')">성명</td>`;
+        let h = `
+            <colgroup>
+                <col style="width:55px;">
+                <col style="width:40px;">
+                <col style="width:45px;">
+                <col style="width:65px;">
+                <col style="width:7.69%;"> <col style="width:7.69%;"> <col style="width:7.69%;">
+                <col style="width:7.69%;"> <col style="width:7.69%;"> <col style="width:7.69%;">
+                <col style="width:7.69%;"> <col style="width:7.69%;"> <col style="width:7.69%;">
+                <col style="width:7.69%;"> <col style="width:7.69%;"> <col style="width:7.69%;">
+                <col style="width:7.69%;">
+            </colgroup>
+            <thead>
+                <tr class="hdr">
+                    <td>구분</td><td>조</td><td>직위</td><td class="border-right-bold" onclick="toggleEdit('name')">성명</td>`;
+        
         for(let i=1; i<=12; i++) {
             const mk = `${y}-${String(i).padStart(2,'0')}`;
-            h += `<td onclick="toggleEditCol('${mk}')" style="width:43px;">${i}월</td>`;
+            h += `<td onclick="toggleEdit('${mk}')">${i}월</td>`;
         }
-        h += `<td style="width:43px;">합계</td></tr></thead><tbody>${generateRows(y, null)}</tbody>`;
+        
+        h += `<td>합계</td></tr></thead><tbody>${generateRows(y, null)}</tbody>`;
         document.getElementById('displayTable').innerHTML = h;
     }
 
     function generateRows(y, m) {
         let rows = "";
-        staffData.forEach((staff, idx) => {
-            const isLastOfGroup = (idx === staffData.length - 1) || (staffData[idx+1].s !== staff.s || staffData[idx+1].g !== staff.g);
-            rows += `<tr style="${isLastOfGroup ? 'border-bottom:1.5pt solid #000' : ''}">`;
-            if(idx===0 || staffData[idx-1].g !== staff.g) {
-                const gCount = staffData.filter(x => x.g === staff.g).length;
-                rows += `<td rowspan="${gCount}">${staff.g}</td>`;
-            }
-            if(idx===0 || staffData[idx-1].s !== staff.s || staffData[idx-1].g !== staff.g) {
-                const sCount = staffData.filter(x => x.g === staff.g && x.s === staff.s).length;
-                rows += `<td rowspan="${sCount}">${staff.s}</td>`;
-            }
-            rows += `<td>${staff.p}</td>`;
-            if(activeEditColumn === 'name') {
-                rows += `<td class="border-right-bold"><input type="text" style="width:90%; border:none; text-align:center; background:#e3f2fd; font-weight:bold;" value="${staff.n}" onchange="updateName(${idx}, this.value)"></td>`;
-            } else { rows += `<td class="border-right-bold">${staff.n}</td>`; }
+        staffData.forEach((s, idx) => {
+            const isLast = (idx === staffData.length - 1) || (staffData[idx+1].s !== s.s || staffData[idx+1].g !== s.g);
+            rows += `<tr style="${isLast ? 'border-bottom:1.5pt solid #000' : ''}">`;
+            if(idx===0 || staffData[idx-1].g !== s.g) rows += `<td rowspan="${staffData.filter(x=>x.g===s.g).length}">${s.g}</td>`;
+            if(idx===0 || staffData[idx-1].s !== s.s || staffData[idx-1].g !== s.g) rows += `<td rowspan="${staffData.filter(x=>x.g===s.g && x.s===s.s).length}">${s.s}</td>`;
+            rows += `<td>${s.p}</td>`;
+            
+            if(activeCol === 'name') rows += `<td class="border-right-bold"><input type="text" style="width:90%; border:none; text-align:center; background:#e3f2fd; font-weight:bold;" value="${s.n}" onchange="updateName(${idx}, this.value)"></td>`;
+            else rows += `<td class="border-right-bold">${s.n}</td>`;
             
             if (m === null) {
-                let rowTotal = 0;
+                let total = 0;
                 for(let i=1; i<=12; i++) {
                     const mk = `${y}-${String(i).padStart(2,'0')}`;
-                    const val = vData[mk]?.[staff.n] || "";
-                    if(val) rowTotal += val.split(',').length;
-                    if(activeEditColumn === mk) {
-                        rows += `<td><input type="text" style="width:90%; border:none; text-align:center; background:#fffde7; font-weight:bold;" value="${val}" onchange="updateV('${mk}', '${staff.n}', this.value)"></td>`;
-                    } else { rows += `<td>${val}</td>`; }
+                    const val = vData[mk]?.[s.n] || "";
+                    if(val) total += val.split(',').length;
+                    if(activeCol === mk) rows += `<td><input type="text" style="width:90%; border:none; text-align:center; background:#fffde7; font-weight:bold;" value="${val}" onchange="updateV('${mk}','${s.n}',this.value)"></td>`;
+                    else rows += `<td>${val}</td>`;
                 }
-                rows += `<td style="color:blue;">${rowTotal || ''}</td>`;
+                rows += `<td style="color:blue;">${total || ''}</td>`;
             } else {
                 const mk = `${y}-${String(m).padStart(2,'0')}`;
-                const vArr = (vData[mk]?.[staff.n] || "").split(',').map(s => s.trim());
+                const vArr = (vData[mk]?.[s.n] || "").split(',').map(x=>x.trim());
                 for(let i=1; i<=new Date(y, m, 0).getDate(); i++) {
                     const isV = vArr.includes(String(i));
                     const we = new Date(y, m-1, i).getDay();
-                    rows += `<td class="${isV ? 'v-mark' : ''} ${we===0?'sun':we===6?'sat':''}" ${isV ? `onclick='showVDetail(${JSON.stringify(staff)}, ${m}, ${i})'` : ''}>${isV?'V':''}</td>`;
+                    rows += `<td class="${isV?'v-mark':''} ${we===0?'sun':we===6?'sat':''}" ${isV?`onclick='showVDetail("${s.n}","${s.p}","${s.g}","${s.s}",${m},${i})'`:''}>${isV?'V':''}</td>`;
                 }
             }
             rows += `</tr>`;
@@ -228,112 +186,64 @@
         return rows;
     }
 
-    function preparePrint() {
-        const currentTitle = document.getElementById('viewTitle').innerText;
-        const originalDocTitle = document.title;
-        document.title = currentTitle;
-        window.print();
-        setTimeout(() => { document.title = originalDocTitle; }, 1000);
-    }
+    async function updateName(idx, v) { staffData[idx].n = v; await db.collection(COLL).doc(DOC).update({ staff: staffData }); }
+    async function updateV(mk, n, v) { await db.collection(COLL).doc(DOC).update({ [`vacation.${mk}.${n}`]: v }); }
+    function toggleEdit(id) { activeCol = (activeCol === id) ? null : id; render(); }
+    function changeTab(t) { currentTab = t; activeCol = null; render(); }
+    function openModal() { document.getElementById('modal').style.display='block'; document.getElementById('modalOverlay').style.display='block'; }
+    function closeModal() { document.getElementById('modal').style.display='none'; document.getElementById('modalOverlay').style.display='none'; }
+    function toggleAdmin() { if(prompt("비밀번호")==="1234") document.getElementById('adminMenu').style.display='flex'; }
 
-    function showVDetail(staffObj, m, d) {
+    // 모달창 상세 정보 표시 (소속 및 조 포함)[cite: 1]
+    function showVDetail(n, p, g, s, m, i) {
         document.getElementById('modalTitle').innerText = "연차 상세 정보";
         document.getElementById('modalContent').innerHTML = `
-            <div style="font-size:15px; color:#7f8c8d; margin-bottom:8px;">${staffObj.g} · ${staffObj.s}</div>
-            <div style="font-size:22px; font-weight:bold; color:#2c3e50; margin-bottom:15px;">${staffObj.p} ${staffObj.n}</div>
-            <div style="height:1px; background:#eee; margin-bottom:20px; border:none; border-top:1px dashed #ddd;"></div>
-            <div style="font-size:18px; color:#e74c3c; font-weight:bold;">📅 ${m}월 ${d}일 연차</div>`;
+            <div style="line-height:1.6;">
+                <span style="color:#7f8c8d; font-size:13px;">[${g} / ${s}]</span><br>
+                <b style="font-size:18px;">${p} ${n}</b><br><br>
+                <span style="color:#e67e22; font-weight:bold;">${m}월 ${i}일 연차</span>
+            </div>`;
         openModal();
     }
 
+    // 일별 현황 리스트 (소속 및 조 포함)[cite: 1]
     function showDayStatus(m, d) {
-        const val = document.getElementById('targetMonth').value;
-        const [y] = val.split('-');
+        const y = document.getElementById('targetMonth').value.split('-')[0];
         const mk = `${y}-${String(m).padStart(2,'0')}`;
-        const dayStr = String(d);
-        document.getElementById('modalTitle').innerText = `${m}월 ${d}일 연차 현황`;
-        let listHtml = '';
-        const vList = staffData.filter(s => {
-            const vDays = (vData[mk]?.[s.n] || "").split(',').map(x => x.trim());
-            return vDays.includes(dayStr);
+        const vList = staffData.filter(s => (vData[mk]?.[s.n] || "").split(',').map(x=>x.trim()).includes(String(d)));
+        document.getElementById('modalTitle').innerText = `${m}월 ${d}일 현황`;
+        let html = "";
+        if(!vList.length) html = "연차 인원이 없습니다.";
+        else vList.forEach(item => {
+            html += `<div style="padding:10px; border-bottom:1px solid #eee; text-align:left;">
+                        <span style="color:#3498db; font-size:11px; font-weight:bold;">[${item.g} / ${item.s}]</span> 
+                        <b style="margin-left:7px; font-size:14px;">${item.p} ${item.n}</b>
+                     </div>`;
         });
-        if (vList.length === 0) { listHtml = '<div style="color:#999; padding:20px;">연차 인원이 없습니다.</div>'; }
-        else {
-            vList.forEach(item => {
-                listHtml += `<div style="padding:8px; border-bottom:1px solid #eee;"> <span style="color:#7f8c8d; font-size:13px;">[${item.g}]</span> <b>${item.s} ${item.n}</b></div>`;
-            });
-        }
-        document.getElementById('modalContent').innerHTML = listHtml;
+        document.getElementById('modalContent').innerHTML = html;
         openModal();
     }
-
-    function openModal() { document.getElementById('modal').style.display = 'block'; document.getElementById('modalOverlay').style.display = 'block'; }
-    function closeModal() { document.getElementById('modal').style.display = 'none'; document.getElementById('modalOverlay').style.display = 'none'; }
-    
-    function toggleAdmin() {
-        const menu = document.getElementById('adminMenu');
-        if (menu.style.display === 'flex') { menu.style.display = 'none'; }
-        else {
-            const pw = prompt("관리자 비밀번호를 입력하세요.");
-            if (pw === "1234") menu.style.display = 'flex';
-            else if (pw !== null) alert("비밀번호가 틀렸습니다.");
-        }
-    }
-
-    function toggleEditCol(colId) { activeEditColumn = (activeEditColumn === colId) ? null : colId; render(); }
-    
-    // [핵심 수정] 필드 단위로 안전하게 저장하여 다른 데이터 유실 방지
-    async function updateName(idx, val) {
-        staffData[idx].n = val;
-        await db.collection("vocation_app").doc("data").update({ staff: staffData });
-    }
-
-    async function updateV(mk, n, v) {
-        if(!vData[mk]) vData[mk] = {};
-        vData[mk][n] = v;
-        // Dot Notation을 사용하여 특정 월의 특정 인원 데이터만 업데이트
-        await db.collection("vocation_app").doc("data").update({
-            [`vocation.${mk}.${n}`]: v
-        });
-    }
-
-    async function saveData() {
-        await db.collection("vocation_app").doc("data").update({ staff: staffData, vocation: vData });
-    }
-
-    function changeTab(tab) { currentTab = tab; activeEditColumn = null; render(); }
 
     async function backupData() {
-        const doc = await db.collection("vocation_app").doc("data").get();
-        const data = JSON.stringify(doc.data(), null, 2);
-        const blob = new Blob([data], {type: "application/json"});
-        const url = URL.createObjectURL(blob);
+        const d = await db.collection(COLL).doc(DOC).get();
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `성의교정_백업_${new Date().toISOString().slice(0,10)}.json`;
-        a.click();
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(d.data(), null, 2)], {type: "application/json"}));
+        a.download = `연차백업_${new Date().toISOString().slice(0,10)}.json`; a.click();
     }
 
-    function restoreData(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+    function restoreData(e) {
         const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const json = JSON.parse(e.target.result);
-                if(confirm("복구 시 현재 데이터가 삭제됩니다. 진행하시겠습니까?")) {
-                    await db.collection("vocation_app").doc("data").set(json);
-                    alert("복구 완료!");
-                    location.reload();
-                }
-            } catch (err) { alert("파일 오류"); }
+        reader.onload = async (ev) => {
+            if(confirm("기존 데이터를 덮어쓰고 복구하시겠습니까?")) {
+                await db.collection(COLL).doc(DOC).set(JSON.parse(ev.target.result));
+                location.reload();
+            }
         };
-        reader.readAsText(file);
+        reader.readAsText(e.target.files[0]);
     }
 
-    window.onload = function() {
-        const today = new Date();
-        document.getElementById('targetMonth').value = today.toISOString().substring(0, 7);
+    window.onload = () => {
+        document.getElementById('targetMonth').value = new Date().toISOString().substring(0, 7);
         initSync();
     };
 </script>
