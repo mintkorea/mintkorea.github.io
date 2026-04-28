@@ -35,29 +35,31 @@
         .border-omni { border-color: #ffedd5 !important; } 
         .border-leader { border-color: #f1f5f9 !important; }
 
-        /* 모달 공통 */
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+        /* 모달 베이스 */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
         .modal-content { background: white; width: 100%; max-width: 420px; border-radius: 24px; padding: 24px; max-height: 90vh; overflow-y: auto; }
 
-        /* 월별 그리드 스타일 개선 */
+        /* 월 그리드 섹션 */
         .month-input-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .month-box { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; cursor: pointer; background: #fff; transition: all 0.2s; }
-        .month-box:active { transform: scale(0.95); background: #f8fafc; }
+        .month-box { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; cursor: pointer; background: #fff; }
         .m-label { background: #f8fafc; text-align: center; font-size: 12px; font-weight: 900; padding: 6px 0; border-bottom: 1px solid #e2e8f0; color: #64748b; }
-        .m-value { height: 38px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: #3b82f6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 4px; }
-        .has-value { border-color: #3b82f6; }
-        .has-value .m-label { background: #3b82f6; color: white; border-bottom-color: #3b82f6; }
+        .m-value { height: 38px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: #3b82f6; overflow: hidden; padding: 0 4px; }
+        .has-value { border-color: #3b82f6; border-width: 2px; }
+        .has-value .m-label { background: #3b82f6; color: white; }
 
-        /* 개별 입력 팝업 */
-        #editPopup { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
-        .popup-box { background: white; width: 85%; max-width: 300px; border-radius: 20px; padding: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); }
-
-        /* 명단 리스트 스타일 */
-        .list-row { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: flex-start; gap: 8px; }
-        .l-date { font-weight: 900; color: #1e293b; min-width: 85px; font-size: 14px; }
-        .l-content { flex: 1; font-weight: 800; color: #475569; font-size: 14px; line-height: 1.6; }
-        .l-badge { display: inline-block; padding: 1px 6px; border-radius: 4px; color: white; font-weight: 900; font-size: 11px; margin-right: 4px; }
-        .bg-a { background: #f59e0b; } .bg-b { background: #ef4444; } .bg-c { background: #3b82f6; }
+        /* 최상단 입력 팝업 (키패드 대응) */
+        #editPopup { 
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            z-index: 200; 
+            background: rgba(0, 0, 0, 0.6); 
+            display: none; 
+            justify-content: center; 
+            align-items: flex-start; /* 상단 고정 */
+            padding-top: 10vh; 
+        }
+        .popup-box { background: white; width: 90%; max-width: 340px; border-radius: 24px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
     </style>
 </head>
 <body class="p-3">
@@ -76,27 +78,25 @@
             </div>
         </header>
 
-        <div id="leader-area">
-            <div class="section-row">
-                <div class="tab-cell bg-slate-100 text-slate-600">지휘부</div>
-                <div class="split-container">
-                    <div class="split-cell">
-                        <div class="fixed-card border-leader" onclick="openModal('이규용','성의교정','소장')"><span class="v-badge"></span><div class="text-[9px] font-black text-slate-400">소장</div><span class="name">이규용</span></div>
-                    </div>
-                    <div class="split-cell">
-                        <div class="fixed-card border-leader" onclick="openModal('박상현','성의교정','부소장')"><span class="v-badge"></span><div class="text-[9px] font-black text-slate-400">부소장</div><span class="name">박상현</span></div>
-                    </div>
+        <div class="section-row">
+            <div class="tab-cell bg-slate-100 text-slate-600">지휘부</div>
+            <div class="split-container">
+                <div class="split-cell">
+                    <div class="fixed-card border-leader" onclick="openModal('이규용','성의교정','소장')"><span class="v-badge"></span><div class="text-[9px] font-black text-slate-400">소장</div><span class="name">이규용</span></div>
+                </div>
+                <div class="split-cell">
+                    <div class="fixed-card border-leader" onclick="openModal('박상현','성의교정','부소장')"><span class="v-badge"></span><div class="text-[9px] font-black text-slate-400">부소장</div><span class="name">박상현</span></div>
                 </div>
             </div>
-            <div class="section-row">
-                <div class="tab-cell bg-slate-700 text-white text-[10px]">반장</div>
-                <div class="split-container">
-                    <div class="split-cell">
-                        <div class="fixed-card border-sung" onclick="openModal('유정수','성의회관','반장')"><span class="v-badge"></span><span class="name">유정수</span></div>
-                    </div>
-                    <div class="split-cell">
-                        <div class="fixed-card border-omni" onclick="openModal('오제준','옴니버스','반장')"><span class="v-badge"></span><span class="name">오제준</span></div>
-                    </div>
+        </div>
+        <div class="section-row">
+            <div class="tab-cell bg-slate-700 text-white text-[10px]">반장</div>
+            <div class="split-container">
+                <div class="split-cell">
+                    <div class="fixed-card border-sung" onclick="openModal('유정수','성의회관','반장')"><span class="v-badge"></span><span class="name">유정수</span></div>
+                </div>
+                <div class="split-cell">
+                    <div class="fixed-card border-omni" onclick="openModal('오제준','옴니버스','반장')"><span class="v-badge"></span><span class="name">오제준</span></div>
                 </div>
             </div>
         </div>
@@ -109,21 +109,23 @@
             <div class="text-center mb-6">
                 <div id="modalInfo" class="text-[12px] text-blue-500 font-bold mb-1 bg-blue-50 px-3 py-1 rounded-full inline-block"></div>
                 <h2 id="modalName" class="font-black text-2xl text-slate-800 mt-2"></h2>
-                <p class="text-[11px] text-slate-400 mt-2">해당 월을 터치하여 날짜를 입력하세요</p>
+                <p class="text-[11px] text-slate-400 mt-2">수정할 월을 선택하세요</p>
             </div>
             <div class="month-input-grid" id="monthGrid"></div>
-            <button onclick="closeModal()" class="w-full mt-8 py-4 bg-slate-800 text-white rounded-2xl font-black shadow-lg">닫기</button>
+            <button onclick="closeModal()" class="w-full mt-8 py-4 bg-slate-800 text-white rounded-2xl font-black">닫기</button>
         </div>
     </div>
 
     <div id="editPopup" onclick="this.style.display='none'">
         <div class="popup-box" onclick="event.stopPropagation()">
             <h3 id="popupTitle" class="text-lg font-black text-slate-800 mb-3 text-center"></h3>
-            <input type="text" id="popupInput" class="w-full h-12 border-2 border-blue-500 rounded-xl text-center text-xl font-bold text-blue-600 focus:outline-none bg-blue-50" placeholder="예: 5, 12, 24">
-            <p class="text-[10px] text-slate-400 mt-2 text-center">날짜를 쉼표(,)로 구분해서 입력</p>
-            <div class="flex gap-2 mt-4">
+            <input type="text" id="popupInput" inputmode="decimal" 
+                   class="w-full h-14 border-2 border-blue-500 rounded-xl text-center text-2xl font-bold text-blue-600 focus:outline-none bg-blue-50" 
+                   placeholder="날짜 입력 (예: 5,12)">
+            <p class="text-[11px] text-slate-400 mt-3 text-center">숫자와 쉼표(,)만 입력 가능합니다.</p>
+            <div class="flex gap-2 mt-5">
                 <button onclick="document.getElementById('editPopup').style.display='none'" class="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold">취소</button>
-                <button id="saveBtn" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold">저장</button>
+                <button id="saveBtn" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-md">저장</button>
             </div>
         </div>
     </div>
@@ -139,8 +141,7 @@
         const membersData = [
             {n:'배준용',g:'A',t:'sung'}, {n:'이명구',g:'A',t:'sung'}, {n:'손병휘',g:'A',t:'omni'}, {n:'권순호',g:'A',t:'omni'}, {n:'김영중',g:'A',t:'sung'}, {n:'김삼동',g:'A',t:'sung'}, {n:'김전식',g:'A',t:'omni'},
             {n:'심규천',g:'B',t:'sung'}, {n:'임종현',g:'B',t:'sung'}, {n:'황일범',g:'B',t:'omni'}, {n:'이상길',g:'B',t:'omni'}, {n:'권영국',g:'B',t:'sung'}, {n:'전준수',g:'B',t:'sung'}, {n:'허용',g:'B',t:'omni'},
-            {n:'황재업',g:'C',t:'sung'}, {n:'이태원',g:'C',t:'sung'}, {n:'피재영',g:'C',t:'omni'}, {n:'남형민',g:'C',t:'omni'}, {n:'김태언',g:'C',t:'sung'}, {n:'이정석',g:'C',t:'sung'}, {n:'강경훈',g:'C',t:'omni'},
-            {n:'이규용',g:'지휘부',t:'sung'}, {n:'박상현',g:'지휘부',t:'omni'}, {n:'유정수',g:'반장',t:'sung'}, {n:'오제준',g:'반장',t:'omni'}
+            {n:'황재업',g:'C',t:'sung'}, {n:'이태원',g:'C',t:'sung'}, {n:'피재영',g:'C',t:'omni'}, {n:'남형민',g:'C',t:'omni'}, {n:'김태언',g:'C',t:'sung'}, {n:'이정석',g:'C',t:'sung'}, {n:'강경훈',g:'C',t:'omni'}
         ];
 
         const firebaseConfig = { apiKey: "AIzaSyAu38FXMBUgoeYy1GDViTetsJ68ivHsGyM", authDomain: "catholic-security-system.firebaseapp.com", projectId: "catholic-security-system", storageBucket: "catholic-security-system.firebasestorage.app", messagingSenderId: "978946205343", appId: "1:978946205343:web:38c30a21bf0dd522f9a4aa" };
@@ -149,7 +150,13 @@
         const docRef = db.collection("vacation_system").doc("data");
         let allVData = {}; let activeUser = "";
 
-        docRef.onSnapshot(doc => { if (doc.exists) { allVData = doc.data().vacation || {}; updateMainBadges(); if(document.getElementById('modal').style.display === 'flex') refreshModalGrid(); } });
+        docRef.onSnapshot(doc => { 
+            if (doc.exists) { 
+                allVData = doc.data().vacation || {}; 
+                updateMainBadges(); 
+                if(document.getElementById('modal').style.display === 'flex') refreshModalGrid();
+            } 
+        });
 
         function renderMembers() {
             let html = '';
@@ -192,7 +199,7 @@
             input.value = allVData[mk]?.[activeUser] || "";
             
             document.getElementById('saveBtn').onclick = async () => {
-                const newVal = input.value.trim();
+                const newVal = input.value.trim().replace(/[^0-9,]/g, ''); // 숫자와 쉼표 외 제거
                 if (!allVData[mk]) allVData[mk] = {};
                 allVData[mk][activeUser] = newVal;
                 await docRef.update({ vacation: allVData });
@@ -200,7 +207,10 @@
             };
 
             popup.style.display = 'flex';
-            setTimeout(() => input.focus(), 100);
+            setTimeout(() => {
+                input.focus();
+                input.setSelectionRange(input.value.length, input.value.length);
+            }, 100);
         }
 
         function showMonthlyList() {
@@ -217,11 +227,18 @@
                     const dayName = ["일", "월", "화", "수", "목", "금", "토"][dObj.getDay()];
                     const key = `${dNum}(${dayName})`;
                     if(!dateMap[key]) dateMap[key] = [];
-                    dateMap[key].push(membersData.find(md => md.n === name));
+                    let mInfo = membersData.find(md => md.n === name);
+                    if(!mInfo) { // 지휘부/반장 대응
+                        if(name==='이규용') mInfo={n:'이규용',g:'지휘부',t:'sung'};
+                        if(name==='박상현') mInfo={n:'박상현',g:'지휘부',t:'omni'};
+                        if(name==='유정수') mInfo={n:'유정수',g:'반장',t:'sung'};
+                        if(name==='오제준') mInfo={n:'오제준',g:'반장',t:'omni'};
+                    }
+                    dateMap[key].push(mInfo);
                 });
             });
 
-            let html = `<div class="mb-4 text-center"><h2 class="text-xl font-black text-slate-800">${m}월 연차자 명단</h2></div>`;
+            let html = `<div class="mb-4 text-center"><h2 class="text-xl font-black text-slate-800">${m}월 연차 명단</h2></div>`;
             const sorted = Object.keys(dateMap).sort((a,b) => parseInt(a) - parseInt(b));
             
             sorted.forEach(key => {
@@ -232,15 +249,15 @@
                         row += `<span class="l-badge ${g==='A'?'bg-a':g==='B'?'bg-b':'bg-c'}">${g}${['A','B','C'].includes(g)?'조':''}</span>`;
                         const sung = ps.filter(p => p.t === 'sung').map(p => p.n);
                         const omni = ps.filter(p => p.t === 'omni').map(p => p.n);
-                        if(sung.length > 0) row += `<span class="text-purple-600">성의회관</span> ${sung.join(', ')} `;
-                        if(omni.length > 0) row += `<span class="text-orange-600 ml-1">옴니버스</span> ${omni.join(', ')} `;
+                        if(sung.length > 0) row += `<span class="text-purple-600">회관</span> ${sung.join(', ')} `;
+                        if(omni.length > 0) row += `<span class="text-orange-600 ml-1">옴니</span> ${omni.join(', ')} `;
                     }
                 });
                 row += `</div></div>`;
                 html += row;
             });
 
-            document.getElementById('listContainer').innerHTML = html || '<p class="text-center py-10">내역이 없습니다.</p>';
+            document.getElementById('listContainer').innerHTML = html || '<p class="text-center py-10 text-slate-400">등록된 연차가 없습니다.</p>';
             document.getElementById('listModal').style.display = 'flex';
             document.getElementById('monthSelect').value = "";
         }
