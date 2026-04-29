@@ -3,134 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🗓️ 성의교정 근무달력</title>
+    <title>🗓️ 성의교정 근무시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
-        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f1f5f9; margin: 0; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; margin: 0; -webkit-tap-highlight-color: transparent; }
+        
         #headerBar.admin-active { background-color: #dc2626 !important; }
+
+        /* 달력 스타일 */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border: 1px solid #e2e8f0; background: white; border-radius: 12px; overflow: hidden; margin-bottom: 15px; }
-        .calendar-cell { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; display: flex; flex-direction: column; cursor: pointer; min-height: 65px; position: relative; }
-        .date-area { height: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; z-index: 10; position: relative; }
-        .shift-area { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; padding-bottom: 2px; }
-        .today-label { position: absolute; top: -3px; font-size: 7px; color: #ef4444; font-weight: 900; letter-spacing: -0.5px; }
-        .is-today { border: 2.5px solid #ef4444 !important; z-index: 20; }
-        .is-highlighted .date-area { background: rgba(255, 255, 255, 0.3) !important; color: white !important; }
-        .is-highlighted .shift-area { background: transparent !important; color: white !important; }
-        .control-box { flex: 1; min-width: 0; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
-        #floatingList { position: fixed; bottom: -100%; left: 50%; transform: translateX(-50%); width: 100%; max-width: 500px; height: 85vh; background: #f8fafc; z-index: 1000; transition: bottom 0.4s ease; border-radius: 24px 24px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.3); display: flex; flex-direction: column; }
+        .calendar-cell { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; display: flex; flex-direction: column; cursor: pointer; min-height: 72px; position: relative; z-index: 5; }
+        .date-area { height: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; pointer-events: none; }
+        .is-highlighted .date-area { background: rgba(255, 255, 255, 0.45) !important; color: white !important; }
+        .shift-area { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; pointer-events: none; }
+        .is-highlighted .shift-area { color: white !important; }
+        .is-today { border: 2.5px solid #ef4444 !important; z-index: 10 !important; }
+
+        /* 파스텔 레이블 (연차관리) */
+        .lbl-본부 { background-color: #f1f5f9; color: #64748b; }
+        .lbl-A { background-color: #fef3c7; color: #b45309; }
+        .lbl-B { background-color: #fee2e2; color: #b91c1c; }
+        .lbl-C { background-color: #dbeafe; color: #1d4ed8; }
+
+        /* 뱃지 */
+        .tag-sung { background: #a855f7; color: white; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
+        .tag-omni { background: #f97316; color: white; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
+
+        /* 연차 명단 패널 */
+        #floatingList { position: fixed; bottom: -100%; left: 50%; transform: translateX(-50%); width: 100%; max-width: 500px; height: 85vh; background: #f1f5f9; z-index: 1000; transition: bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 24px 24px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.2); display: flex; flex-direction: column; }
         #floatingList.active { bottom: 0; }
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); z-index: 2000; align-items: center; justify-content: center; }
-        .modal-overlay.active { display: flex; }
+        .list-today-card { border: 2px solid #ef4444 !important; background-color: #fff1f2 !important; }
+
+        /* 관리자 입력 버튼 */
+        .staff-btn { background: white; border: 1px solid #e2e8f0; padding: 10px 0; border-radius: 12px; font-weight: 800; font-size: 12px; text-align: center; }
+        .admin-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px; }
+        .admin-row.three-cols { grid-template-columns: repeat(3, 1fr); width: 75%; }
     </style>
 </head>
 <body>
     <div class="max-w-md mx-auto bg-white min-h-screen shadow-lg flex flex-col relative">
         <div id="headerBar" class="bg-[#2E4077] p-4 text-center text-white relative">
-            <h1 class="text-base font-black italic">🛡️ 성의교정 근무달력(연차조회)</h1>
+            <h1 class="text-base font-black italic">🛡️ 성의교정 근무시스템</h1>
             <button onclick="handleAdminAuth()" class="absolute right-4 top-4 text-lg">⚙️</button>
         </div>
-        <div class="p-2 bg-slate-50 border-b flex gap-2">
-            <button onclick="toggle6Month()" class="control-box h-10 bg-white border rounded-xl text-[11px] font-black">🗓️ 6개월 보기</button>
-            <button onclick="toggleFloatingList()" class="control-box h-10 bg-slate-800 text-white rounded-xl text-[11px] font-black shadow-md">📋 연차 명단</button>
+
+        <div class="flex border-b bg-white">
+            <button onclick="switchTab('cal')" id="tab-cal-btn" class="flex-1 py-3 text-sm font-black text-blue-600 border-b-2 border-blue-600">근무달력</button>
+            <button onclick="switchTab('man')" id="tab-man-btn" class="flex-1 py-3 text-sm font-black text-slate-400">연차관리</button>
         </div>
-        <div class="p-2 flex gap-2">
-            <div class="flex-[1.2] flex items-center bg-white border rounded-xl h-10">
-                <button onclick="changeMonth(-1)" class="px-3 text-slate-300 font-bold">＜</button>
-                <span id="monthTitle" class="text-[11px] font-black flex-1 text-center"></span>
-                <button onclick="changeMonth(1)" class="px-3 text-slate-300 font-bold">＞</button>
+
+        <div id="content-area" class="p-2 flex-1">
+            <div id="section-cal">
+                <div class="flex gap-2 mb-2">
+                    <button onclick="toggle6Month()" class="flex-1 h-10 bg-slate-100 rounded-xl text-[11px] font-black">🗓️ 6개월 보기</button>
+                    <button onclick="toggleFloatingList()" class="flex-1 h-10 bg-slate-800 text-white rounded-xl text-[11px] font-black shadow-md">📋 연차 명단</button>
+                </div>
+                <div class="flex gap-2 mb-2">
+                    <div class="flex-[1.2] flex items-center bg-white border rounded-xl h-10">
+                        <button onclick="changeMonth(-1)" class="px-3 text-slate-300 font-bold">＜</button>
+                        <span id="monthTitle" class="text-[11px] font-black flex-1 text-center"></span>
+                        <button onclick="changeMonth(1)" class="px-3 text-slate-300 font-bold">＞</button>
+                    </div>
+                    <select id="shiftSelect" class="flex-1 h-10 border rounded-xl text-[11px] font-bold px-2 bg-white" onchange="renderCalendar()">
+                        <option value="none">🔍 강조조 선택</option>
+                    </select>
+                </div>
+                <div id="calendarContainer"></div>
             </div>
-            <select id="shiftSelect" class="control-box h-10 border rounded-xl text-[11px] font-bold px-2 outline-none bg-white" onchange="renderCalendar()">
-                <option value="none">🔍 강조조 선택</option>
-            </select>
+            <div id="section-man" class="hidden pb-20"><div id="manageGrid"></div></div>
         </div>
-        <div id="calendarContainer" class="p-2 pb-10"></div>
     </div>
 
     <div id="floatingList">
         <div class="p-5 flex justify-between items-center border-b bg-white rounded-t-[24px]">
             <h2 class="text-lg font-black text-slate-800">연차 신청 현황</h2>
-            <div class="flex items-center gap-2">
-                <label class="bg-slate-100 px-2 py-1 rounded-full text-[10px] font-bold text-slate-500 cursor-pointer">
-                    <input type="checkbox" id="showPast" onchange="toggleFloatingList(true)"> 과거포함
-                </label>
-                <button onclick="toggleFloatingList()" class="text-slate-400 text-xl">✕</button>
-            </div>
+            <button onclick="toggleFloatingList()" class="text-slate-400 text-xl">✕</button>
         </div>
-        <div id="listContent" class="overflow-y-auto flex-1 pb-10 pt-2"></div>
+        <div class="px-4 py-2 bg-white flex justify-between items-center">
+            <span class="text-[10px] font-bold text-slate-400">오늘 이후 일정만 표시됩니다.</span>
+            <button id="togglePastBtn" onclick="togglePast()" class="text-[10px] font-black bg-slate-100 px-2 py-1 rounded">과거 내역 보기</button>
+        </div>
+        <div id="listContent" class="overflow-y-auto flex-1 py-4"></div>
     </div>
 
-    <div id="detailModal" class="modal-overlay">
-        <div class="bg-white w-[85%] max-w-[300px] rounded-3xl overflow-hidden shadow-2xl">
-            <div id="modalDateTitle" class="bg-[#5db0e5] text-white p-4 text-center font-black text-base">날짜</div>
-            <div class="p-5">
-                <div id="modalVocs" class="space-y-2"></div>
-                <div id="adminEditArea" class="mt-4 pt-4 border-t hidden">
-                    <p class="text-[10px] font-black text-slate-400 mb-2">관리자 편집</p>
-                    <div id="staffSelectGrid" class="grid grid-cols-3 gap-1 max-h-32 overflow-y-auto"></div>
-                </div>
-                <button onclick="closeModal()" class="w-full mt-5 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl text-sm">닫기</button>
-            </div>
+    <div id="commonModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[2000] hidden items-center justify-center p-4">
+        <div class="bg-white w-full max-w-[340px] rounded-3xl overflow-hidden shadow-2xl">
+            <div id="modalHeader" class="bg-[#5db0e5] text-white p-4 text-center font-black">정보</div>
+            <div id="modalBody" class="p-5 max-h-[75vh] overflow-y-auto"></div>
+            <div class="p-4 border-t"><button onclick="closeModal()" class="w-full py-3 bg-slate-100 rounded-xl font-bold text-slate-500">닫기</button></div>
         </div>
     </div>
 
     <script>
         const firebaseConfig = { apiKey: "AIzaSyAu38FXMBUgoeYy1GDViTetsJ68ivHsGyM", projectId: "catholic-security-system" };
         firebase.initializeApp(firebaseConfig);
-
-        // [핵심] 오프라인 데이터 유지 활성화
-        firebase.firestore().enablePersistence().catch(() => console.log("캐시 사용불가"));
         const db = firebase.firestore();
+        const docRef = db.collection("vacation_system").doc("data");
 
         const STAFF = [
-            {n:'이규용',g:'지휘부',t:'sung'}, {n:'박상현',g:'지휘부',t:'omni'},
-            {n:'유정수',g:'반장',t:'sung'}, {n:'오제준',g:'반장',t:'omni'}, 
-            {n:'배준용',g:'A',t:'sung'}, {n:'이명구',g:'A',t:'sung'}, {n:'김영중',g:'A',t:'sung'}, {n:'김삼동',g:'A',t:'sung'},
-            {n:'손병휘',g:'A',t:'omni'}, {n:'권순호',g:'A',t:'omni'}, {n:'김전식',g:'A',t:'omni'},
-            {n:'심규천',g:'B',t:'sung'}, {n:'임종현',g:'B',t:'sung'},  {n:'권영국',g:'B',t:'sung'}, {n:'전준수',g:'B',t:'sung'},
-            {n:'황일범',g:'B',t:'omni'}, {n:'이상길',g:'B',t:'omni'}, {n:'허용',g:'B',t:'omni'},
-            {n:'황재업',g:'C',t:'sung'}, {n:'이태원',g:'C',t:'sung'}, {n:'김태언',g:'C',t:'sung'}, {n:'이정석',g:'C',t:'sung'}, 
-            {n:'피재영',g:'C',t:'omni'}, {n:'남형민',g:'C',t:'omni'},  {n:'강경훈',g:'C',t:'omni'}
+            {n:'이규용',g:'본부',t:'성의회관'}, {n:'박상현',g:'본부',t:'옴니버스'}, {n:'유정수',g:'본부',t:'성의회관'}, {n:'오제준',g:'본부',t:'옴니버스'}, 
+            {n:'배준용',g:'A',t:'성의회관'}, {n:'이명구',g:'A',t:'성의회관'}, {n:'김영중',g:'A',t:'성의회관'}, {n:'김삼동',g:'A',t:'성의회관'}, {n:'손병휘',g:'A',t:'옴니버스'}, {n:'권순호',g:'A',t:'옴니버스'}, {n:'김전식',g:'A',t:'옴니버스'},
+            {n:'심규천',g:'B',t:'성의회관'}, {n:'임종현',g:'B',t:'성의회관'}, {n:'권영국',g:'B',t:'성의회관'}, {n:'전준수',g:'B',t:'성의회관'}, {n:'황일범',g:'B',t:'옴니버스'}, {n:'이상길',g:'B',t:'옴니버스'}, {n:'허용',g:'B',t:'옴니버스'},
+            {n:'황재업',g:'C',t:'성의회관'}, {n:'이태원',g:'C',t:'성의회관'}, {n:'김태언',g:'C',t:'성의회관'}, {n:'이정석',g:'C',t:'성의회관'}, {n:'피재영',g:'C',t:'옴니버스'}, {n:'남형민',g:'C',t:'옴니버스'}, {n:'강경훈',g:'C',t:'옴니버스'}
         ];
 
-        let vData = {}, currentYear = 2026, currentMonth = new Date().getMonth(), isAdmin = false, is6Month = false;
-        const CONFIG = { baseDate: '2026-03-09', shifts: ['C', 'A', 'B'], colors: { C: ['#eff6ff', '#2563eb'], A: ['#fffbeb', '#d97706'], B: ['#fff1f2', '#e11d48'] }, adminPw: '1234' };
+        let vData = {}, currentYear = 2026, currentMonth = new Date().getMonth(), isAdmin = false, is6Month = false, showPast = false;
+        const CONFIG = { baseDate: '2026-03-09', shifts: ['C', 'A', 'B'], colors: { C: ['#eff6ff', '#2563eb'], A: ['#fffbeb', '#d97706'], B: ['#fff1f2', '#e11d48'] } };
 
-        // [핵심] 로컬 스토리지에서 기존 데이터 즉시 로드
-        function loadLocalData() {
-            const local = localStorage.getItem('vacation_cache');
-            if(local) {
-                vData = JSON.parse(local);
-                renderCalendar();
-            }
+        function switchTab(type) {
+            document.getElementById('section-cal').classList.toggle('hidden', type !== 'cal');
+            document.getElementById('section-man').classList.toggle('hidden', type !== 'man');
+            document.getElementById('tab-cal-btn').className = type === 'cal' ? 'flex-1 py-3 text-sm font-black text-blue-600 border-b-2 border-blue-600' : 'flex-1 py-3 text-sm font-black text-slate-400';
+            document.getElementById('tab-man-btn').className = type === 'man' ? 'flex-1 py-3 text-sm font-black text-blue-600 border-b-2 border-blue-600' : 'flex-1 py-3 text-sm font-black text-slate-400';
+            if(type === 'man') renderManageGrid();
         }
 
         function handleAdminAuth() {
-            if(isAdmin) { isAdmin = false; document.getElementById('headerBar').classList.remove('admin-active'); return; }
-            if(prompt("관리자 암호") === CONFIG.adminPw) { isAdmin = true; document.getElementById('headerBar').classList.add('admin-active'); }
+            if(!isAdmin && prompt("비밀번호")==="1234") isAdmin=true; else isAdmin=false;
+            document.getElementById('headerBar').classList.toggle('admin-active', isAdmin);
+            renderCalendar();
         }
 
         function getShiftInfo(date) {
-            const base = new Date(CONFIG.baseDate);
-            const target = new Date(date); target.setHours(0,0,0,0);
-            const diff = Math.round((target - base) / 86400000);
+            const diff = Math.round((new Date(date).setHours(0,0,0,0) - new Date(CONFIG.baseDate)) / 86400000);
             const sName = CONFIG.shifts[((diff % 3) + 3) % 3];
             return { name: sName, color: CONFIG.colors[sName][1], bg: CONFIG.colors[sName][0] };
-        }
-
-        function getDayVocs(y, m, d) {
-            const mKey = `${y}-${String(m+1).padStart(2, '0')}`;
-            const mD = vData[mKey] || {};
-            let list = [];
-            for (let n in mD) {
-                if (String(mD[n]).split(',').map(v=>v.trim()).includes(String(d))) {
-                    const info = STAFF.find(s => s.n === n);
-                    if (info) list.push(info);
-                }
-            }
-            return list;
         }
 
         function renderCalendar() {
@@ -139,22 +139,24 @@
             const hS = document.getElementById('shiftSelect').value;
             for(let i=0; i < (is6Month?6:1); i++) {
                 let ty = currentYear, tm = currentMonth + i; if(tm > 11){ ty++; tm -= 12; }
+                const mKey = `${ty}-${String(tm+1).padStart(2,'0')}`;
                 const grid = document.createElement('div'); grid.className = 'calendar-grid';
-                ['일','월','화','수','목','금','토'].forEach(day => grid.innerHTML += `<div class="text-center font-bold text-[9px] py-1.5 bg-slate-50 border-b text-slate-400">${day}</div>`);
-                const last = new Date(ty, tm + 1, 0).getDate();
-                for(let b=0; b < new Date(ty, tm, 1).getDay(); b++) grid.innerHTML += `<div class="calendar-cell bg-slate-50/30"></div>`;
-                for(let d=1; d <= last; d++) {
-                    const dt = new Date(ty, tm, d), s = getShiftInfo(dt), isT = dt.toDateString() === new Date().toDateString(), isH = (hS === s.name);
-                    const cell = document.createElement('div'); cell.className = `calendar-cell ${isT?'is-today':''} ${isH?'is-highlighted':''}`;
+                ['일','월','화','수','목','금','토'].forEach(d => grid.innerHTML += `<div class="text-center font-bold text-[9px] py-2 bg-slate-50 border-b text-slate-400">${d}</div>`);
+                const first = new Date(ty, tm, 1).getDay(), last = new Date(ty, tm + 1, 0).getDate();
+                for(let b=0; b<first; b++) grid.innerHTML += `<div class="calendar-cell bg-slate-50/10"></div>`;
+                for(let d=1; d<=last; d++) {
+                    const dt = new Date(ty, tm, d), s = getShiftInfo(dt), isH = (hS === s.name);
+                    const cell = document.createElement('div');
+                    cell.className = `calendar-cell ${isH?'is-highlighted':''} ${dt.toDateString() === new Date().toDateString()?'is-today':''}`;
                     if(isH) cell.style.backgroundColor = s.color;
-                    const vocs = getDayVocs(ty, tm, d);
-                    let dots = '';
-                    if(vocs.some(v => v.t === 'sung')) dots += '<div class="w-1.5 h-1.5 rounded-full bg-purple-400"></div>';
-                    if(vocs.some(v => v.t === 'omni')) dots += '<div class="w-1.5 h-1.5 rounded-full bg-orange-400"></div>';
-                    cell.innerHTML = `<div class="date-area ${dt.getDay()===0?'text-red-500':''} ${isH?'text-white':''}">
-                        ${isT ? '<span class="today-label">TODAY</span>' : ''}
-                        <span>${d}</span><div class="flex gap-0.5 mt-0.5">${dots}</div></div>
-                        <div class="shift-area" style="background:${isH?'transparent':s.bg}; color:${isH?'white':s.color}">${s.name}</div>`;
+                    let dots = '', vocs = [];
+                    const mD = vData[mKey] || {};
+                    for(let n in mD) if(String(mD[n]).split(',').map(x=>x.trim()).includes(String(d))) {
+                        const st = STAFF.find(p=>p.n===n); if(st) vocs.push(st);
+                    }
+                    if(vocs.some(v=>v.t==='성의회관')) dots += `<div class="w-1.5 h-1.5 rounded-full bg-purple-400"></div>`;
+                    if(vocs.some(v=>v.t==='옴니버스')) dots += `<div class="w-1.5 h-1.5 rounded-full bg-orange-400"></div>`;
+                    cell.innerHTML = `<div class="date-area ${dt.getDay()===0?'text-red-500':''}"><span>${d}</span><div class="flex gap-0.5">${dots}</div></div><div class="shift-area" style="background:${isH?'transparent':s.bg}; color:${isH?'white':s.color}">${s.name}</div>`;
                     cell.onclick = () => showDetail(ty, tm, d);
                     grid.appendChild(cell);
                 }
@@ -162,82 +164,118 @@
             }
         }
 
-        function toggleFloatingList(keepOpen = false) {
-            const list = document.getElementById('floatingList');
-            if(!keepOpen) list.classList.toggle('active');
-            if(list.classList.contains('active')) {
-                const content = document.getElementById('listContent'); content.innerHTML = '';
-                const showPast = document.getElementById('showPast').checked;
-                const today = new Date(); today.setHours(0,0,0,0);
-                for(let d=1; d<=31; d++) {
-                    const dt = new Date(currentYear, currentMonth, d); if(dt.getMonth() !== currentMonth) continue;
-                    if(!showPast && dt < today) continue;
-                    const vocs = getDayVocs(currentYear, currentMonth, d); if(vocs.length === 0) continue;
-                    vocs.sort((a,b) => (a.t === 'sung' ? -1 : 1));
-                    const s = getShiftInfo(dt); const isT = dt.toDateString() === today.toDateString();
-                    let namesHtml = '';
-                    vocs.forEach(v => {
-                        const fullName = (v.t === 'sung') ? '성의회관' : '옴니버스';
-                        const color = (v.t === 'sung') ? 'bg-purple-500' : 'bg-orange-500';
-                        namesHtml += `<div class="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border shadow-sm"><span class="${color} text-white text-[8px] px-1 py-0.5 rounded font-bold">${fullName}</span><span class="text-sm font-bold text-slate-700">${v.n}</span></div>`;
-                    });
-                    content.innerHTML += `<div class="bg-white rounded-xl p-3 mx-4 mb-2 flex items-center gap-3 border ${isT?'border-red-400 bg-red-50':'border-slate-200'}" onclick="showDetail(${currentYear}, ${currentMonth}, ${d})">
-                        <div class="flex items-center gap-2 min-w-[60px] border-r pr-2"><div class="text-[11px] font-black text-slate-500">${d}일</div><div class="w-6 h-6 rounded flex items-center justify-center text-white text-[10px] font-black" style="background:${s.color}">${s.name}</div></div>
-                        <div class="flex flex-wrap gap-1.5 flex-1">${namesHtml}</div></div>`;
-                }
-            }
-        }
-
         function showDetail(y, m, d) {
-            const mk = `${y}-${String(m+1).padStart(2, '0')}`;
-            document.getElementById('modalDateTitle').innerText = `${m+1}월 ${d}일 연차 상세`;
-            document.getElementById('detailModal').classList.add('active');
+            const mKey = `${y}-${String(m+1).padStart(2,'0')}`, modal = document.getElementById('commonModal'), body = document.getElementById('modalBody');
+            const targetShift = getShiftInfo(new Date(y, m, d)).name;
+            document.getElementById('modalHeader').innerText = `${m+1}월 ${d}일 (${targetShift}조) 상세`;
             const refresh = () => {
-                const vocs = getDayVocs(y, m, d);
-                const vocContainer = document.getElementById('modalVocs'); vocContainer.innerHTML = '';
-                vocs.sort((a,b) => (a.t === 'sung' ? -1 : 1)).forEach(v => {
-                    const fullName = (v.t === 'sung') ? '성의회관' : '옴니버스';
-                    const color = (v.t === 'sung') ? 'bg-purple-500' : 'bg-orange-500';
-                    vocContainer.innerHTML += `<div class="flex items-center gap-2 p-3 border rounded-xl bg-slate-50"><span class="${color} text-white text-[10px] px-2 py-0.5 rounded font-bold">${fullName}</span><span class="font-bold flex-1 text-slate-700 text-sm">${v.n}</span>${isAdmin?`<button onclick="removeV('${mk}',${d},'${v.n}')" class="text-red-500 px-2 font-black">✕</button>`:''}</div>`;
-                });
+                body.innerHTML = ''; const mD = vData[mKey] || {}; let count = 0;
+                for(let n in mD) if(String(mD[n]).split(',').map(x=>x.trim()).includes(String(d))) {
+                    const p = STAFF.find(s=>s.n===n); if(!p) continue; count++;
+                    body.innerHTML += `<div class="flex items-center gap-2 p-3 border rounded-xl mb-2 bg-white shadow-sm"><span class="${p.t==='성의회관'?'tag-sung':'tag-omni'}">${p.t}</span><span class="font-bold flex-1 text-slate-700">${p.n}</span>${isAdmin?`<button onclick="removeV('${mKey}',${d},'${p.n}')" class="text-red-500 px-2 font-black">✕</button>`:''}</div>`;
+                }
+                if(count === 0) body.innerHTML = `<p class="text-center py-4 text-slate-400 text-sm">신청자가 없습니다.</p>`;
                 if(isAdmin) {
-                    document.getElementById('adminEditArea').classList.remove('hidden');
-                    const grid = document.getElementById('staffSelectGrid'); grid.innerHTML = '';
-                    STAFF.forEach(s => { grid.innerHTML += `<button onclick="addV('${mk}',${d},'${s.n}')" class="bg-white border py-2 rounded-lg text-[10px] font-bold">${s.n}</button>`; });
+                    body.innerHTML += `<div class="mt-4 pt-2 border-t"><div class="text-[10px] font-black text-slate-400 mb-2">지휘부/반장</div><div class="admin-row"></div>`;
+                    const headRow = body.querySelector('.admin-row');
+                    STAFF.filter(s => s.g === '본부').forEach(p => {
+                        const btn = document.createElement('button'); btn.className = 'staff-btn'; btn.innerText = p.n;
+                        btn.onclick = () => addV(mKey, d, p.n); headRow.appendChild(btn);
+                    });
+                    body.innerHTML += `<div class="text-[10px] font-black text-slate-400 mb-2">${targetShift}조 근무자</div><div class="admin-row sung-row"></div><div class="admin-row three-cols omni-row"></div></div>`;
+                    const sRow = body.querySelector('.sung-row'); const oRow = body.querySelector('.omni-row');
+                    STAFF.filter(s => s.g === targetShift).forEach(p => {
+                        const btn = document.createElement('button'); btn.className = 'staff-btn'; btn.innerText = p.n;
+                        btn.onclick = () => addV(mKey, d, p.n);
+                        if(p.t === '성의회관') sRow.appendChild(btn); else oRow.appendChild(btn);
+                    });
                 }
             };
             window.removeV = async (mk, day, name) => {
-                let days = vData[mk][name].split(',').filter(x => x.trim() !== String(day) && x);
-                if(days.length === 0) delete vData[mk][name]; else vData[mk][name] = days.join(',');
-                await db.collection("vacation_system").doc("data").update({ [`vacation.${mk}`]: vData[mk] });
-                refresh();
+                let days = vData[mk][name].split(',').map(x=>x.trim()).filter(x=>x!==String(day));
+                if(days.length===0) delete vData[mk][name]; else vData[mk][name]=days.join(',');
+                await docRef.update({ vacation: vData }); refresh();
             };
             window.addV = async (mk, day, name) => {
-                if(!vData[mk]) vData[mk] = {};
-                let days = vData[mk][name] ? vData[mk][name].split(',').map(x=>x.trim()) : [];
-                if(!days.includes(String(day))) { days.push(String(day)); vData[mk][name] = days.join(','); await db.collection("vacation_system").doc("data").update({ [`vacation.${mk}`]: vData[mk] }); refresh(); }
+                if(!vData[mk]) vData[mk]={};
+                let days = vData[mk][name]?vData[mk][name].split(',').map(x=>x.trim()):[];
+                if(!days.includes(String(day))){ days.push(String(day)); vData[mk][name]=days.join(','); await docRef.update({ vacation: vData }); refresh(); }
             };
-            refresh();
+            refresh(); modal.classList.remove('hidden'); modal.classList.add('flex');
         }
 
-        function closeModal() { document.getElementById('detailModal').classList.remove('active'); }
+        function renderManageGrid() {
+            let html = ''; const groups = ['본부', 'A', 'B', 'C'];
+            groups.forEach(g => {
+                html += `<div class="bg-white rounded-2xl mb-3 flex overflow-hidden border border-slate-200 shadow-sm"><div class="w-12 flex items-center justify-center font-black text-[11px] lbl-${g}" style="writing-mode: vertical-lr; text-orientation: upright;">${g}${g==='본부'?'':'조'}</div><div class="flex-1 grid grid-cols-4 gap-2 p-3">`;
+                STAFF.filter(m => m.g === g).forEach(m => {
+                    let tot = 0; for(let k in vData) if(vData[k][m.n]) tot += vData[k][m.n].split(',').filter(x=>x.trim()).length;
+                    html += `<div class="h-12 border border-slate-100 rounded-xl flex items-center justify-center font-black relative bg-slate-50" onclick="openStaffModal('${m.n}')"><span class="text-xs">${m.n}</span>${tot>0?`<span class="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center border border-white">${tot}</span>`:''}</div>`;
+                });
+                html += `</div></div>`;
+            });
+            document.getElementById('manageGrid').innerHTML = html;
+        }
+
+        function openStaffModal(name) {
+            const body = document.getElementById('modalBody'); document.getElementById('modalHeader').innerText = `${name} 연차 상세`;
+            let grid = `<div class="grid grid-cols-3 gap-2">`;
+            for(let i=1; i<=12; i++){
+                const mk = `2026-${String(i).padStart(2,'0')}`, val = vData[mk]?.[name] || "";
+                grid += `<div class="border rounded-xl p-2 text-center ${val?'bg-blue-50 border-blue-200':''}" onclick="editPrompt('${mk}','${name}',${i})"><div class="text-[10px] font-bold text-slate-400">${i}월</div><div class="text-xs font-black text-blue-600">${val||'-'}</div></div>`;
+            }
+            body.innerHTML = grid + `</div>`;
+            document.getElementById('commonModal').classList.remove('hidden'); document.getElementById('commonModal').classList.add('flex');
+        }
+
+        async function editPrompt(mk, name, m) {
+            const val = prompt(`${m}월 날짜 입력`, vData[mk]?.[name] || "");
+            if(val !== null) {
+                if(!vData[mk]) vData[mk] = {}; vData[mk][name] = val.replace(/[^0-9,]/g, '');
+                await docRef.update({ vacation: vData }); openStaffModal(name);
+            }
+        }
+
+        function toggleFloatingList() {
+            const list = document.getElementById('floatingList'); list.classList.toggle('active');
+            if(list.classList.contains('active')) renderFloatingList();
+        }
+
+        function togglePast() { showPast = !showPast; document.getElementById('togglePastBtn').innerText = showPast ? "과거 숨기기" : "과거 내역 보기"; renderFloatingList(); }
+
+        function renderFloatingList() {
+            const content = document.getElementById('listContent'); content.innerHTML = '';
+            const now = new Date(); now.setHours(0,0,0,0);
+            const mKey = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;
+            let hasContent = false;
+
+            for(let d=1; d<=31; d++) {
+                const targetDate = new Date(currentYear, currentMonth, d);
+                if(!showPast && targetDate < now) continue;
+
+                let dayVocs = [];
+                for(let n in (vData[mKey]||{})) if(String(vData[mKey][n]).split(',').map(x=>x.trim()).includes(String(d))) {
+                    const st = STAFF.find(s=>s.n===n); if(st) dayVocs.push(st);
+                }
+
+                if(dayVocs.length > 0) {
+                    hasContent = true;
+                    const isToday = targetDate.toDateString() === now.toDateString();
+                    const s = getShiftInfo(targetDate);
+                    let names = '';
+                    dayVocs.forEach(v => names += `<div class="flex items-center gap-1.5 bg-white px-2 py-1.5 border rounded-lg"><span class="${v.t==='성의회관'?'tag-sung':'tag-omni'}">${v.t}</span><span class="text-sm font-bold text-slate-700">${v.n}</span></div>`);
+                    content.innerHTML += `<div class="bg-white border rounded-2xl p-3 mx-4 mb-2 flex items-center gap-3 ${isToday?'list-today-card shadow-md':''}"><div class="flex flex-col items-center gap-1 min-w-[50px] border-r pr-2"><span class="text-xs font-black ${isToday?'text-red-500':'text-slate-500'}">${d}일</span><div class="w-6 h-6 rounded flex items-center justify-center text-white text-[10px] font-black" style="background:${s.color}">${s.name}</div></div><div class="flex flex-wrap gap-1.5 flex-1">${names}</div></div>`;
+                }
+            }
+            if(!hasContent) content.innerHTML = '<p class="text-center py-20 text-slate-300 font-bold">내역이 없습니다.</p>';
+        }
+
+        function closeModal() { document.getElementById('commonModal').classList.add('hidden'); renderCalendar(); if(!document.getElementById('section-man').classList.contains('hidden')) renderManageGrid(); }
         function toggle6Month() { is6Month = !is6Month; renderCalendar(); }
         function changeMonth(v) { currentMonth += v; if(currentMonth<0){currentMonth=11;currentYear--;} else if(currentMonth>11){currentMonth=0;currentYear++;} renderCalendar(); }
 
         window.onload = () => {
-            // 1. 즉시 로컬 데이터 로드
-            loadLocalData();
-
-            // 2. 서버 연결 및 실시간 배경 업데이트
-            db.collection("vacation_system").doc("data").onSnapshot(doc => { 
-                if(doc.exists) { 
-                    vData = doc.data().vacation || {}; 
-                    // 로컬 캐시 갱신
-                    localStorage.setItem('vacation_cache', JSON.stringify(vData));
-                    renderCalendar(); 
-                    if(document.getElementById('floatingList').classList.contains('active')) toggleFloatingList(true); 
-                } 
-            });
+            docRef.onSnapshot(doc => { if(doc.exists) { vData = doc.data().vacation || {}; renderCalendar(); if(document.getElementById('floatingList').classList.contains('active')) renderFloatingList(); } });
             CONFIG.shifts.forEach(s => document.getElementById('shiftSelect').innerHTML += `<option value="${s}">${s}조 강조</option>`);
         };
     </script>
