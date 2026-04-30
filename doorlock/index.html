@@ -1,132 +1,123 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>시설관리 보안 마스터</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <style>
-        :root { --primary: #2c3e50; --accent: #e67e22; }
-        body { font-family: 'Malgun Gothic', sans-serif; background: #ecf0f1; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        h2 { border-left: 5px solid var(--primary); padding-left: 15px; color: var(--primary); }
-        .section { background: #f9f9f9; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ddd; }
-        input, button { padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #ccc; }
-        button { cursor: pointer; font-weight: bold; transition: 0.3s; border: none; }
-        .btn-master { background: var(--primary); color: white; width: 100%; height: 45px; }
-        .btn-csv { background: var(--accent); color: white; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; display: none; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
-        th { background: #eee; }
-        .hint { font-size: 0.85rem; color: #666; margin-top: 5px; }
-    </style>
+  <base target="_top">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root { --primary: #1a73e8; --private: #d93025; }
+    body { font-family: 'Noto Sans KR', sans-serif; margin: 0; background: #f8f9fa; padding-bottom: 70px; }
+    .header { background: var(--primary); color: white; padding: 15px; text-align: center; sticky; top: 0; }
+    .header.private-mode { background: var(--private); }
+    
+    /* 탭 메뉴 */
+    .tabs { display: flex; background: white; border-bottom: 1px solid #ddd; }
+    .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; color: #666; }
+    .tab.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
+    .tab.active.private { color: var(--private); border-bottom-color: var(--private); }
+
+    /* 검색창 */
+    .search-box { padding: 15px; display: flex; gap: 10px; }
+    input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+    button { padding: 10px 15px; border: none; border-radius: 5px; background: var(--primary); color: white; cursor: pointer; }
+
+    /* 리스트 및 애니메이션 */
+    .card { background: white; margin: 10px; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .pw-area { 
+      font-weight: bold; color: #333; display: inline-block;
+      filter: blur(5px); animation: rotate 3s infinite linear; 
+      transition: 0.3s; cursor: pointer; border: 1px dashed #ccc; padding: 2px 10px;
+    }
+    .pw-area:active { filter: blur(0); animation-play-state: paused; }
+    @keyframes rotate { from { transform: rotateX(0); } to { transform: rotateX(360deg); } }
+
+    /* 모달 */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+  </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>🔑 시설 보안 관리 시스템 (v3.0)</h2>
-    
-    <div class="section">
-        <label><strong>1. 마스터 비밀번호 입력</strong></label>
-        <input type="password" id="masterKey" placeholder="이 비번을 모르면 데이터를 볼 수 없습니다" style="width: 100%;">
-        <button class="btn-master" onclick="unlockData()">데이터 잠금 해제 / 조회</button>
-        <p class="hint">※ 최초 사용 시 CSV를 먼저 업로드하여 암호화 저장하세요.</p>
-    </div>
+<div class="header" id="mainHeader">시설 및 PW 관리</div>
 
-    <div class="section">
-        <label><strong>2. 데이터 일괄 등록 (CSV)</strong></label><br>
-        <input type="file" id="csvFile" accept=".csv">
-        <button class="btn-csv" onclick="importCSV()">CSV 암호화 저장</button>
-        <p class="hint">형식: 호실,비밀번호 (헤더 없이 입력)</p>
-    </div>
-
-    <div id="displayArea">
-        <table id="resultTable">
-            <thead>
-                <tr>
-                    <th>호실 (Room)</th>
-                    <th>비밀번호 (Password)</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
+<div class="tabs">
+  <div class="tab active" onclick="switchMode('DOORLOCK')">도어락</div>
+  <div class="tab" onclick="switchMode('PRIVATE')">개인용</div>
 </div>
 
+<div class="search-box">
+  <input type="search" id="searchInput" placeholder="검색어 입력 (엔터)" onkeypress="handleEnter(event)">
+  <button onclick="renderList()"><i class="fa fa-search"></i></button>
+</div>
+
+<div id="listContainer"></div>
+
+<!-- 데이터 입력 버튼 (Floating) -->
+<button style="position:fixed; bottom:20px; right:20px; width:60px; height:60px; border-radius:30px; font-size:24px;" onclick="showInputModal()">+</button>
+
 <script>
-    const STORAGE_KEY = 'encrypted_doorlock_data';
+  let currentMode = 'DOORLOCK';
+  let allData = [];
 
-    // 1. CSV 파일 읽기 및 AES 암호화 저장
-    function importCSV() {
-        const fileInput = document.getElementById('csvFile');
-        const masterKey = document.getElementById('masterKey').value;
-
-        if (!masterKey) {
-            alert("암호화에 사용할 마스터 비밀번호를 먼저 입력하세요!");
-            return;
-        }
-
-        if (fileInput.files.length === 0) {
-            alert("CSV 파일을 선택해주세요.");
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const text = e.target.result;
-            const rows = text.split('\n').filter(row => row.trim() !== '');
-            const dataObj = {};
-
-            rows.forEach(row => {
-                const [room, pw] = row.split(',').map(s => s.trim());
-                if(room && pw) dataObj[room] = pw;
-            });
-
-            // AES 암호화
-            const encrypted = CryptoJS.AES.encrypt(JSON.stringify(dataObj), masterKey).toString();
-            localStorage.setItem(STORAGE_KEY, encrypted);
-            
-            alert("총 " + Object.keys(dataObj).length + "개의 데이터가 암호화되어 저장되었습니다.");
-            location.reload();
-        };
-        reader.readAsText(fileInput.files[0]);
+  // 모드 전환 및 추가 인증[cite: 1]
+  function switchMode(mode) {
+    if (mode === 'PRIVATE') {
+      const pin = prompt("개인용 자료 접근을 위해 PIN을 입력하세요:");
+      if (pin !== "1234") { // 예시 PIN
+        alert("인증 실패");
+        return;
+      }
+      document.getElementById('mainHeader').classList.add('private-mode');
+    } else {
+      document.getElementById('mainHeader').classList.remove('private-mode');
     }
+    currentMode = mode;
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.innerText === (mode === 'DOORLOCK' ? '도어락' : '개인용')));
+    loadData();
+  }
 
-    // 2. 마스터 비번으로 데이터 복호화 및 조회
-    function unlockData() {
-        const masterKey = document.getElementById('masterKey').value;
-        const encryptedData = localStorage.getItem(STORAGE_KEY);
+  function handleEnter(e) { if (e.key === 'Enter') renderList(); }
 
-        if (!encryptedData) {
-            alert("저장된 데이터가 없습니다. CSV를 먼저 업로드하세요.");
-            return;
-        }
+  function loadData() {
+    google.script.run.withSuccessHandler(data => {
+      allData = data;
+      renderList();
+    }).getListData(currentMode === 'DOORLOCK' ? '도어락' : '개인용');
+  }
 
-        try {
-            // 복호화 시도
-            const bytes = CryptoJS.AES.decrypt(encryptedData, masterKey);
-            const decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+  function renderList() {
+    const keyword = document.getElementById('searchInput').value.toLowerCase();
+    const container = document.getElementById('listContainer');
+    container.innerHTML = '';
 
-            renderTable(decryptedData);
-        } catch (e) {
-            alert("마스터 비밀번호가 틀렸거나 데이터가 손상되었습니다.");
-        }
-    }
+    const filtered = allData.filter(item => 
+      Object.values(item).some(v => String(v).toLowerCase().includes(keyword))
+    );
 
-    // 3. 테이블 출력
-    function renderTable(data) {
-        const tbody = document.querySelector("#resultTable tbody");
-        tbody.innerHTML = "";
-        
-        Object.keys(data).sort().forEach(room => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${room}</td><td><strong>${data[room]}</strong></td>`;
-            tbody.appendChild(tr);
-        });
+    filtered.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'card';
+      const idVal = currentMode === 'DOORLOCK' ? item.호수 : item.사이트;
+      const pwVal = currentMode === 'DOORLOCK' ? item.비밀번호 : item.PW;
+      
+      div.innerHTML = `
+        <div style="display:flex; justify-content:space-between;">
+          <b>${idVal} (${item.명칭 || item.ID})</b>
+          <div>
+            <i class="fa fa-edit" onclick="editItem('${idVal}')"></i>
+            <i class="fa fa-trash" onclick="deleteItem('${idVal}')"></i>
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          PW: <span class="pw-area">${pwVal}</span> 
+          <small style="color:#999; margin-left:10px;">(누르면 보임)</small>
+        </div>
+        <div style="font-size:0.8em; color:#666; margin-top:5px;">${item.비고 || ''}</div>
+      `;
+      container.appendChild(div);
+    });
+  }
 
-        document.getElementById('resultTable').style.display = 'table';
-    }
+  // 초기 로드
+  loadData();
 </script>
-
 </body>
 </html>
