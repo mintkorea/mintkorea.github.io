@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <style>
+    /* 1. 좌우 스크롤 방지 설정 */
+    html, body { 
+      background:#f4f7f9; 
+      font-size:13px; 
+      margin:0; 
+      padding:0; 
+      overflow-x:hidden; /* 좌우 스크롤 강제 차단 */
+      width: 100%;
+      position: relative;
+    }
+    .nav-top { background:#1a237e; height:50px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; color:#fff; position:sticky; top:0; z-index:1000; width:100%; box-sizing:border-box; }
+    .search-box { background:#fff; padding:8px 12px; border-bottom:1px solid #ddd; width:100%; box-sizing:border-box; }
+    .search-input { border:1px solid #ccc !important; border-radius:20px !important; height:32px !important; margin:0 !important; padding:0 15px !important; width:100%; box-sizing:border-box; font-size:14px !important; }
+    
+    /* 가로 스크롤 가능한 탭 메뉴 (화면 밖으로 나가지 않음) */
+    #bGroup { display:flex; overflow-x:auto; background:#fff; padding:8px; gap:6px; border-bottom:1px solid #ddd; width:100%; box-sizing:border-box; -webkit-overflow-scrolling: touch; }
+    #bGroup::-webkit-scrollbar { display: none; } /* 스크롤바 숨김 */
+
+    .item-card { background:#fff; margin:8px 12px; padding:15px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); display:flex; justify-content:space-between; align-items:center; }
+    .pw-view-btn { color:#f57c00; cursor:pointer; font-weight:bold; padding:8px 14px; border:1px solid #f57c00; border-radius:4px; font-size:12px; }
+    .b-tab { padding:5px 16px; background:#eee; border-radius:15px; white-space:nowrap; cursor:pointer; font-size:12px; flex: 0 0 auto; }
+    .active-b { background:#1a237e !important; color:#fff !important; }
+
+    /* 2. Top 플로팅 버튼 스타일 */
+    #topBtn {
+      position: fixed;
+      bottom: 25px;
+      right: 20px;
+      width: 45px;
+      height: 45px;
+      background: #1a237e;
+      color: white;
+      border-radius: 50%;
+      display: none; /* 처음엔 숨김 */
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      z-index: 9999;
+      cursor: pointer;
+      border: none;
+    }
+
+    #loader { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); display:none; flex-direction:column; justify-content:center; align-items:center; z-index:10001; }
+  </style>
+</head>
+<body>
+  <div id="loader"><div class="preloader-wrapper active small"><div class="spinner-layer spinner-blue-only"><div class="circle"></div></div></div><p>데이터 동기화 중...</p></div>
+
+  <!-- Top 플로팅 버튼 -->
+  <button id="topBtn" onclick="scrollToTop()">
+    <i class="material-icons">arrow_upward</i>
+  </button>
+
+  <header>
+    <div class="nav-top">
+      <div style="font-weight:bold;">시설/PW 매니저</div>
+      <a class="white-text" onclick="fetchOnlineCSV()" style="cursor:pointer; font-size:11px; border:1px solid #fff; padding:3px 10px; border-radius:4px;">동기화</a>
+    </div>
+    <div class="search-box"><input type="text" id="searchInput" class="search-input" placeholder="호실, 명칭 등으로 검색..." onkeyup="filterData()"></div>
+    <div id="bGroup"></div>
+  </header>
+
+  <div id="listArea"></div>
+
+  <script>
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS255vYTiF4PMATcWslwSjGudgp9hdqeoM1qwxIlp8sNDxoZtHo9kG7faW6LofdGz6cgvjG5lJ_oNI1/pub?gid=0&single=true&output=csv";
+    const BUILDINGS = ["성의회관", "의산연", "병원별관"];
+    let allItems = [], curBld = '전체';
+
+    window.onload = () => { renderBTabs(); loadLocalData(); };
+
+    // 스크롤 감시하여 Top 버튼 보여주기
+    window.onscroll = function() {
+      const btn = document.getElementById("topBtn");
+      if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
+        btn.style.display = "flex";
+      } else {
+        btn.style.display = "none";
+      }
+    };
+
+    function scrollToTop() {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function loadLocalData() {
+      const saved = localStorage.getItem('OFFLINE_DB');
+      if (saved) { allItems = JSON.parse(saved); filterData(); }
+    }
+
+    async function fetchOnlineCSV() {
+      if (!navigator.onLine) return alert("인터넷 연결을 확인하세요.");
+      document.getElementById('loader').style.display = 'flex';
+      try {
+        const response = await fetch(CSV_URL + "&t=" + new Date().getTime());
+        const csvText = await response.text();
+        const json = csvToJSON(csvText);
+        if (json.length > 0) {
+          localStorage.setItem('OFFLINE_DB', JSON.stringify(json));
+          allItems = json;
+          filterData();
+          alert(json.length + "건 업데이트 완료!");
+        }
+      } catch (e) {
+        alert("통신 에러가 발생했습니다.");
+      } finally {
+        document.getElementById('loader').style.display = 'none';
+      }
+    }
+
+    function csvToJSON(csv) {
+      const lines = csv.split(/\r?\n/);
+      const result = [];
+      for (let i = 1; i < lines.length; i++) {
+        const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+        if (row.length >= 5) {
+          result.push({
+            bld: row[0]?.replace(/"/g, '').trim(),
+            floor: row[1]?.replace(/"/g, '').trim(),
+            room: row[2]?.replace(/"/g, '').trim(),
+            name: row[3]?.replace(/"/g, '').trim(),
+            pwd: row[4]?.replace(/"/g, '').trim()
+          });
+        }
+      }
+      return result;
+    }
+
+    function decrypt(enc) {
+      if (!enc || !enc.startsWith("ENC_")) return enc;
+      try { return atob(enc.replace("ENC_", "")); } catch (e) { return "오류"; }
+    }
+
+    function filterData() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const area = document.getElementById('listArea'); 
+      area.innerHTML = '';
+      const filtered = allItems.filter(item => {
+        let matchBld = (curBld === '전체') ? true : 
+                       (curBld === '의산연') ? (item.bld === '의산연' || item.bld === '의산연별관') : 
+                       (item.bld === curBld);
+        return matchBld && Object.values(item).some(v => String(v).toLowerCase().includes(q));
+      });
+      filtered.forEach(item => {
+        area.innerHTML += `
+          <div class="item-card">
+            <div style="flex:1">
+              <b style="color:#1a237e">${item.bld} ${item.floor} ${item.room}</b><br>
+              <small style="color:#666">${item.name}</small>
+            </div>
+            <div class="pw-view-btn" onclick="alert('비밀번호: ' + decrypt('${item.pwd}'))">보기</div>
+          </div>`;
+      });
+    }
+
+    function renderBTabs() {
+      let h = `<div class="b-tab active-b" onclick="setBld(this,'전체')">전체</div>`;
+      h += BUILDINGS.map(b => `<div class="b-tab" onclick="setBld(this,'${b}')">${b}</div>`).join('');
+      document.getElementById('bGroup').innerHTML = h;
+    }
+
+    function setBld(el, b) {
+      document.querySelectorAll('.b-tab').forEach(t => t.classList.remove('active-b'));
+      el.classList.add('active-b');
+      curBld = b;
+      filterData();
+      window.scrollTo(0,0);
+    }
+  </script>
+</body>
+</html>
