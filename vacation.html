@@ -17,9 +17,11 @@
         td { border: 0.5pt solid #000; text-align: center; font-weight: bold; height: 18pt; font-size: 11px; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .hdr { background: #f2f2f2 !important; height: 26pt; cursor: pointer; }
         .border-right-bold { border-right: 1.5pt solid #000 !important; }
+        
+        /* 웹 화면용 색상 */
         .sat { background-color: var(--sat-bg) !important; color: #007bff !important; }
         .sun { background-color: var(--sun-bg) !important; color: #dc3545 !important; }
-        .v-mark { background-color: #d4edda !important; color: #28a745; font-weight: bold; cursor: pointer; }
+        .v-mark { background-color: #d4edda !important; color: #28a745 !important; }
         
         .controls-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; z-index: 2000; }
         #syncStatus { font-size: 11px; font-weight: bold; color: #7f8c8d; background: rgba(255,255,255,0.9); padding: 4px 12px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -34,52 +36,54 @@
         #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; z-index: 3000; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 350px; overflow: hidden; }
         #modalOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 2999; backdrop-filter: blur(2px); }
 
-        /* 인쇄 최적화 및 여백 설정 */
+        /* 인쇄 최적화 보강 */
         @media print {
             @page { 
                 size: A4 landscape; 
-                /* 상 15mm, 우 8mm, 하 10mm, 좌 8mm */
-                margin: 15mm 8mm 10mm 8mm; 
+                margin: 15mm 8mm 10mm 8mm; /* 요청하신 여백 */
             }
             
-            /* 배경색 및 칼라 강제 출력 설정 */
+            /* 모든 브라우저에서 배경색 출력 강제 */
             * { 
                 -webkit-print-color-adjust: exact !important; 
                 print-color-adjust: exact !important; 
                 color-adjust: exact !important;
             }
 
-            body { background: white !important; margin: 0; padding: 0; }
-            .controls-container, #modal, #modalOverlay { display: none !important; }
-            
+            html, body { 
+                background: #fff !important; 
+                width: 100%; 
+                height: 99%; /* 빈 페이지 방지: 높이를 미세하게 줄임 */
+                overflow: hidden; /* 빈 페이지 방지 */
+            }
+
+            .content-area { padding: 0 !important; display: block !important; }
             #paper { 
                 box-shadow: none !important; 
                 width: 100% !important; 
                 padding: 0 !important; 
                 margin: 0 !important;
                 max-width: none !important;
-            }
-
-            #tableWrapper { 
-                overflow: visible !important; 
                 border: none !important;
             }
-            
+
+            /* 인쇄 시 주말 색상을 명시적으로 재지정 */
+            .sat { background-color: #f5faff !important; }
+            .sun { background-color: #fff5f5 !important; }
+            .v-mark { background-color: #d4edda !important; }
+            .hdr { background-color: #f2f2f2 !important; }
+
+            #tableWrapper { overflow: visible !important; width: 100% !important; }
             table { 
                 width: 100% !important; 
-                min-width: unset !important; 
+                min-width: 0 !important; 
                 table-layout: fixed !important;
-                font-size: 9.5px !important; /* 한 페이지에 맞게 폰트 조절 */
+                font-size: 9px !important; /* 표가 넘치지 않게 폰트 크기 조정 */
+                border: 1pt solid #000 !important;
             }
 
-            td { 
-                height: 16pt !important; 
-            }
-
-            #viewTitle {
-                margin: 0 0 10px 0 !important;
-                font-size: 18px !important;
-            }
+            .controls-container, #modal, #modalOverlay { display: none !important; }
+            #viewTitle { margin: 0 0 8px 0 !important; font-size: 18px !important; }
         }
     </style>
 </head>
@@ -118,6 +122,7 @@
 </div>
 
 <script>
+    // Firebase 설정
     const firebaseConfig = {
         apiKey: "AIzaSyDGDUudF49hnXwU55er7joyeSLEPrme1GU",
         authDomain: "catholic-security-system.firebaseapp.com",
@@ -239,12 +244,7 @@
 
     function showVDetail(n, p, g, s, m, i) {
         document.getElementById('modalTitle').innerText = "연차 상세 정보";
-        document.getElementById('modalContent').innerHTML = `
-            <div style="line-height:1.6;">
-                <span style="color:#7f8c8d; font-size:13px;">[${g} / ${s}]</span><br>
-                <b style="font-size:18px;">${p} ${n}</b><br><br>
-                <span style="color:#e67e22; font-weight:bold;">${m}월 ${i}일 연차</span>
-            </div>`;
+        document.getElementById('modalContent').innerHTML = `<div style="line-height:1.6;"><span style="color:#7f8c8d; font-size:13px;">[${g} / ${s}]</span><br><b style="font-size:18px;">${p} ${n}</b><br><br><span style="color:#e67e22; font-weight:bold;">${m}월 ${i}일 연차</span></div>`;
         openModal();
     }
 
@@ -256,10 +256,7 @@
         let html = "";
         if(!vList.length) html = "연차 인원이 없습니다.";
         else vList.forEach(item => {
-            html += `<div style="padding:10px; border-bottom:1px solid #eee; text-align:left;">
-                        <span style="color:#3498db; font-size:11px; font-weight:bold;">[${item.g} / ${item.s}]</span> 
-                        <b style="margin-left:7px; font-size:14px;">${item.p} ${item.n}</b>
-                     </div>`;
+            html += `<div style="padding:10px; border-bottom:1px solid #eee; text-align:left;"><span style="color:#3498db; font-size:11px; font-weight:bold;">[${item.g} / ${item.s}]</span> <b style="margin-left:7px; font-size:14px;">${item.p} ${item.n}</b></div>`;
         });
         document.getElementById('modalContent').innerHTML = html;
         openModal();
