@@ -18,10 +18,9 @@
         .hdr { background: #f2f2f2 !important; height: 26pt; cursor: pointer; }
         .border-right-bold { border-right: 1.5pt solid #000 !important; }
         
-        /* 웹 화면용 색상 */
         .sat { background-color: var(--sat-bg) !important; color: #007bff !important; }
         .sun { background-color: var(--sun-bg) !important; color: #dc3545 !important; }
-        .v-mark { background-color: #d4edda !important; color: #28a745 !important; }
+        .v-mark { background-color: #d4edda !important; color: #28a745; font-weight: bold; cursor: pointer; }
         
         .controls-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; z-index: 2000; }
         #syncStatus { font-size: 11px; font-weight: bold; color: #7f8c8d; background: rgba(255,255,255,0.9); padding: 4px 12px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -36,14 +35,13 @@
         #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; z-index: 3000; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 350px; overflow: hidden; }
         #modalOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 2999; backdrop-filter: blur(2px); }
 
-        /* 인쇄 최적화 보강 */
+        /* 인쇄 최적화 - 한 페이지 고정 및 칼라 출력 강제 */
         @media print {
             @page { 
                 size: A4 landscape; 
-                margin: 15mm 8mm 10mm 8mm; /* 요청하신 여백 */
+                margin: 15mm 8mm 10mm 8mm; /* 상 15, 우 8, 하 10, 좌 8 */
             }
             
-            /* 모든 브라우저에서 배경색 출력 강제 */
             * { 
                 -webkit-print-color-adjust: exact !important; 
                 print-color-adjust: exact !important; 
@@ -51,39 +49,43 @@
             }
 
             html, body { 
-                background: #fff !important; 
-                width: 100%; 
-                height: 99%; /* 빈 페이지 방지: 높이를 미세하게 줄임 */
-                overflow: hidden; /* 빈 페이지 방지 */
+                width: 297mm;
+                height: 210mm;
+                overflow: hidden !important; /* 강제 한 페이지 고정 */
+                background: white !important;
             }
 
-            .content-area { padding: 0 !important; display: block !important; }
+            .content-area { padding: 0 !important; margin: 0 !important; display: block !important; }
             #paper { 
                 box-shadow: none !important; 
                 width: 100% !important; 
                 padding: 0 !important; 
                 margin: 0 !important;
-                max-width: none !important;
                 border: none !important;
             }
 
-            /* 인쇄 시 주말 색상을 명시적으로 재지정 */
-            .sat { background-color: #f5faff !important; }
-            .sun { background-color: #fff5f5 !important; }
-            .v-mark { background-color: #d4edda !important; }
+            /* 인쇄 시 칼라 명시적 재선언 (Hex 코드 사용) */
             .hdr { background-color: #f2f2f2 !important; }
+            .sat { background-color: #f0f7ff !important; color: #007bff !important; border-bottom: 0.5pt solid #000 !important; }
+            .sun { background-color: #fff0f0 !important; color: #dc3545 !important; border-bottom: 0.5pt solid #000 !important; }
+            .v-mark { background-color: #d4edda !important; color: #28a745 !important; }
 
             #tableWrapper { overflow: visible !important; width: 100% !important; }
             table { 
                 width: 100% !important; 
                 min-width: 0 !important; 
                 table-layout: fixed !important;
-                font-size: 9px !important; /* 표가 넘치지 않게 폰트 크기 조정 */
-                border: 1pt solid #000 !important;
+                font-size: 8.5px !important; /* 폰트를 조금 더 줄여 2페이지 방지 */
+                page-break-inside: avoid; /* 표 중간 잘림 방지 */
+            }
+
+            td { 
+                height: 14pt !important; /* 행 높이 축소로 하단 여백 확보 */
+                border: 0.5pt solid #000 !important;
             }
 
             .controls-container, #modal, #modalOverlay { display: none !important; }
-            #viewTitle { margin: 0 0 8px 0 !important; font-size: 18px !important; }
+            #viewTitle { margin: 0 0 5px 0 !important; font-size: 16px !important; }
         }
     </style>
 </head>
@@ -122,7 +124,6 @@
 </div>
 
 <script>
-    // Firebase 설정
     const firebaseConfig = {
         apiKey: "AIzaSyDGDUudF49hnXwU55er7joyeSLEPrme1GU",
         authDomain: "catholic-security-system.firebaseapp.com",
@@ -173,27 +174,11 @@
 
     function renderLedger(y) {
         document.getElementById('viewTitle').innerText = `성의교정 연차 관리대장(${y}년)`;
-        let h = `
-            <colgroup>
-                <col style="width:55px;">
-                <col style="width:40px;">
-                <col style="width:45px;">
-                <col style="width:65px;">
-                <col style="width:7.69%;"> <col style="width:7.69%;"> <col style="width:7.69%;">
-                <col style="width:7.69%;"> <col style="width:7.69%;"> <col style="width:7.69%;">
-                <col style="width:7.69%;"> <col style="width:7.69%;"> <col style="width:7.69%;">
-                <col style="width:7.69%;"> <col style="width:7.69%;"> <col style="width:7.69%;">
-                <col style="width:7.69%;">
-            </colgroup>
-            <thead>
-                <tr class="hdr">
-                    <td>구분</td><td>조</td><td>직위</td><td class="border-right-bold" onclick="toggleEdit('name')">성명</td>`;
-        
+        let h = `<colgroup><col style="width:55px;"><col style="width:40px;"><col style="width:45px;"><col style="width:65px;"><col style="width:7.69%;" span="13"></colgroup><thead><tr class="hdr"><td>구분</td><td>조</td><td>직위</td><td class="border-right-bold" onclick="toggleEdit('name')">성명</td>`;
         for(let i=1; i<=12; i++) {
             const mk = `${y}-${String(i).padStart(2,'0')}`;
             h += `<td onclick="toggleEdit('${mk}')">${i}월</td>`;
         }
-        
         h += `<td>합계</td></tr></thead><tbody>${generateRows(y, null)}</tbody>`;
         document.getElementById('displayTable').innerHTML = h;
     }
@@ -206,7 +191,6 @@
             if(idx===0 || staffData[idx-1].g !== s.g) rows += `<td rowspan="${staffData.filter(x=>x.g===s.g).length}">${s.g}</td>`;
             if(idx===0 || staffData[idx-1].s !== s.s || staffData[idx-1].g !== s.g) rows += `<td rowspan="${staffData.filter(x=>x.g===s.g && x.s===s.s).length}">${s.s}</td>`;
             rows += `<td>${s.p}</td>`;
-            
             if(activeCol === 'name') rows += `<td class="border-right-bold"><input type="text" style="width:90%; border:none; text-align:center; background:#e3f2fd; font-weight:bold;" value="${s.n}" onchange="updateName(${idx}, this.value)"></td>`;
             else rows += `<td class="border-right-bold">${s.n}</td>`;
             
