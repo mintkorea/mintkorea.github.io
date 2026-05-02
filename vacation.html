@@ -21,7 +21,6 @@
         .sun { background-color: var(--sun-bg) !important; color: #dc3545 !important; }
         .v-mark { background-color: #d4edda !important; color: #28a745; font-weight: bold; cursor: pointer; }
         
-        /* 컨트롤 바 */
         .controls-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; z-index: 2000; }
         #syncStatus { font-size: 11px; font-weight: bold; color: #7f8c8d; background: rgba(255,255,255,0.9); padding: 4px 12px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .floating-bar { display: flex; align-items: center; gap: 8px; background: white; padding: 10px 20px; border-radius: 40px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); border: 1px solid #ddd; }
@@ -32,25 +31,25 @@
         #adminMenu { display: none; gap: 5px; align-items: center; }
         input[type="month"] { border: 1px solid #ddd; padding: 7px 12px; border-radius: 20px; font-weight: bold; outline: none; }
         
-        /* 모달 */
         #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; z-index: 3000; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 350px; overflow: hidden; }
         #modalOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 2999; backdrop-filter: blur(2px); }
 
-        /* 인쇄 설정 보강 */
+        /* 인쇄 최적화 및 여백 설정 */
         @media print {
             @page { 
                 size: A4 landscape; 
-                margin: 5mm; 
+                /* 상 15mm, 우 8mm, 하 10mm, 좌 8mm */
+                margin: 15mm 8mm 10mm 8mm; 
             }
             
-            /* 배경색 및 컬러 인쇄 강제 설정 */
+            /* 배경색 및 칼라 강제 출력 설정 */
             * { 
                 -webkit-print-color-adjust: exact !important; 
                 print-color-adjust: exact !important; 
                 color-adjust: exact !important;
             }
 
-            body { background: white !important; }
+            body { background: white !important; margin: 0; padding: 0; }
             .controls-container, #modal, #modalOverlay { display: none !important; }
             
             #paper { 
@@ -63,13 +62,14 @@
 
             #tableWrapper { 
                 overflow: visible !important; 
+                border: none !important;
             }
             
             table { 
                 width: 100% !important; 
-                min-width: unset !important; /* 가로폭 제한 해제 */
+                min-width: unset !important; 
                 table-layout: fixed !important;
-                font-size: 9px !important; /* 인쇄 시 텍스트 크기 축소 */
+                font-size: 9.5px !important; /* 한 페이지에 맞게 폰트 조절 */
             }
 
             td { 
@@ -77,8 +77,8 @@
             }
 
             #viewTitle {
-                margin: 5px 0 15px 0 !important;
-                font-size: 20px !important;
+                margin: 0 0 10px 0 !important;
+                font-size: 18px !important;
             }
         }
     </style>
