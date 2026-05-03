@@ -3,3 +3,5 @@ google-generativeai
 gspread
 google-auth
 pillow
+st-gsheets-connection
+pandas
