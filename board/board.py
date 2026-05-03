@@ -1,35 +1,28 @@
 import streamlit as st
-import gspread
-from google.oauth2.service_account import Credentials
+from streamlit_gsheets import GSheetsConnection
 import google.generativeai as genai
 
 # 페이지 설정
 st.set_page_config(page_title="AI 통합 관리 시스템", layout="wide")
 
-# [공통 함수] 구글 서비스 연결 (private_key 오류 방지 포함)
-def get_gspread_client():
-    creds_info = dict(st.secrets["gcp_service_account"])
-    # PEM 파일 오류 방지를 위한 줄바꿈 치환
-    creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
-    
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = Credentials.from_service_account_info(creds_info, scopes=scope)
-    return gspread.authorize(creds)
+# [공통] 구글 시트 연결 함수 (키 파일 없이 연결)
+def get_sheet_conn():
+    return st.connection("gsheets", type=GSheetsConnection)
 
 st.title("🏛️ 가톨릭대학교 성의교정 관리 시스템")
 st.markdown("""
 ### 사용 안내
-왼쪽 사이드바의 메뉴를 선택하여 업무를 진행해 주세요.
-1. **식단표 관리**: 식단표 이미지를 분석하여 데이터베이스에 저장합니다.
-2. **당직표 관리**: 보안팀 및 시설팀 당직표를 디지털화합니다.
+왼쪽 사이드바에서 메뉴를 선택하세요.
+1. **식단표 관리**: 식단표 분석 및 저장
+2. **당직표 관리**: 근무 명단 분석 및 저장
 """)
 
-# 메인 페이지에서도 데이터 확인 가능하게 구성 (선택 사항)
+# 데이터 확인용
 if st.button("📊 최근 등록 데이터 확인"):
     try:
-        client = get_gspread_client()
-        sheet = client.open("식단데이터베이스").sheet1
-        data = sheet.get_all_records()
-        st.table(data[-5:]) # 최근 5건만 표시
+        conn = get_sheet_conn()
+        # 시트의 전체 데이터를 읽어옵니다.
+        df = conn.read(ttl="0") 
+        st.table(df.tail(5)) # 마지막 5줄 표시
     except Exception as e:
-        st.error(f"데이터를 불러올 수 없습니다: {e}")
+        st.error("시트 데이터를 불러오려면 Secrets 설정을 먼저 완료해야 합니다.")
