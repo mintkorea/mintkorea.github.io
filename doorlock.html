@@ -6,100 +6,36 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
   <style>
-    html, body { 
-      background:#f4f7f9; 
-      font-size:13px; 
-      margin:0; 
-      padding:0; 
-      overflow-x:hidden; 
-      width: 100%;
-      position: relative;
-    }
+    html, body { background:#f4f7f9; font-size:14px; margin:0; padding:0; overflow-x:hidden; width:100%; position:relative; }
     .nav-top { background:#1a237e; height:50px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; color:#fff; position:sticky; top:0; z-index:1000; width:100%; box-sizing:border-box; }
     
-    .search-box { 
-      background:#fff; 
-      padding:8px 12px; 
-      border-bottom:1px solid #ddd; 
-      width:100%; 
-      box-sizing:border-box; 
-      position: relative;
-    }
-    .search-input { 
-      border:1px solid #ccc !important; 
-      border-radius:20px !important; 
-      height:36px !important; 
-      margin:0 !important; 
-      padding:0 40px 0 15px !important; 
-      width:100% !important; 
-      box-sizing:border-box !important; 
-      font-size:14px !important; 
-    }
-    .search-clear {
-      position: absolute;
-      right: 22px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #999;
-      cursor: pointer;
-      display: none;
-    }
+    .search-box { background:#fff; padding:8px 12px; border-bottom:1px solid #ddd; width:100%; box-sizing:border-box; position:relative; }
+    .search-input { border:1px solid #ccc !important; border-radius:20px !important; height:36px !important; margin:0 !important; padding:0 40px 0 15px !important; width:100% !important; box-sizing:border-box !important; font-size:14px !important; }
+    .search-clear { position:absolute; right:22px; top:50%; transform:translateY(-50%); color:#999; cursor:pointer; display:none; }
 
-    /* 탭 메뉴: 사각형 그리드 형태, 좌우 스크롤 제거 */
-    #bGroup { 
-      display:flex; 
-      flex-wrap: wrap; /* 다음 줄로 넘김 */
-      background:#fff; 
-      padding:8px; 
-      gap:4px; 
-      border-bottom:1px solid #ddd; 
-      width:100%; 
-      box-sizing:border-box; 
-    }
-
-    .b-tab { 
-      padding:6px 8px; 
-      background:#eee; 
-      border-radius:4px; /* 사각형 형태 */
-      white-space:nowrap; 
-      cursor:pointer; 
-      font-size:11px; 
-      flex: 1 1 calc(20% - 4px); /* 5개 기준 균등 분할, 부족하면 자동 조절 */
-      text-align: center;
-      min-width: fit-content;
-    }
+    #bGroup { display:flex; flex-wrap:wrap; background:#fff; padding:8px; gap:4px; border-bottom:1px solid #ddd; width:100%; box-sizing:border-box; }
+    .b-tab { padding:6px 8px; background:#eee; border-radius:4px; white-space:nowrap; cursor:pointer; font-size:11px; flex:1 1 calc(20% - 4px); text-align:center; min-width:fit-content; }
     .active-b { background:#1a237e !important; color:#fff !important; }
 
-    .item-card { background:#fff; margin:8px 12px; padding:15px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); display:flex; justify-content:space-between; align-items:center; }
-    .pw-view-btn { color:#f57c00; cursor:pointer; font-weight:bold; padding:8px 14px; border:1px solid #f57c00; border-radius:4px; font-size:12px; }
+    .item-card { background:#fff; margin:8px 12px; padding:15px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
+    .pw-view-btn { color:#f57c00; font-weight:bold; padding:8px 14px; border:1px solid #f57c00; border-radius:4px; font-size:12px; }
 
-    #topBtn {
-      position: fixed;
-      bottom: 25px;
-      right: 20px;
-      width: 45px;
-      height: 45px;
-      background: #1a237e;
-      color: white;
-      border-radius: 50%;
-      display: none;
-      justify-content: center;
-      align-items: center;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-      z-index: 9999;
-      cursor: pointer;
-      border: none;
-    }
+    /* 모달 스타일 커스텀 */
+    #detailModal { max-height: 85%; width: 90%; border-radius: 12px; }
+    .modal-content h4 { font-size: 1.5rem; color: #1a237e; font-weight: bold; margin-bottom: 20px; }
+    .detail-row { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+    .detail-label { font-size: 0.9rem; color: #777; display: block; }
+    .detail-value { font-size: 1.2rem; color: #333; font-weight: 500; word-break: break-all; }
+    .modal-footer { padding: 10px 20px !important; }
 
+    #topBtn { position:fixed; bottom:25px; right:20px; width:45px; height:45px; background:#1a237e; color:white; border-radius:50%; display:none; justify-content:center; align-items:center; box-shadow:0 4px 10px rgba(0,0,0,0.3); z-index:9999; cursor:pointer; border:none; }
     #loader { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); display:none; flex-direction:column; justify-content:center; align-items:center; z-index:10001; }
   </style>
 </head>
 <body>
   <div id="loader"><div class="preloader-wrapper active small"><div class="spinner-layer spinner-blue-only"><div class="circle"></div></div></div><p>데이터 동기화 중...</p></div>
 
-  <button id="topBtn" onclick="scrollToTop()">
-    <i class="material-icons">arrow_upward</i>
-  </button>
+  <button id="topBtn" onclick="scrollToTop()"><i class="material-icons">arrow_upward</i></button>
 
   <header>
     <div class="nav-top">
@@ -115,31 +51,45 @@
 
   <div id="listArea"></div>
 
+  <!-- 상세 정보 모달 -->
+  <div id="detailModal" class="modal">
+    <div class="modal-content">
+      <h4 id="m_title">상세 정보</h4>
+      <div class="detail-row"><span class="detail-label">위치</span><div class="detail-value" id="m_location"></div></div>
+      <div class="detail-row"><span class="detail-label">명칭</span><div class="detail-value" id="m_name"></div></div>
+      <div class="detail-row"><span class="detail-label">비밀번호</span>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:5px;">
+          <div class="detail-value" id="m_pwd" style="color:#f57c00; letter-spacing: 2px;">****</div>
+          <button class="btn-small white black-text" style="border:1px solid #ccc; box-shadow:none;" onclick="toggleModalPw()">보기</button>
+        </div>
+      </div>
+      <div class="detail-row"><span class="detail-label">비고</span><div class="detail-value" id="m_note" style="white-space: pre-wrap;">-</div></div>
+    </div>
+    <div class="modal-footer"><a href="#!" class="modal-close waves-effect waves-blue btn-flat" style="font-weight:bold;">닫기</a></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script>
     const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS255vYTiF4PMATcWslwSjGudgp9hdqeoM1qwxIlp8sNDxoZtHo9kG7faW6LofdGz6cgvjG5lJ_oNI1/pub?gid=0&single=true&output=csv";
-    // 의산연과 의산연별관 분리[cite: 1]
     const BUILDINGS = ["성의회관", "의산연", "의산연별관", "병원별관"]; 
-    let allItems = [], curBld = '전체';
+    let allItems = [], curBld = '전체', currentTargetPw = "";
 
-    window.onload = () => { renderBTabs(); loadLocalData(); };
+    document.addEventListener('DOMContentLoaded', () => {
+      M.Modal.init(document.querySelectorAll('.modal'));
+      renderBTabs();
+      loadLocalData();
+    });
 
     window.onscroll = function() {
       const btn = document.getElementById("topBtn");
-      if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
-        btn.style.display = "flex";
-      } else {
-        btn.style.display = "none";
-      }
+      btn.style.display = (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) ? "flex" : "none";
     };
 
-    function scrollToTop() {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
     function handleSearchInput() {
       const input = document.getElementById('searchInput');
-      const clearBtn = document.getElementById('searchClearBtn');
-      clearBtn.style.display = input.value.length > 0 ? 'block' : 'none';
+      document.getElementById('searchClearBtn').style.display = input.value.length > 0 ? 'block' : 'none';
       filterData();
     }
 
@@ -169,11 +119,8 @@
           filterData();
           alert(json.length + "건 업데이트 완료!");
         }
-      } catch (e) {
-        alert("통신 에러가 발생했습니다.");
-      } finally {
-        document.getElementById('loader').style.display = 'none';
-      }
+      } catch (e) { alert("통신 에러가 발생했습니다."); }
+      finally { document.getElementById('loader').style.display = 'none'; }
     }
 
     function csvToJSON(csv) {
@@ -184,17 +131,16 @@
         if (row.length >= 5) {
           let rawPwd = row[4]?.replace(/"/g, '').trim();
           let finalPwd = rawPwd;
-          // 평문 비밀번호를 ENC_ 기반 Base64로 변환[cite: 1]
           if (rawPwd && !rawPwd.startsWith("ENC_")) {
             finalPwd = "ENC_" + btoa(unescape(encodeURIComponent(rawPwd)));
           }
-
           result.push({
             bld: row[0]?.replace(/"/g, '').trim(),
             floor: row[1]?.replace(/"/g, '').trim(),
             room: row[2]?.replace(/"/g, '').trim(),
             name: row[3]?.replace(/"/g, '').trim(),
-            pwd: finalPwd
+            pwd: finalPwd,
+            note: row[5]?.replace(/"/g, '').trim() || "-" // 비고 항목(row[5]) 추가[cite: 1]
           });
         }
       }
@@ -203,31 +149,47 @@
 
     function decrypt(enc) {
       if (!enc || !enc.startsWith("ENC_")) return enc;
-      try { 
-        return decodeURIComponent(escape(atob(enc.replace("ENC_", "")))); 
-      } catch (e) { 
-        return "오류"; 
-      }
+      try { return decodeURIComponent(escape(atob(enc.replace("ENC_", "")))); } 
+      catch (e) { return "오류"; }
+    }
+
+    function openDetail(idx) {
+      const item = allItems.find((_, i) => i === idx);
+      if (!item) return;
+      document.getElementById('m_location').innerText = `${item.bld} ${item.floor} ${item.room}`;
+      document.getElementById('m_name').innerText = item.name;
+      document.getElementById('m_note').innerText = item.note;
+      document.getElementById('m_pwd').innerText = "****";
+      currentTargetPw = decrypt(item.pwd);
+      M.Modal.getInstance(document.getElementById('detailModal')).open();
+    }
+
+    function toggleModalPw() {
+      const el = document.getElementById('m_pwd');
+      el.innerText = (el.innerText === "****") ? currentTargetPw : "****";
     }
 
     function filterData() {
       const q = document.getElementById('searchInput').value.toLowerCase();
       const area = document.getElementById('listArea'); 
       area.innerHTML = '';
-      const filtered = allItems.filter(item => {
-        // 건물 필터링 로직 단순화 (의산연/의산연별관 각각 매칭)[cite: 1]
+      allItems.forEach((item, index) => {
         let matchBld = (curBld === '전체') ? true : (item.bld === curBld);
-        return matchBld && Object.values(item).some(v => String(v).toLowerCase().includes(q));
-      });
-      filtered.forEach(item => {
-        area.innerHTML += `
-          <div class="item-card">
+        let matchText = Object.values(item).some(v => String(v).toLowerCase().includes(q));
+        
+        if (matchBld && matchText) {
+          const card = document.createElement('div');
+          card.className = 'item-card';
+          card.onclick = () => openDetail(index); // 카드 클릭 시 모달 열기[cite: 1]
+          card.innerHTML = `
             <div style="flex:1">
-              <b style="color:#1a237e">${item.bld} ${item.floor} ${item.room}</b><br>
-              <small style="color:#666">${item.name}</small>
+              <b style="color:#1a237e; font-size:1.1rem;">${item.bld} ${item.floor} ${item.room}</b><br>
+              <span style="color:#666">${item.name}</span>
             </div>
-            <div class="pw-view-btn" onclick="alert('비밀번호: ' + decrypt('${item.pwd}'))">보기</div>
-          </div>`;
+            <div class="pw-view-btn" onclick="event.stopPropagation(); alert('비밀번호: ' + decrypt('${item.pwd}'))">보기</div>
+          `;
+          area.appendChild(card);
+        }
       });
     }
 
