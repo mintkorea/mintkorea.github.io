@@ -224,72 +224,52 @@
 
         function closeModal() { document.getElementById('dutyModal').style.display = 'none'; }
 
-        // [복구 핵심] 이벤트 로딩 함수
+        // [핵심 수정] 이벤트 업데이트 로직
         async function updateEvents(date) {
-            // 비교용 숫자 포맷 (예: 20260506)
-            const targetYMD = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
-            // API용 포맷 (예: 2026-05-06)
-            const ds_api = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
+            // API 호출을 위한 날짜 문자열 (YYYY-MM-DD)
+            const ds = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+            
             const cachedData = Cache.get('events_all');
-            if (cachedData) renderEventUI(cachedData, targetYMD);
+            // 캐시 데이터가 있으면 즉시 렌더링 시도
+            if (cachedData) renderEventUI(cachedData);
 
             try {
-                // 특정 날짜 파라미터를 붙여서 호출
-                const res = await fetch(`${EVENT_API}?date=${ds_api}`); 
+                // v40 API는 해당 날짜의 데이터를 'rentals' 키에 담아 보냅니다.
+                const res = await fetch(`${EVENT_API}?date=${ds}`); 
                 const json = await res.json();
-                
-                // GAS 구조 대응 (rentals 배열 추출)
                 const actualData = json.rentals || [];
                 
                 Cache.save('events_all', actualData); 
-                renderEventUI(actualData, targetYMD);
+                renderEventUI(actualData);
             } catch(e) { 
-                console.error("Event Load Error:", e);
+                console.error("API Error:", e);
                 if(!cachedData) document.getElementById('event-list').innerHTML = "데이터 로드 실패"; 
             }
         }
 
-        // [복구 핵심] 이벤트 UI 렌더링 함수
-        function renderEventUI(data, targetYMD) {
+        // [핵심 수정] 렌더링 로직 - 추가 필터링 없이 받은 데이터 전체 표시
+        function renderEventUI(data) {
             const eventArray = Array.isArray(data) ? data : [];
             
-            // 날짜 비교: 특수문자 제거 후 숫자만 비교 (매우 안전한 방식)
-            const filtered = eventArray.filter(r => {
-                if (!r.rawDate) return false;
-                const cleanDate = r.rawDate.replace(/[^0-9]/g, '').substring(0, 8);
-                return cleanDate === targetYMD;
-            });
-
-            const hallEvents = filtered.filter(r => r.bu.includes("성의회관") || r.place.includes("성의회관"));
-            const researchEvents = filtered.filter(r => 
+            // 이미 API에서 날짜 필터링이 완료된 상태이므로 건물별 구분만 진행
+            const h = eventArray.filter(r => r.bu.includes("성의회관") || r.place.includes("성의회관"));
+            const r_f = eventArray.filter(r => 
                 r.bu.includes("의산연") || r.place.includes("의산연") || 
-                r.bu.includes("의생명") || r.place.includes("의생명")
+                r.bu.includes("의생명") || r.place.includes("의생명") ||
+                r.bu.includes("의생명산업연구원")
             );
             
             const fmt = (p) => p ? p.replace("성의교정", "").trim() : "장소미정";
             
             let html = "";
-            // 성의회관 섹션
             html += `
                 <div class="mb-4">
                     <span class="building-badge badge-hall">성의회관</span>
-                    ${hallEvents.length ? hallEvents.map(i => `
-                        <div class="event-item">
-                            <span class="event-place">📍 ${fmt(i.place)}</span>
-                            <span>${i.event}</span>
-                        </div>`).join('') : '<div class="text-xs text-slate-300 ml-1">등록된 행사 없음</div>'}
-                </div>`;
-                
-            // 의산연 섹션
-            html += `
+                    ${h.length ? h.map(i => `<div class="event-item"><span class="event-place">📍 ${fmt(i.place)}</span><span>${i.event}</span></div>`).join('') : '<div class="text-xs text-slate-300 ml-1">등록된 행사 없음</div>'}
+                </div>
                 <div>
                     <span class="building-badge badge-research">의산연</span>
-                    ${researchEvents.length ? researchEvents.map(i => `
-                        <div class="event-item">
-                            <span class="event-place text-purple-500">📍 ${fmt(i.place)}</span>
-                            <span>${i.event}</span>
-                        </div>`).join('') : '<div class="text-xs text-slate-300 ml-1">등록된 행사 없음</div>'}
+                    ${r_f.length ? r_f.map(i => `<div class="event-item"><span class="event-place text-purple-500">📍 ${fmt(i.place)}</span><span>${i.event}</span></div>`).join('') : '<div class="text-xs text-slate-300 ml-1">등록된 행사 없음</div>'}
                 </div>`;
                 
             document.getElementById('event-list').innerHTML = html;
