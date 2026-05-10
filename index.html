@@ -142,9 +142,17 @@
         const db = firebase.firestore();
         db.enablePersistence().catch(() => {});
 
-        const baseDate = '2025-01-01', patterns = ['C', 'A', 'B'];
+        // [수정] 3월 9일 기준일 및 6회 순환 패턴 적용
+        const baseDate = '2026-03-09', patterns = ['C', 'A', 'B'];
         const teamA = ["배준용", "이명구", "김영중", "김삼동"], teamB = ["심규천", "임종현", "권영국", "전준수"];
-        const teamC = [["황재업", "이정석", "이태원", "김태언"], ["황재업", "이태원", "김태언", "이정석"], ["황재업", "김태언", "이정석", "이태원"], ["황재업", "이정석", "김태언", "이태원"], ["황재업", "이정석", "이태원", "김태언"], ["황재업", "이태원", "이정석", "김태언"]];
+        const teamC = [
+            ["황재업", "김태언", "이태원", "이정석"], // 패턴 1 (5/20)
+            ["황재업", "김태언", "이정석", "이태원"], // 패턴 2
+            ["황재업", "이정석", "김태언", "이태원"], // 패턴 3
+            ["황재업", "이정석", "이태원", "김태언"], // 패턴 4
+            ["황재업", "이태원", "김태언", "이정석"], // 패턴 5
+            ["황재업", "이태원", "이정석", "김태언"]  // 패턴 6
+        ];
 
         let currentDate = new Date();
         let vData = {};
@@ -159,6 +167,7 @@
             window.location.href = `${url}?date=${dateStr}`;
         }
 
+        // [수정] 연차 발생 시 회관(1번 인덱스) 스왑 로직 적용
         function getShiftNames(shift, diff, date) {
             let namesArr = [];
             const y = date.getFullYear(), m = String(date.getMonth() + 1).padStart(2, '0'), dVal = String(date.getDate());
@@ -169,8 +178,11 @@
             else if (shift === 'C') {
                 const cIdx = Math.floor(((diff % 18) + 18) % 18 / 3);
                 namesArr = [...teamC[cIdx]];
+                const isV = (name) => vocation[name] && vocation[name].split(',').map(v=>v.trim()).includes(dVal);
+                
+                // 조원(1, 2, 3번) 중 연차자가 있으면 회관(1번) 자리와 스왑
                 for(let i=1; i<namesArr.length; i++) {
-                    if (vocation[namesArr[i]] && vocation[namesArr[i]].split(',').map(v=>v.trim()).includes(dVal)) {
+                    if (isV(namesArr[i])) {
                         if (i !== 1) [namesArr[1], namesArr[i]] = [namesArr[i], namesArr[1]];
                         break;
                     }
@@ -179,7 +191,6 @@
             return namesArr;
         }
 
-        // 모달 열기 함수 복구
         function openDutyModal() {
             const listContainer = document.getElementById('modalList');
             listContainer.innerHTML = '';
@@ -249,7 +260,8 @@
             const cached = Cache.get('events_data');
             if(cached) renderHtml(cached);
             try {
-                const res = await fetch(`${EVENT_API}?t=${Date.now()}`);
+                // [수정] redirect: 'follow' 옵션 추가
+                const res = await fetch(`${EVENT_API}?t=${Date.now()}`, { method: 'GET', redirect: 'follow' });
                 const data = await res.json();
                 Cache.save('events_data', data);
                 renderHtml(data);
@@ -266,7 +278,7 @@
             const cached = Cache.get('meal_data');
             if(cached) renderHtml(cached);
             try {
-                const res = await fetch(MEAL_API); 
+                const res = await fetch(MEAL_API, { method: 'GET', redirect: 'follow' }); 
                 const data = await res.json();
                 Cache.save('meal_data', data);
                 renderHtml(data);
