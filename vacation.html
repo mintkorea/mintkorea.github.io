@@ -3,95 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>연차관리 Mobile</title>
+    <title>성의교정 연차 관리 시스템</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <style>
-        :root { --primary: #3498db; --bg: #f8f9fa; --text: #2c3e50; --sun: #e74c3c; --sat: #3498db; }
+        :root { --sat-bg: #f5faff; --sun-bg: #fff5f5; --primary-blue: #3498db; }
+        html, body { margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; background: #f0f2f5; }
+        .content-area { display: flex; justify-content: center; padding: 20px 10px; min-height: 100vh; box-sizing: border-box; }
+        #paper { background: white; width: 285mm; padding: 10px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 0 20px rgba(0,0,0,0.1); border-radius: 4px; max-width: 100%; overflow: hidden; }
+        #viewTitle { text-align: center; margin: 10px 0 20px 0; font-size: 24px; font-weight: bold; text-decoration: underline; text-underline-offset: 5px; letter-spacing: 2px; }
+        #tableWrapper { width: 100%; overflow-x: auto; border: 1px solid #ddd; }
+        table { border-collapse: collapse; width: 100%; min-width: 1000px; border: 1.5pt solid #000; table-layout: fixed; background: white; }
+        td { border: 0.5pt solid #000; text-align: center; font-weight: bold; height: 18pt; font-size: 11px; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .hdr { background: #f2f2f2 !important; height: 26pt; cursor: pointer; }
+        .border-right-bold { border-right: 1.5pt solid #000 !important; }
         
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; padding: 0; font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding-bottom: 80px; }
-
-        /* 헤더 영역 */
-        header { 
-            background: white; padding: 15px; position: sticky; top: 0; z-index: 100;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; align-items: center; gap: 10px;
-        }
-        #viewTitle { margin: 0; font-size: 18px; font-weight: bold; color: var(--primary); }
-        input[type="month"] { 
-            border: 1px solid #ddd; padding: 8px 15px; border-radius: 20px; 
-            font-size: 14px; width: 100%; max-width: 200px; text-align: center;
-        }
-
-        /* 메인 컨텐츠 영역 */
-        .container { padding: 15px; }
-
-        /* 카드형 리스트 (연차명단 전용) */
-        .day-card {
-            background: white; border-radius: 15px; padding: 15px; margin-bottom: 12px;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.03); border: 1px solid #eee;
-        }
-        .day-header { 
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid #f1f1f1; padding-bottom: 8px; margin-bottom: 10px;
-        }
-        .day-label { font-size: 16px; font-weight: bold; }
-        .count-badge { background: #eee; padding: 2px 10px; border-radius: 10px; font-size: 12px; color: #666; }
+        .sat { background-color: var(--sat-bg) !important; color: #007bff !important; }
+        .sun { background-color: var(--sun-bg) !important; color: #dc3545 !important; }
+        .v-mark { background-color: #d4edda !important; color: #28a745; font-weight: bold; cursor: pointer; }
         
-        .person-item { 
-            display: flex; align-items: center; gap: 10px; padding: 8px 0;
-            border-bottom: 1px inset #fafafa;
+        .controls-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; z-index: 2000; }
+        #syncStatus { font-size: 11px; font-weight: bold; color: #7f8c8d; background: rgba(255,255,255,0.9); padding: 4px 12px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .floating-bar { display: flex; align-items: center; gap: 8px; background: white; padding: 10px 20px; border-radius: 40px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); border: 1px solid #ddd; }
+        .btn { padding: 9px 18px; cursor: pointer; border: none; font-weight: bold; font-size: 13px; border-radius: 25px; color: white; transition: 0.2s; }
+        .btn-orange { background: #e67e22; }
+        .btn-blue { background: #3498db; }
+        .btn-gray { background: #95a5a6; }
+        #adminMenu { display: none; gap: 5px; align-items: center; }
+        input[type="month"] { border: 1px solid #ddd; padding: 7px 12px; border-radius: 20px; font-weight: bold; outline: none; }
+        
+        #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; z-index: 3000; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 350px; overflow: hidden; }
+        #modalOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 2999; backdrop-filter: blur(2px); }
+
+        /* 흑백 인쇄 및 하단 여백 최적화 */
+        @media print {
+            @page { size: A4 landscape; margin: 0; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            html, body { width: 297mm; height: 210mm; overflow: hidden !important; background: white !important; }
+            body { padding: 10mm 8mm !important; display: flex; justify-content: center; }
+            .content-area { padding: 0 !important; width: 100% !important; }
+            #paper { box-shadow: none !important; width: 100% !important; padding: 0 !important; border: none !important; }
+            
+            table { 
+                width: 100% !important; 
+                min-width: 0 !important; 
+                table-layout: fixed !important; 
+                font-size: 9.5pt !important; 
+                border: 1.5pt solid #000 !important; 
+            }
+            
+            /* 행 높이 조정 및 글자 뭉침(W처럼 보임) 방지 */
+            td { 
+                height: 17.2pt !important; 
+                border: 0.5pt solid #000 !important; 
+                color: #000 !important; 
+                font-weight: normal !important; 
+            }
+            
+            .hdr { 
+                height: 28pt !important; 
+                background-color: #e0e0e0 !important; 
+                font-weight: bold !important; 
+            }
+
+            /* 주말 배경색: 중간 회색 통일 */
+            .sat, .sun { 
+                background-color: #d0d0d0 !important; 
+                color: #000 !important; 
+            }
+
+            /* V 표시: 배경 흰색, 글자 선명하게 */
+            .v-mark { 
+                background-color: #ffffff !important; 
+                color: #000 !important; 
+                font-weight: normal !important; 
+            }
+
+            .controls-container, #modal, #modalOverlay { display: none !important; }
+            #viewTitle { margin: 0 0 10px 0 !important; font-size: 20px !important; }
         }
-        .person-item:last-child { border: none; }
-        .person-info { font-size: 15px; }
-        .person-sub { font-size: 12px; color: #95a5a6; }
-
-        .none-msg { color: #ccc; text-align: center; font-size: 13px; padding: 10px 0; }
-
-        /* 하단 내비게이션 바 */
-        .nav-bar {
-            position: fixed; bottom: 0; left: 0; right: 0; height: 70px;
-            background: white; display: flex; justify-content: space-around; align-items: center;
-            box-shadow: 0 -2px 15px rgba(0,0,0,0.1); padding-bottom: env(safe-area-inset-bottom);
-        }
-        .nav-item { 
-            flex: 1; display: flex; flex-direction: column; align-items: center; 
-            background: none; border: none; cursor: pointer; color: #bdc3c7; gap: 4px;
-        }
-        .nav-item.active { color: var(--primary); }
-        .nav-icon { font-size: 20px; }
-        .nav-label { font-size: 11px; font-weight: bold; }
-
-        /* 실시간 상태 표시 */
-        #syncStatus { position: fixed; top: 10px; right: 10px; font-size: 10px; color: #27ae60; z-index: 101; font-weight: bold; }
-
-        /* 요일별 색상 */
-        .sun { color: var(--sun); }
-        .sat { color: var(--sat); }
     </style>
 </head>
 <body>
 
-<div id="syncStatus">●</div>
+<div id="modalOverlay" onclick="closeModal()"></div>
+<div id="modal">
+    <div style="background:var(--primary-blue); color:white; padding:18px; font-weight:bold; text-align:center;" id="modalTitle">정보</div>
+    <div style="padding:30px 20px; text-align:center;" id="modalContent"></div>
+    <button style="width:100%; padding:15px; background:#f8f9fa; border:none; border-top:1px solid #eee; cursor:pointer; font-weight:bold; font-size:16px;" onclick="closeModal()">닫기</button>
+</div>
 
-<header>
-    <h1 id="viewTitle">연차 확인</h1>
-    <input type="month" id="targetMonth" onchange="render()">
-</header>
-
-<div class="container" id="mainContent">
+<div class="content-area">
+    <div id="paper">
+        <h2 id="viewTitle">데이터 연결 중...</h2>
+        <div id="tableWrapper">
+            <table id="displayTable"></table>
+        </div>
     </div>
+</div>
 
-<nav class="nav-bar">
-    <button class="nav-item active" onclick="changeTab('list', this)">
-        <span class="nav-icon">📋</span>
-        <span class="nav-label">연차명단</span>
-    </button>
-    <button class="nav-item" onclick="changeTab('table', this)">
-        <span class="nav-icon">🗓️</span>
-        <span class="nav-label">일정표</span>
-    </button>
-</nav>
+<div class="controls-container">
+    <div id="syncStatus">Firestore 연결 대기...</div>
+    <div class="floating-bar">
+        <button class="btn btn-gray" onclick="toggleAdmin()">⚙</button>
+        <div id="adminMenu">
+            <button class="btn btn-gray" onclick="backupData()">백업</button>
+            <button class="btn btn-gray" onclick="document.getElementById('fileInput').click()">복구</button>
+            <input type="file" id="fileInput" style="display:none" accept=".json" onchange="restoreData(event)">
+        </div>
+        <input type="month" id="targetMonth" onchange="render()">
+        <button class="btn btn-orange" onclick="changeTab('ledger')">연차대장</button>
+        <button class="btn btn-blue" onclick="changeTab('schedule')">연차일정표</button>
+        <button class="btn btn-blue" onclick="window.print()">인쇄</button>
+    </div>
+</div>
 
 <script>
     const firebaseConfig = {
@@ -105,17 +130,18 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const COLL = "vacation_system";
+    const DOC = "data";
 
-    let currentTab = 'list';
-    let staffData = [];
-    let vData = {};
+    let currentTab = 'schedule', activeCol = null, staffData = [], vData = {};
 
     function initSync() {
-        db.collection("vocation_app").doc("data").onSnapshot((doc) => {
+        db.collection(COLL).doc(DOC).onSnapshot((doc) => {
             if (doc.exists) {
-                const data = doc.data();
-                staffData = data.staff || [];
-                vData = data.vocation || {};
+                const d = doc.data();
+                staffData = d.staff || [];
+                vData = d.vacation || {};
+                document.getElementById('syncStatus').innerText = "● 실시간 동기화 중";
                 render();
             }
         });
@@ -123,90 +149,118 @@
 
     function render() {
         const val = document.getElementById('targetMonth').value;
+        if(!val) return;
         const [y, m] = val.split('-').map(Number);
-        
-        if (currentTab === 'list') {
-            renderMobileList(y, m);
-        } else {
-            renderMobileTable(y, m);
-        }
+        if (currentTab === 'ledger') renderLedger(y);
+        else renderSchedule(y, m);
     }
 
-    // [모바일] 카드형 연차 명단
-    function renderMobileList(y, m) {
-        const lastDay = new Date(y, m, 0).getDate();
-        const mk = `${y}-${String(m).padStart(2,'0')}`;
-        let html = "";
-
-        for (let d = 1; d <= lastDay; d++) {
-            const dateObj = new Date(y, m - 1, d);
-            const dayIdx = dateObj.getDay();
-            const dayName = ['일','월','화','수','목','금','토'][dayIdx];
-            const colorClass = dayIdx === 0 ? 'sun' : dayIdx === 6 ? 'sat' : '';
-
-            const dStr = String(d);
-            const visitors = staffData.filter(s => {
-                const vDays = (vData[mk]?.[s.n] || "").split(',').map(x => x.trim());
-                return vDays.includes(dStr);
-            });
-
-            html += `
-                <div class="day-card">
-                    <div class="day-header ${colorClass}">
-                        <span class="day-label">${m}.${d} (${dayName})</span>
-                        <span class="count-badge">${visitors.length}명</span>
-                    </div>
-                    <div class="day-body">
-                        ${visitors.length > 0 
-                            ? visitors.map(v => `
-                                <div class="person-item">
-                                    <div class="person-info"><b>${v.n}</b></div>
-                                    <div class="person-sub">${v.p} / ${v.s}</div>
-                                </div>`).join('')
-                            : '<div class="none-msg">연차 인원 없음</div>'}
-                    </div>
-                </div>`;
+    function renderSchedule(y, m) {
+        const last = new Date(y, m, 0).getDate();
+        document.getElementById('viewTitle').innerText = `성의교정 연차 일정표(${y}년 ${m}월)`;
+        let h = `<colgroup><col style="width:55px;"><col style="width:40px;"><col style="width:45px;"><col style="width:65px;"></colgroup><thead><tr class="hdr"><td>구분</td><td>조</td><td>직위</td><td class="border-right-bold">성명</td>`;
+        for(let i=1; i<=last; i++) {
+            const we = new Date(y, m-1, i).getDay();
+            h += `<td class="${we===0?'sun':we===6?'sat':''}" style="width:23px;" onclick="showDayStatus(${m}, ${i})">${i}</td>`;
         }
-        document.getElementById('mainContent').innerHTML = html;
-        document.getElementById('viewTitle').innerText = `${m}월 연차자 명단`;
+        h += `</tr></thead><tbody>${generateRows(y, m)}</tbody>`;
+        document.getElementById('displayTable').innerHTML = h;
     }
 
-    // [모바일] 간소화된 일정표 (가로 스크롤 표)
-    function renderMobileTable(y, m) {
-        const lastDay = new Date(y, m, 0).getDate();
-        const mk = `${y}-${String(m).padStart(2,'0')}`;
-        
-        let h = `<div style="overflow-x:auto; background:white; border-radius:10px;"><table style="border-collapse:collapse; width:100%; font-size:12px; min-width:600px;">`;
-        h += `<tr style="background:#f2f2f2;"><td style="padding:10px; border:1px solid #ddd; width:60px;">성명</td>`;
-        for(let i=1; i<=lastDay; i++) h += `<td style="border:1px solid #ddd; text-align:center;">${i}</td>`;
-        h += `</tr>`;
+    function renderLedger(y) {
+        document.getElementById('viewTitle').innerText = `성의교정 연차 관리대장(${y}년)`;
+        let h = `<colgroup><col style="width:55px;"><col style="width:40px;"><col style="width:45px;"><col style="width:65px;"><col style="width:7.69%;" span="13"></colgroup><thead><tr class="hdr"><td>구분</td><td>조</td><td>직위</td><td class="border-right-bold" onclick="toggleEdit('name')">성명</td>`;
+        for(let i=1; i<=12; i++) {
+            const mk = `${y}-${String(i).padStart(2,'0')}`;
+            h += `<td onclick="toggleEdit('${mk}')">${i}월</td>`;
+        }
+        h += `<td>합계</td></tr></thead><tbody>${generateRows(y, null)}</tbody>`;
+        document.getElementById('displayTable').innerHTML = h;
+    }
 
-        staffData.forEach(staff => {
-            const vArr = (vData[mk]?.[staff.n] || "").split(',').map(s => s.trim());
-            h += `<tr><td style="padding:8px; border:1px solid #ddd; font-weight:bold;">${staff.n}</td>`;
-            for(let i=1; i<=lastDay; i++) {
-                const isV = vArr.includes(String(i));
-                h += `<td style="border:1px solid #ddd; text-align:center; background:${isV?'#d4edda':''};">${isV?'V':''}</td>`;
+    function generateRows(y, m) {
+        let rows = "";
+        staffData.forEach((s, idx) => {
+            const isLast = (idx === staffData.length - 1) || (staffData[idx+1].s !== s.s || staffData[idx+1].g !== s.g);
+            rows += `<tr style="${isLast ? 'border-bottom:1.5pt solid #000' : ''}">`;
+            if(idx===0 || staffData[idx-1].g !== s.g) rows += `<td rowspan="${staffData.filter(x=>x.g===s.g).length}">${s.g}</td>`;
+            if(idx===0 || staffData[idx-1].s !== s.s || staffData[idx-1].g !== s.g) rows += `<td rowspan="${staffData.filter(x=>x.g===s.g && x.s===s.s).length}">${s.s}</td>`;
+            rows += `<td>${s.p}</td>`;
+            if(activeCol === 'name') rows += `<td class="border-right-bold"><input type="text" style="width:90%; border:none; text-align:center; background:#e3f2fd; font-weight:bold;" value="${s.n}" onchange="updateName(${idx}, this.value)"></td>`;
+            else rows += `<td class="border-right-bold">${s.n}</td>`;
+            
+            if (m === null) {
+                let total = 0;
+                for(let i=1; i<=12; i++) {
+                    const mk = `${y}-${String(i).padStart(2,'0')}`;
+                    const val = vData[mk]?.[s.n] || "";
+                    if(val) total += val.split(',').length;
+                    if(activeCol === mk) rows += `<td><input type="text" style="width:90%; border:none; text-align:center; background:#fffde7; font-weight:bold;" value="${val}" onchange="updateV('${mk}','${s.n}',this.value)"></td>`;
+                    else rows += `<td>${val}</td>`;
+                }
+                rows += `<td style="color:blue;">${total || ''}</td>`;
+            } else {
+                const mk = `${y}-${String(m).padStart(2,'0')}`;
+                const vArr = (vData[mk]?.[s.n] || "").split(',').map(x=>x.trim());
+                for(let i=1; i<=new Date(y, m, 0).getDate(); i++) {
+                    const isV = vArr.includes(String(i));
+                    const we = new Date(y, m-1, i).getDay();
+                    rows += `<td class="${isV?'v-mark':''} ${we===0?'sun':we===6?'sat':''}" ${isV?`onclick='showVDetail("${s.n}","${s.p}","${s.g}","${s.s}",${m},${i})'`:''}>${isV?'V':''}</td>`;
+                }
             }
-            h += `</tr>`;
+            rows += `</tr>`;
         });
-        h += `</table></div>`;
-        
-        document.getElementById('mainContent').innerHTML = h;
-        document.getElementById('viewTitle').innerText = `${m}월 전체 일정`;
+        return rows;
     }
 
-    function changeTab(tab, btn) {
-        currentTab = tab;
-        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-        btn.classList.add('active');
-        render();
-        window.scrollTo(0,0);
+    async function updateName(idx, v) { staffData[idx].n = v; await db.collection(COLL).doc(DOC).update({ staff: staffData }); }
+    async function updateV(mk, n, v) { await db.collection(COLL).doc(DOC).update({ [`vacation.${mk}.${n}`]: v }); }
+    function toggleEdit(id) { activeCol = (activeCol === id) ? null : id; render(); }
+    function changeTab(t) { currentTab = t; activeCol = null; render(); }
+    function openModal() { document.getElementById('modal').style.display='block'; document.getElementById('modalOverlay').style.display='block'; }
+    function closeModal() { document.getElementById('modal').style.display='none'; document.getElementById('modalOverlay').style.display='none'; }
+    function toggleAdmin() { if(prompt("비밀번호")==="1234") document.getElementById('adminMenu').style.display='flex'; }
+
+    function showVDetail(n, p, g, s, m, i) {
+        document.getElementById('modalTitle').innerText = "연차 상세 정보";
+        document.getElementById('modalContent').innerHTML = `<div style="line-height:1.6;"><span style="color:#7f8c8d; font-size:13px;">[${g} / ${s}]</span><br><b style="font-size:18px;">${p} ${n}</b><br><br><span style="color:#e67e22; font-weight:bold;">${m}월 ${i}일 연차</span></div>`;
+        openModal();
     }
 
-    window.onload = function() {
-        const today = new Date();
-        document.getElementById('targetMonth').value = today.toISOString().substring(0, 7);
+    function showDayStatus(m, d) {
+        const y = document.getElementById('targetMonth').value.split('-')[0];
+        const mk = `${y}-${String(m).padStart(2,'0')}`;
+        const vList = staffData.filter(s => (vData[mk]?.[s.n] || "").split(',').map(x=>x.trim()).includes(String(d)));
+        document.getElementById('modalTitle').innerText = `${m}월 ${d}일 현황`;
+        let html = "";
+        if(!vList.length) html = "연차 인원이 없습니다.";
+        else vList.forEach(item => {
+            html += `<div style="padding:10px; border-bottom:1px solid #eee; text-align:left;"><span style="color:#3498db; font-size:11px; font-weight:bold;">[${item.g} / ${item.s}]</span> <b style="margin-left:7px; font-size:14px;">${item.p} ${item.n}</b></div>`;
+        });
+        document.getElementById('modalContent').innerHTML = html;
+        openModal();
+    }
+
+    async function backupData() {
+        const d = await db.collection(COLL).doc(DOC).get();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(d.data(), null, 2)], {type: "application/json"}));
+        a.download = `연차백업_${new Date().toISOString().slice(0,10)}.json`; a.click();
+    }
+
+    function restoreData(e) {
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+            if(confirm("기존 데이터를 덮어쓰고 복구하시겠습니까?")) {
+                await db.collection(COLL).doc(DOC).set(JSON.parse(ev.target.result));
+                location.reload();
+            }
+        };
+        reader.readAsText(e.target.files[0]);
+    }
+
+    window.onload = () => {
+        document.getElementById('targetMonth').value = new Date().toISOString().substring(0, 7);
         initSync();
     };
 </script>
