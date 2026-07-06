@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>성의교정 주간식단</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; scroll-behavior: smooth; }; ; ; ; 
+        .tab-transition { transition: all 0.2s ease-in-out; }
+        .menu-main-style { white-space: nowrap !important; letter-spacing: -0.03em !important; word-break: keep-all; font-size: 1.5rem; line-height: 2rem; }
+        .day-sun { color: #EF4444; }
+        .day-sat { color: #3B82F6; }
+        .status-pill { display: flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+        .status-dot { width: 7px; height: 7px; border-radius: 50%; }
+        .dot-online { background-color: #10B981; box-shadow: 0 0 6px #10B981; }
+        .dot-offline { background-color: #EF4444; box-shadow: 0 0 6px #EF4444; }
+        .dot-sync { background-color: #F59E0B; box-shadow: 0 0 6px #F59E0B; }
+        .menu-card-custom { background-color: white; border-radius: 0 0 2rem 2rem; border-top-width: 7px; border-right-width: 2px; border-bottom-width: 2px; border-left-width: 2px; border-style: solid; }
+        #hiddenDatePicker { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        @media (min-width: 640px) { .menu-main-style { font-size: 1.875rem; line-height: 2.25rem; } }
+        
+        /* 관리자 모드 애니메이션 */
+        #adminPanel { transition: max-height 0.3s ease-out, opacity 0.2s ease-in-out; max-height: 0; opacity: 0; overflow: hidden; }
+        #adminPanel.open { max-height: 500px; opacity: 1; }
+    </style>
+</head>
+<body class="text-slate-800">
+    <div id="app" class="max-w-2xl mx-auto flex flex-col items-center p-2 pt-3 pb-20">
+        
+        <!-- 상단 헤더 영역 -->
+        <div id="header" class="relative w-full bg-[#EEF2F6] rounded-2xl p-4 flex flex-col mb-3 border border-slate-200 shadow-sm items-center">
+            
+            <!-- [숨김처리 숨바꼭질 버튼] 우측 상단 투명 영역 클릭 시 관리자 모드 토글 -->
+            <div onclick="toggleAdminPanel()" class="absolute top-0 right-0 w-12 h-12 rounded-tr-2xl cursor-pointer z-50" title="관리자 모드"></div>
+            
+            <div class="flex items-center gap-2 mb-1">
+                <h1 class="text-lg font-black text-[#1E3A5F] tracking-tighter">성의교정 주간식단</h1>
+                <span id="shiftBadge" class="text-white text-[10px] px-2 py-0.5 rounded-md font-black shadow-sm tracking-tight">--</span>
+            </div>
+            <div class="relative flex items-center">
+                <span id="dateDisplay" class="font-black text-slate-600 text-xl tracking-tight cursor-pointer">날짜 로딩...</span>
+                <input type="date" id="hiddenDatePicker" onchange="syncDateInput(this)">
+            </div>
+        </div>
+
+        <!-- [신규] 실시간 슬라이드 관리자 CSV 입력 패널 -->
+        <div id="adminPanel" class="w-full bg-slate-900 text-slate-100 rounded-2xl p-4 mb-3 border border-slate-700 shadow-inner flex flex-col gap-3">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                <span class="text-xs font-black text-amber-400 tracking-wider uppercase">⚙️ 식단 데이터 직접 적재 (ADMIN)</span>
+                <button onclick="toggleAdminPanel()" class="text-slate-400 hover:text-white text-xs font-bold">닫기 ×</button>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-normal">생성된 CSV 텍스트를 헤더 행(<code class="text-amber-200">date,type...</code>)을 포함하여 아래에 붙여넣고 업로드 버튼을 누르면 구글 시트에 즉시 반영됩니다.</p>
+            <textarea id="csvInput" rows="6" class="w-full p-2.5 text-xs font-mono bg-slate-950 text-emerald-400 rounded-lg border border-slate-800 focus:outline-none focus:border-amber-500 placeholder-slate-600" placeholder="date,type,menu,side,comment&#10;2026-07-06,중식,깻잎제육볶음,..."></textarea>
+            <button id="uploadBtn" onclick="uploadCSV()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black py-2.5 rounded-lg shadow-md transition-colors active:scale-[0.99]">
+                구글 시트로 데이터 업로드 (정재 실행)
+            </button>
+        </div>
+
+        <!-- 내비게이션 및 상태 표시 영역 -->
+        <div id="results-anchor" class="w-full flex items-center justify-between mb-3 px-1 pb-2 border-b border-slate-100">
+            <div class="flex items-center">
+                <div id="statusPill" class="status-pill">
+                    <span id="statusDot" class="status-dot dot-offline"></span>
+                    <span id="statusText" class="text-[10px] font-black text-slate-400 uppercase tracking-tight">준비 중</span>
+                </div>
+            </div>
+            <div class="flex gap-1.5">
+                <button onclick="changeDate(-1)" class="bg-white border border-slate-300 rounded-lg px-4 py-2 text-[12px] font-black text-slate-600 shadow-sm active:bg-slate-50">← PREV</button>
+                <button onclick="goToday()" class="bg-white border border-slate-300 rounded-lg px-4 py-2 text-[12px] font-black text-[#1E3A5F] shadow-sm active:bg-slate-50">TODAY</button>
+                <button onclick="changeDate(1)" class="bg-white border border-slate-300 rounded-lg px-4 py-2 text-[12px] font-black text-slate-600 shadow-sm active:bg-slate-50">NEXT →</button>
+            </div>
+        </div>
+
+        <div class="w-full px-2 mb-3">
+            <div class="flex items-center gap-1.5 text-slate-400 text-[11px] font-bold italic bg-white/50 py-1 px-2 rounded-lg inline-flex">
+                <span id="timer-icon">⏳</span>
+                <span id="timer-text">데이터 확인 중...</span>
+            </div>
+        </div>
+
+        <!-- 식단 탭 컨테이너 -->
+        <div id="tabs-container" class="grid grid-cols-5 w-full"></div>
+
+        <!-- 식단 카드 영역 -->
+        <div id="menu-card" class="w-full menu-card-custom min-h-[250px] flex flex-col transition-all duration-300 shadow-sm overflow-hidden">
+            <div class="flex-grow flex flex-col justify-center items-center text-center p-6 pb-4">
+                <h2 id="main-menu" class="font-black mb-3 text-slate-800 menu-main-style"></h2>
+                <div class="w-14 h-[1.5px] bg-slate-200 mb-4"></div>
+                <p id="sub-menu" class="text-slate-600 leading-relaxed max-w-full font-bold text-base md:text-lg px-2"></p>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-center gap-2 text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                <p id="comment-text" class="text-sm font-bold text-slate-500 leading-snug"></p>
+            </div>
+        </div>
+        
+        <div class="w-full py-8 text-center">
+            <p class="text-[10px] font-bold text-slate-300 tracking-widest uppercase mt-4">Catholic Univ. Songeui Campus</p>
+        </div>
+    </div>
+
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxZkcn8EEcGcxMaT98l_CKJTCM_0Ual_S2JefpHptm_dbEtQ5tjM00TEhU2XdqTObLh/exec";
+        
+        // 근무조 설정
+        const shiftConfig = { 
+            baseDate: new Date('2026-03-09'), 
+            pattern: [
+                { name: 'C', color: '#3B82F6' },
+                { name: 'A', color: '#F59E0B' },
+                { name: 'B', color: '#EF4444' } 
+            ] 
+        };
+        
+        // 식사 메타데이터
+        const mealMeta = {
+            '조식': { color: '#E65D4F', inactiveBg: '#F9DEDC', startTime: '07:00', endTime: '09:00' },
+            '간편식': { color: '#F2A134', inactiveBg: '#FDF2E2', startTime: '07:00', endTime: '09:30' },
+            '중식': { color: '#6AB04C', inactiveBg: '#EDF6E9', startTime: '11:20', endTime: '14:00' },
+            '석식': { color: '#3498DB', inactiveBg: '#EBF3FA', startTime: '17:20', endTime: '19:20' },
+            '야식': { color: '#8E44AD', inactiveBg: '#F0ECF7', startTime: '18:00', endTime: '20:00' }
+        };
+        const MEAL_ORDER = ["조식", "간편식", "중식", "석식", "야식"];
+        
+        let allData = {}; 
+        let currentDate = new Date();
+        let activeTab = "중식";
+
+        function normalize(str) { return String(str).replace(/[^ㄱ-ㅎ가-힣a-zA-Z0-9]/g, ""); }
+
+        // 관리자 패널 열기/닫기 토글 함수
+        function toggleAdminPanel() {
+            const panel = document.getElementById('adminPanel');
+            panel.classList.toggle('open');
+        }
+
+        // [신규 로직] 관리자 모드에서 붙여넣은 CSV 데이터를 구글 앱스 스크립트로 POST 전송하는 함수
+        async function uploadCSV() {
+            const csvText = document.getElementById('csvInput').value.trim();
+            const uploadBtn = document.getElementById('uploadBtn');
+            
+            if (!csvText) {
+                alert("업로드할 CSV 데이터를 입력창에 붙여넣어 주세요.");
+                return;
+            }
+
+            if (!confirm("입력한 데이터로 구글 시트를 업데이트하시겠습니까?\n기존에 겹치는 날짜의 식단은 덮어씌워집니다.")) {
+                return;
+            }
+
+            try {
+                uploadBtn.disabled = true;
+                uploadBtn.innerText = "🔄 구글 시트 저장 및 데이터 동기화 중...";
+                uploadBtn.className = "w-full bg-slate-700 text-slate-400 text-xs font-black py-2.5 rounded-lg cursor-not-allowed";
+
+                // GAS 백엔드 서버로 POST 요청 (행 데이터 전송)
+                const response = await fetch(GAS_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain" }, // CORS 프리플라이트 우회를 위해 text/plain 처리
+                    body: JSON.stringify({ action: "update_meal_csv", data: csvText })
+                });
+
+                const result = await response.json();
+
+                if (result.status === "success") {
+                    alert("🎉 구글 시트 적재가 성공적으로 완료되었습니다!");
+                    document.getElementById('csvInput').value = ""; // 입력란 초기화
+                    toggleAdminPanel(); // 패널 닫기
+                    await loadData(); // 최신 업로드 데이터로 화면 갱신
+                } else {
+                    throw new Error(result.message || "서버 알 수 없는 오류");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("❌ 업로드 실패: 네트워크 연결 상태 또는 구글 앱스 스크립트(GAS) 수신 설정을 확인하세요.");
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.innerText = "구글 시트로 데이터 업로드 (정재 실행)";
+                uploadBtn.className = "w-full bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black py-2.5 rounded-lg shadow-md transition-colors active:scale-[0.99]";
+            }
+        }
+
+        // 오프라인 우선 데이터 로드 로직
+        async function loadData() {
+            const dot = document.getElementById('statusDot');
+            const txt = document.getElementById('statusText');
+            
+            const backup = localStorage.getItem("meal_db_cache");
+            if (backup) {
+                allData = JSON.parse(backup);
+                dot.className = "status-dot dot-sync";
+                txt.innerText = "LOCAL (OFFLINE)";
+                txt.className = "text-[10px] font-black text-amber-500 tracking-tight";
+                updateUI();
+            }
+
+            try {
+                const res = await fetch(GAS_URL + "?t=" + new Date().getTime());
+                const freshData = await res.json();
+                
+                allData = freshData;
+                localStorage.setItem("meal_db_cache", JSON.stringify(freshData));
+                
+                dot.className = "status-dot dot-online";
+                txt.innerText = "ONLINE (SYNCED)";
+                txt.className = "text-[10px] font-black text-emerald-500 tracking-tight";
+                
+                updateUI(); 
+            } catch (e) {
+                console.warn("네트워크 업데이트 실패, 로컬 데이터 유지");
+                if (!backup) {
+                    dot.className = "status-dot dot-offline";
+                    txt.innerText = "ERROR (NO DATA)";
+                    txt.className = "text-[10px] font-black text-red-500 tracking-tight";
+                }
+            }
+        }
+
+        function updateUI() {
+            const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, d = currentDate.getDate();
+            const weekIdx = currentDate.getDay();
+            const weekNames = ['일', '월', '화', '수', '목', '금', '토'];
+            
+            document.getElementById('dateDisplay').innerHTML = `${y}.${String(m).padStart(2,'0')}.${String(d).padStart(2,'0')} <span class="${weekIdx===0?'day-sun':(weekIdx===6?'day-sat':'')}">(${weekNames[weekIdx]})</span>`;
+            document.getElementById('hiddenDatePicker').value = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+
+            // 근무조 계산
+            const targetDate = new Date(currentDate); targetDate.setHours(0,0,0,0);
+            const baseDate = new Date(shiftConfig.baseDate); baseDate.setHours(0,0,0,0);
+            const diffDays = Math.floor((targetDate - baseDate) / 86400000);
+            const shift = shiftConfig.pattern[((diffDays % 3) + 3) % 3];
+            
+            const badge = document.getElementById('shiftBadge');
+            badge.innerText = `${shift.name}조 근무`;
+            badge.style.backgroundColor = shift.color;
+
+            // 탭 렌더링
+            const tabsContainer = document.getElementById('tabs-container');
+            tabsContainer.innerHTML = '';
+            MEAL_ORDER.forEach(meal => {
+                const isActive = meal === activeTab;
+                const meta = mealMeta[meal];
+                const btn = document.createElement('button');
+                btn.innerText = meal;
+                btn.className = `py-3.5 text-[11px] font-black rounded-t-2xl tab-transition`;
+                btn.style.backgroundColor = isActive ? meta.color : meta.inactiveBg;
+                btn.style.color = isActive ? 'white' : '#64748b';
+                btn.onclick = () => { activeTab = meal; updateUI(); };
+                tabsContainer.appendChild(btn);
+            });
+
+            // 데이터 매칭
+            const key = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const dayData = allData[key] || allData[`${y}-${m}-${d}`] || null;
+            let info = null;
+            if (dayData) {
+                for (const k in dayData) { if (normalize(k) === normalize(activeTab)) { info = dayData[k]; break; } }
+            }
+
+            // 카드 업데이트
+            const menuCard = document.getElementById('menu-card');
+            menuCard.style.borderColor = mealMeta[activeTab].color;
+            document.getElementById('main-menu').innerText = info?.menu || "식단 정보가 없습니다.";
+            document.getElementById('sub-menu').innerText = info?.side || "-";
+            document.getElementById('comment-text').innerText = info?.comment || "오늘도 즐거운 하루 되세요! 😊";
+
+            updateStatusMsg();
+        }
+
+        function updateStatusMsg() {
+            const now = new Date();
+            const isToday = currentDate.toDateString() === now.toDateString();
+            const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, d = currentDate.getDate();
+
+            if (!isToday) {
+                document.getElementById('timer-text').innerText = `${m}월 ${d}일의 ${activeTab} 식단입니다.`;
+                document.getElementById('timer-icon').innerText = "📅";
+                return;
+            }
+
+            const meta = mealMeta[activeTab];
+            const [sH, sM] = meta.startTime.split(':').map(Number);
+            const [eH, eM] = meta.endTime.split(':').map(Number);
+            const start = new Date(); start.setHours(sH, sM, 0);
+            const end = new Date(); end.setHours(eH, eM, 0);
+
+            let msg = ""; let icon = "";
+
+            if (now < start) {
+                const diffMin = Math.ceil((start - now) / 60000);
+                const diffHr = Math.floor(diffMin / 60);
+                msg = `${activeTab} 제공시간까지 ${diffHr > 0 ? diffHr + '시간 ' : ''}${diffMin % 60}분 남았습니다.`;
+                icon = "⏳";
+            } else if (now <= end) {
+                const diffMin = Math.floor((end - now) / 60000);
+                msg = `${activeTab} 배식 중입니다! (남은 시간: ${diffMin}분)`;
+                icon = "🍽️";
+            } else {
+                msg = `${activeTab} 배식이 종료되었습니다.`;
+                icon = "✅";
+            }
+
+            document.getElementById('timer-text').innerText = msg;
+            document.getElementById('timer-icon').innerText = icon;
+        }
+
+        function changeDate(n) { currentDate.setDate(currentDate.getDate() + n); updateUI(); }
+        function goToday() { currentDate = new Date(); activeTab = autoMeal(); updateUI(); }
+        function syncDateInput(input) { if (input.value) { currentDate = new Date(input.value); updateUI(); } }
+        function autoMeal() { const h = new Date().getHours(); if (h < 9) return "조식"; if (h < 14) return "중식"; return "석식"; }
+
+        window.onload = () => { activeTab = autoMeal(); loadData(); };
+        setInterval(updateStatusMsg, 60000);
+    </script>
+</body>
+</html>
