@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>시설 순찰 보고 및 매뉴얼</title>
+    <style>
+        body { font-family: sans-serif; padding: 10px; font-size: 15px; line-height: 1.5; }
+        .tabs { display: flex; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 12px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+        .tab-btn.active { background: #333; color: #fff; }
+        .section { display: none; }
+        .section.active { display: block; }
+        .group-title { font-weight: bold; margin-top: 20px; padding-bottom: 5px; border-bottom: 2px solid #333; }
+        .item { padding: 10px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        textarea { width: 100%; height: 80px; margin-top: 20px; box-sizing: border-box; }
+        .action-btn { width: 100%; padding: 15px; background: #28a745; color: white; border: none; font-size: 16px; margin-top: 10px; cursor: pointer; }
+        
+        .manual-box { padding: 15px; background: #f9f9f9; border-radius: 5px; }
+        .manual-box ul { padding-left: 20px; }
+
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        #modal-content { background: #fff; width: 90%; max-width: 450px; margin: 50px auto; padding: 20px; border-radius: 8px; }
+        #report-edit { width: 100%; height: 300px; margin: 10px 0; box-sizing: border-box; padding: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="tabs">
+    <button class="tab-btn active" onclick="show('hall', this)">성의회관</button>
+    <button class="tab-btn" onclick="show('isan', this)">의산연</button>
+    <button class="tab-btn" onclick="show('manual', this)">업무매뉴얼</button>
+</div>
+
+<div id="hall" class="section active">
+    <div class="group-title">배수상태 점검 (불량 시 체크)</div>
+    <div class="item">13F 중앙정원 <input type="checkbox" class="drain" value="13F 중앙정원"></div>
+    <div class="item">12F 중앙정원 <input type="checkbox" class="drain" value="12F 중앙정원"></div>
+    <div class="item">6F 테라스 <input type="checkbox" class="drain" value="6F 테라스"></div>
+    <div class="item">4F 테라스 <input type="checkbox" class="drain" value="4F 테라스"></div>
+    <div class="group-title">누수상태 점검 (누수 시 체크)</div>
+    <div class="item">11F 도서관 중앙천장 <input type="checkbox" class="leak" value="11F 도서관 중앙천장"></div>
+    <div class="item">9F 교수열람실 완강기 옆 <input type="checkbox" class="leak" value="9F 교수열람실 완강기 옆"></div>
+    <div class="item">8F 창가 <input type="checkbox" class="leak" value="8F 창가"></div>
+    <div class="item">8F 830호 <input type="checkbox" class="leak" value="8F 830호"></div>
+    <div class="item">4F 421호 <input type="checkbox" class="leak" value="4F 421호"></div>
+    <div class="item">4F 422호 <input type="checkbox" class="leak" value="4F 422호"></div>
+    <div class="item">2F 연결통로(시점) <input type="checkbox" class="leak" value="2F 연결통로(시점)"></div>
+    <div class="item">2F 연결통로(종점) <input type="checkbox" class="leak" value="2F 연결통로(종점)"></div>
+    <div class="item">B2F 주차 램프 <input type="checkbox" class="leak" value="B2F 주차 램프"></div>
+</div>
+
+<div id="isan" class="section">
+    <div class="group-title">배수상태 점검 (불량 시 체크)</div>
+    <div class="item">6F 옥상 <input type="checkbox" class="drain" value="6F 옥상"></div>
+    <div class="item">4F 옥상 <input type="checkbox" class="drain" value="4F 옥상"></div>
+    <div class="item">1F 보안탈의실 <input type="checkbox" class="drain" value="1F 보안탈의실"></div>
+    <div class="group-title">누수상태 점검 (누수 시 체크)</div>
+    <div class="item">9F 옥상 <input type="checkbox" class="leak" value="9F 옥상"></div>
+    <div class="item">7F 제연창 <input type="checkbox" class="leak" value="7F 제연창"></div>
+    <div class="item">6F 제연창 <input type="checkbox" class="leak" value="6F 제연창"></div>
+    <div class="item">5F 5017호 <input type="checkbox" class="leak" value="5F 5017호"></div>
+    <div class="item">5F 5006호 <input type="checkbox" class="leak" value="5F 5006호"></div>
+    <div class="item">4F 4017호 <input type="checkbox" class="leak" value="4F 4017호"></div>
+    <div class="item">4F 4019호 <input type="checkbox" class="leak" value="4F 4019호"></div>
+    <div class="item">4F 4006호 <input type="checkbox" class="leak" value="4F 4006호"></div>
+    <div class="item">2F 대강당 복층 동측 벽면 <input type="checkbox" class="leak" value="2F 대강당 복층 동측 벽면"></div>
+    <div class="item">B1 대학본관 연결통로(시점) <input type="checkbox" class="leak" value="B1 대학본관 연결통로(시점)"></div>
+    <div class="item">B1 성의회관 연결통로(시점) <input type="checkbox" class="leak" value="B1 성의회관 연결통로(시점)"></div>
+</div>
+
+<div id="manual" class="section">
+    <div class="manual-box">
+        <h3>재해사고 예방점검 및 조치활동 매뉴얼</h3>
+        <p><strong>■ 장마/태풍 관련 예방점검·순찰 활동</strong></p>
+        <p><strong>[집중순찰대상]</strong></p>
+        <ul>
+            <li>성의회관: 13F/12F 중앙정원, 4F 테라스 배수로, 9F 교수열람실 완강기 옆, 8F 각 호실 창가주변, 지하주차장 주변</li>
+            <li>의산연: 지하1F 의공학교실 앞, 회관방향 지하통로 앞, 대강당 2F 통로 벽면, 보안탈의실 앞 배수로</li>
+        </ul>
+        <p><strong>■ 조치활동</strong></p>
+        <ul>
+            <li>누수 창/바닥: 걸레 및 신문지 활용 흡수 활동</li>
+            <li>폭우 시: 지하주차장 사낭(모래주머니) 적재, 입차통제, 지상주차장 주차안내, 배수로 빗물받이 제거(낙엽 등 이물질 제거)</li>
+            <li>기타: B1 사낭 83EA 비치 중, 보안탈의실 앞 배수로 거름망 제거</li>
+        </ul>
+    </div>
+</div>
+
+<div id="report-controls">
+    <textarea id="memo" placeholder="기타 특이사항"></textarea>
+    <button class="action-btn" onclick="openReportModal()">보고서 작성</button>
+</div>
+
+<div id="modal">
+    <div id="modal-content">
+        <h3>보고서 내용 확인 및 수정</h3>
+        <textarea id="report-edit"></textarea>
+        <button class="action-btn" onclick="copyAndReset()">복사 후 초기화</button>
+    </div>
+</div>
+
+<script>
+    function show(id, btn) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        if(btn) btn.classList.add('active');
+        document.getElementById('report-controls').style.display = (id === 'manual') ? 'none' : 'block';
+    }
+
+    function openReportModal() {
+        const activeSection = document.querySelector('.section.active');
+        const name = (activeSection.id === 'hall') ? '성의회관' : '의산연';
+        
+        let msg = `${name} 순찰 보고\n\n[배수상태 점검결과]\n`;
+        const checkedDrains = activeSection.querySelectorAll('.drain:checked');
+        msg += checkedDrains.length > 0 ? Array.from(checkedDrains).map((i, idx) => `${idx + 1}. ${i.value}: 배수 불량`).join('\n') + '\n' : '이상 없음\n';
+
+        msg += `\n[누수상태 점검결과]\n`;
+        const checkedLeaks = activeSection.querySelectorAll('.leak:checked');
+        
+        if (checkedLeaks.length > 0) {
+            msg += Array.from(checkedLeaks).map((i, idx) => `${idx + 1}. ${i.value}`).join('\n') + '\n\n위 장소에서 누수가 확인되었습니다.';
+        } else {
+            msg += '누수구역 전체에서 누수가 확인되지 않습니다.';
+        }
+        
+        const memo = document.getElementById('memo').value;
+        if(memo) msg += `\n\n기타: ${memo}`;
+
+        document.getElementById('report-edit').value = msg;
+        document.getElementById('modal').style.display = 'block';
+    }
+
+    function copyAndReset() {
+        const text = document.getElementById('report-edit').value;
+        navigator.clipboard.writeText(text).then(() => {
+            alert("복사되었습니다. 작성 화면을 초기화합니다.");
+            document.getElementById('modal').style.display = 'none';
+            document.querySelectorAll('input[type="checkbox"]').forEach(i => i.checked = false);
+            document.getElementById('memo').value = '';
+        });
+    }
+</script>
+</body>
+</html>
