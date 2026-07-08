@@ -70,7 +70,7 @@
         <!-- 로딩바 -->
         <div id="loading" class="hidden text-center my-8 text-gray-500 font-medium">
             <div class="animate-spin inline-block w-6 h-6 border-[3px] border-current border-t-transparent text-blue-600 rounded-full mb-2"></div>
-            <div>데이터를 가져오는 중입니다...</div>
+            <div>서버에서 실시간 데이터를 가져오는 중입니다...</div>
         </div>
 
         <!-- 결과 출력 영역 -->
@@ -116,7 +116,6 @@
             const diffTime = targetDate - baseDate;
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
             const shifts = ['A', 'B', 'C'];
-            // 음수 처리 보정
             const idx = ((diffDays % 3) + 3) % 3;
             return `${shifts[idx]}조`;
         }
@@ -127,10 +126,88 @@
             return String(codes).split(",").map(c => days[c.trim()] || "").filter(Boolean).join(",");
         }
 
-        // 핵심 데이터 패치 및 정제 (Python의 get_data 로직 변환)
-        fetchAndProcessData()
+        // 고속 CORS 프록시를 적용한 실시간 크롤링 로직
+        async function fetchAndProcessData() {
+            const sDateStr = document.getElementById('startDate').value;
+            const eDateStr = document.getElementById('endDate').value;
+            if(!sDateStr || !eDateStr) return alert("시작일과 종료일을 선택해주세요.");
 
-        // 화면 렌더링 로직 (Python의 화면 출력부 변환)
+            const loading = document.getElementById('loading');
+            const resultContainer = document.getElementById('resultContainer');
+            loading.classList.remove('hidden');
+            resultContainer.innerHTML = "";
+
+            const targetUrl = `https://songeui.catholic.ac.kr/ko/service/application-for-rental_calendar.do?mode=getReservedData&start=${sDateStr}&end=${eDateStr}`;
+            
+            // 공공 우회용 초고속 CORS 프록시 서버 활용
+            const proxyUrl = `https://cors-anywhere.azm.workers.dev/${targetUrl}`;
+            
+            try {
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error("대학 서버의 응답이 원활하지 않습니다.");
+                
+                const json = await response.json();
+                const raw = json.res || [];
+                
+                const rows = [];
+                const startLimit = new Date(sDateStr + "T00:00:00");
+                const endLimit = new Date(eDateStr + "T23:59:59");
+
+                raw.forEach(item => {
+                    if (!item.startDt) return;
+                    const sDt = new Date(item.startDt + "T00:00:00");
+                    const eDt = new Date(item.endDt + "T23:59:59");
+                    const isPeriod = item.startDt !== item.endDt;
+                    const pRng = `${item.startDt}~${item.endDt}`;
+                    const dNms = getWeekdayNamesFromCodes(item.allowDay);
+                    
+                    const allowed = item.allowDay ? String(item.allowDay).split(",").map(d => d.trim()).filter(d => !isNaN(d)) : [];
+
+                    let curr = new Date(sDt);
+                    while (curr <= eDt) {
+                        if (curr >= startLimit && curr <= endLimit) {
+                            let dayNo = curr.getDay(); 
+                            if(dayNo === 0) dayNo = 7; // 일요일 보정
+
+                            if (allowed.length === 0 || allowed.includes(String(dayNo))) {
+                                const fullDate = curr.toISOString().split('T')[0];
+                                rows.push({
+                                    full_date: fullDate,
+                                    is_period: isPeriod,
+                                    period_range: pRng,
+                                    allowed_days: dNms,
+                                    건물명: String(item.buNm || '').trim(),
+                                    장소: item.placeNm || '-',
+                                    시간: `${item.startTime || ''}~${item.endTime || ''}`,
+                                    행사명: item.eventNm || '-',
+                                    부서: item.mgDeptNm || '-',
+                                    인원: String(item.peopleCount || '0'),
+                                    상태: item.status === 'Y' ? '확정' : '대기'
+                                });
+                            }
+                        }
+                        curr.setDate(curr.getDate() + 1);
+                    }
+                });
+
+                // 중복 데이터 정제
+                const seen = new Set();
+                fetchedData = rows.filter(item => {
+                    const k = item.full_date + item.장소 + item.시간 + item.행사명;
+                    if(seen.has(k)) return false;
+                    seen.add(k);
+                    return true;
+                });
+
+                renderData();
+            } catch (error) {
+                console.error(error);
+                resultContainer.innerHTML = `<div class="text-red-500 text-center font-bold p-4 bg-red-50 rounded border border-red-200">데이터 로드에 실패했습니다. 잠시 후 다시 조회 버튼을 눌러주세요.<br><span class="text-xs font-normal text-gray-500">오류 메시지: ${error.message}</span></div>`;
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
         function renderData() {
             const resultContainer = document.getElementById('resultContainer');
             if (fetchedData.length === 0) {
@@ -141,15 +218,13 @@
             const sDateStr = document.getElementById('startDate').value;
             const eDateStr = document.getElementById('endDate').value;
             const viewMode = document.querySelector('input[name="viewMode"]:checked').value;
-            
-            // 선택된 건물 필터 배열
             const selectedBuildings = Array.from(document.querySelectorAll('input[name="buSelect"]:checked')).map(el => el.value.replace(/\s+/g, ''));
 
             let html = "";
-            let curr = new Date(sDateStr);
-            const endLimit = new Date(eDateStr);
+            let start = new Date(sDateStr + "T00:00:00");
+            const end = new Date(eDateStr + "T00:00:00");
 
-            while (curr <= endLimit) {
+            for (let curr = new Date(start); curr <= end; curr.setDate(curr.getDate() + 1)) {
                 const dStr = curr.toISOString().split('T')[0];
                 const dayRows = fetchedData.filter(r => r.full_date === dStr);
 
@@ -157,14 +232,12 @@
                     let dateBarAdded = false;
                     let dayHtml = "";
 
-                    // 날짜 내 건물 순회
                     buList.forEach(bu => {
                         if (!selectedBuildings.includes(bu.replace(/\s+/g, ''))) return;
 
                         const buRows = dayRows.filter(r => r.건물명.replace(/\s+/g, '') === bu.replace(/\s+/g, ''));
                         if (buRows.length === 0) return;
 
-                        // 시간 순 정렬
                         buRows.sort((a,b) => a.시간.localeCompare(b.시간));
 
                         if (!dateBarAdded) {
@@ -194,13 +267,11 @@
 
                     html += dayHtml;
                 }
-                curr.setDate(curr.getDate() + 1);
             }
 
             resultContainer.innerHTML = html || '<div class="bg-yellow-50 text-yellow-700 p-4 rounded text-center text-sm shadow-sm">선택한 건물에 매칭되는 데이터가 없습니다.</div>';
         }
 
-        // CSV 백업 다운로드 기능 (구글 시트 업로드 대용)
         function downloadCSV() {
             if (fetchedData.length === 0) return alert("다운로드할 데이터가 없습니다.");
             
