@@ -87,10 +87,12 @@
                     <h1 class="text-2xl font-black tracking-tighter">성의교정 통합조회</h1>
                     <div id="datePickerTrigger" class="custom-date-trigger">날짜 선택</div>
                 </div>
+                 <div>
                   <!-- 나침반 버튼 추가 -->
   <button id="sitemapBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; padding: 4px;">
     🧭
   </button>
+                      </div>
                 <div id="shift-badge" onclick="navigateTo('team.html')" class="px-4 py-2 rounded-xl font-black text-[13px] shadow-sm cursor-pointer active:scale-95 transition-transform">--조 근무</div>
             </div>
         </div>
@@ -384,6 +386,29 @@
             });
             loadFirebaseData();
         };
+
+        document.addEventListener("DOMContentLoaded", function() {
+  const modal = document.getElementById("sitemapModal");
+  const btn = document.getElementById("sitemapBtn");
+  const closeBtn = document.querySelector(".close-btn");
+
+  // 나침반 클릭 시 모달 열기 (Flex로 중앙 정렬 표시)
+  btn.onclick = function() {
+    modal.style.display = "flex";
+  }
+
+  // X 버튼 클릭 시 모달 닫기
+  closeBtn.onclick = function() {
+    modal.style.display = "none";
+  }
+
+  // 모달 바깥 어두운 배경 클릭 시 닫기
+  window.onclick = function(event) {
+    if (event.target == modal) {
+      modal.style.display = "none";
+    }
+  }
+});
     </script>
 </body>
 </html>
