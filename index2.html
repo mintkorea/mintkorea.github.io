@@ -3,197 +3,305 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sung-eui Workplace Hub</title>
+    <title>Workplace Hub</title>
     <style>
-        /* 기본 스타일 및 다크모드 기반 테마 */
+        /* [기본 테마 - 야간/다크모드 및 모바일 최적화 바디] */
         :root {
             --bg-color: #121212;
-            --sidebar-bg: #1e1e1e;
-            --text-color: #e0e0e0;
-            --accent-color: #0d6efd;
-            --hover-bg: #2d2d2d;
-            --border-color: #333;
+            --card-bg: #1e1e1e;
+            --text-main: #e0e0e0;
+            --text-muted: #aaa;
+            --accent-blue: #0d6efd;
+            --border-dark: #333;
         }
 
         body {
             margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 0;
             background-color: var(--bg-color);
-            color: var(--text-color);
-            display: flex;
-            min-height: 100vh;
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
-        /* 반응형 사이드바 레이아웃 */
-        .sidebar {
-            width: 260px;
-            background-color: var(--sidebar-bg);
-            border-right: 1px solid var(--border-color);
+        /* -----------------------------------------
+           1. 상단 헤더 및 나침반 배치 영역
+        ----------------------------------------- */
+        .top-header {
+            background-color: var(--card-bg);
+            padding: 15px 20px;
             display: flex;
-            flex-direction: column;
-            padding: 20px 10px;
-            box-sizing: border-box;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-dark);
         }
 
-        .sidebar h2 {
+        .logo-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        /* 근무조와 나침반 정렬 */
+        .shift-status-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background-color: #2a2a2a;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        /* 🧭 나침반 사이트맵 트리거 버튼 */
+        .sitemap-trigger {
+            cursor: pointer;
             font-size: 1.2rem;
-            margin-left: 10px;
-            margin-bottom: 20px;
+            display: inline-block;
+            transition: transform 0.2s ease-in-out;
+            user-select: none;
+        }
+        
+        .sitemap-trigger:hover {
+            transform: rotate(30deg) scale(1.2); /* 호버 시 위트있게 살짝 회전 및 확대 */
+        }
+
+
+        /* -----------------------------------------
+           2. 사이트맵 모달 팝업 CSS
+        ----------------------------------------- */
+        /* 모달 전체 배경 오버레이 */
+        .modal-overlay {
+            display: none; /* 초기 상태 숨김 (JS로 제어) */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75); /* 뒷배경 어둡게 차단 */
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 모달 윈도우 본체 */
+        .modal-window {
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            width: 90%;
+            max-width: 550px;
+            border-radius: 14px;
+            border: 1px solid var(--border-dark);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            animation: modalSlideUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 모달 상단 헤더 */
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-dark);
+            background-color: #252525;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.15rem;
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        /* 사이트맵 메뉴 스타일 */
-        .sitemap-menu {
+        .modal-close-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.6rem;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .modal-close-btn:hover {
+            color: #fff;
+        }
+
+        /* 모달 본문 내비게이션 구조 */
+        .modal-body {
+            padding: 20px;
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+
+        .sitemap-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        .sitemap-group h4 {
+            margin: 0 0 10px 0;
+            color: var(--accent-blue);
+            font-size: 1rem;
+            border-bottom: 1px solid #2d2d2d;
+            padding-bottom: 4px;
+        }
+
+        .sitemap-list {
             list-style: none;
             padding: 0;
             margin: 0;
         }
 
-        .menu-item {
-            padding: 12px 15px;
-            margin-bottom: 5px;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            font-weight: 500;
-            transition: background 0.2s;
+        .sitemap-list li {
+            margin-bottom: 10px;
         }
 
-        .menu-item:hover {
-            background-color: var(--hover-bg);
-        }
-
-        .menu-item.active {
-            background-color: var(--accent-color);
-            color: #fff;
-        }
-
-        /* 메인 콘텐츠 영역 */
-        .main-content {
-            flex: 1;
-            padding: 30px;
-            box-sizing: border-box;
-        }
-
-        .page-panel {
-            display: none;
-        }
-
-        .page-panel.active {
-            display: block;
-        }
-
-        /* 서브 탭 스타일 (페이지 내부 상세 메뉴) */
-        .sub-tabs {
-            display: flex;
-            gap: 10px;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
-
-        .tab-btn {
-            background: none;
-            border: none;
-            color: #888;
-            padding: 8px 16px;
-            cursor: pointer;
+        /* 메뉴 링크 (기존 로직 함수 연결용 a 태그) */
+        .sitemap-list li a {
+            color: #ccc;
+            text-decoration: none;
             font-size: 0.95rem;
+            display: block;
+            padding: 4px 0;
+            transition: color 0.15s;
         }
 
-        .tab-btn.active {
-            color: var(--text-color);
-            border-bottom: 2px solid var(--accent-color);
-            font-weight: bold;
+        .sitemap-list li a:hover {
+            color: #fff;
+            text-decoration: underline;
         }
 
-        /* 모바일 대응 스크립트용 간단 대책 */
-        @media (max-width: 768px) {
-            body {
-                flex-direction: column;
+        /* 팝업 등장 애니메이션 */
+        @keyframes modalSlideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 모바일 화면 대응 멀티플 열 정렬 (태블릿 이상 가로 배치) */
+        @media (min-width: 500px) {
+            .sitemap-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                column-gap: 20px;
             }
-            .sidebar {
-                width: 100%;
-                border-right: none;
-                border-bottom: 1px solid var(--border-color);
+            /* 소식 섹션은 하단 전체 너비로 배치 */
+            .sitemap-group:nth-child(3) {
+                grid-column: span 2;
             }
+        }
+
+        /* -----------------------------------------
+           3. 임시 메인 본문 콘텐츠 영역
+        ----------------------------------------- */
+        .main-container {
+            padding: 30px 20px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
-    <!-- 왼쪽 사이드바: 🧭 사이트맵 메뉴 -->
-    <nav class="sidebar">
-        <h2>🧭 사이트맵</h2>
-        <ul class="sitemap-menu">
-            <li class="menu-item active" onclick="switchPage('facility-page', this)">🏢 시설 및 대관 관리</li>
-            <li class="menu-item" onclick="switchPage('shift-page', this)">🧭 근무 일정 관리</li>
-            <li class="menu-item" onclick="switchPage('campus-page', this)">📢 캠퍼스 소식</li>
-        </ul>
-    </nav>
-
-    <!-- 오른쪽 영역: 선택된 메인 콘텐츠 화면 (기존 소스 연동용) -->
-    <main class="main-content">
+    <!-- [상단 헤더 바] -->
+    <header class="top-header">
+        <h1 class="logo-title">Workplace Hub</h1>
         
-        <!-- 1. 시설 및 대관 관리 -->
-        <section id="facility-page" class="page-panel active">
-            <h2>🏢 시설 및 대관 관리</h2>
-            <div class="sub-tabs">
-                <button class="tab-btn active">📱 모바일 대관 현황</button>
-                <button class="tab-btn">💻 PC 대관 예약</button>
-            </div>
-            <div class="content-body">
-                <!-- 기존 모바일/PC 대관 관련 iframe 이나 기능 코드가 들어갈 자리 -->
-                <p>여기에 기존 대관 관리 시스템 내용을 넣어주세요.</p>
-            </div>
-        </section>
+        <!-- 기존 근무조 정보와 나침반 결합 배치 -->
+        <div class="shift-status-container">
+            <span id="shiftBadge">근무조: C조</span>
+            <!-- 나침반 아이콘 클릭 시 openSitemap() 스크립트 가동 -->
+            <span class="sitemap-trigger" onclick="openSitemap()" title="전체 사이트맵 열기">🧭</span>
+        </div>
+    </header>
 
-        <!-- 2. 근무 일정 관리 -->
-        <section id="shift-page" class="page-panel">
-            <h2>🧭 근무 일정 관리</h2>
-            <div class="sub-tabs">
-                <button class="tab-btn active">📅 실시간 근무조 조회</button>
-                <button class="tab-btn">🧑‍✈️ 근무자 프로필/대차</button>
-            </div>
-            <div class="content-body">
-                <!-- 기존 C조 순환 배정 및 프로필 코드가 들어갈 자리 -->
-                <p>여기에 기존 근무조 및 순찰 관리 내용을 넣어주세요.</p>
-            </div>
-        </section>
-
-        <!-- 3. 캠퍼스 소식 -->
-        <section id="campus-page" class="page-panel">
-            <h2>📢 캠퍼스 소식</h2>
-            <div class="sub-tabs">
-                <button class="tab-btn active">📋 내부 공지사항</button>
-                <button class="tab-btn">🍔 주간 식단표</button>
-                <button class="tab-btn">📞 행정/보안 연락망</button>
-            </div>
-            <div class="content-body">
-                <!-- 기존 GAS 공지사항 연동 및 식단/연락망 코드가 들어갈 자리 -->
-                <p>여기에 기존 공지사항, 식단표 스캔, 연락망 내용을 넣어주세요.</p>
-            </div>
-        </section>
-
+    <!-- [메인 본문] (기존 소스 콘텐츠 유지 구역) -->
+    <main class="main-container">
+        <h2>캠퍼스 종합 관리 시스템 메인 화면</h2>
+        <p style="color: var(--text-muted);">우측 상단 근무조 옆 🧭 아이콘을 누르면 모달 사이트맵이 나타납니다.</p>
     </main>
 
-    <!-- 페이지 전환을 제어하는 자바스크립트 -->
+
+    <!-- [📱 전체 사이트맵 모달 레이어] -->
+    <div id="sitemapModal" class="modal-overlay" onclick="closeSitemapOutside(event)">
+        <div class="modal-window">
+            
+            <div class="modal-header">
+                <h3>🧭 전체 사이트맵</h3>
+                <button class="modal-close-btn" onclick="closeSitemap()">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="sitemap-grid">
+                    
+                    <!-- 그룹 1: 시설/대관 -->
+                    <div class="sitemap-group">
+                        <h4>🏢 시설 및 대관 관리</h4>
+                        <ul class="sitemap-list">
+                            <!-- href 내부나 onclick에 기존 페이지 전환 함수를 매핑하면 바로 연동됩니다 -->
+                            <li><a href="#mobile-rental" onclick="navigateToPage('rental-m')">📱 모바일 대관 현황 조회</a></li>
+                            <li><a href="#pc-rental" onclick="navigateToPage('rental-pc')">💻 PC 대관 예약 시스템</a></li>
+                        </ul>
+                    </div>
+
+                    <!-- 그룹 2: 근무 일정 -->
+                    <div class="sitemap-group">
+                        <h4>🧭 근무 일정 관리</h4>
+                        <ul class="sitemap-list">
+                            <li><a href="#shift-live" onclick="navigateToPage('shift-view')">📅 실시간 근무조 조회</a></li>
+                            <li><a href="#shift-profile" onclick="navigateToPage('profile')">🧑‍✈️ 근무자 프로필 / 대차</a></li>
+                        </ul>
+                    </div>
+
+                    <!-- 그룹 3: 캠퍼스 소식 (가로 병합 레이아웃) -->
+                    <div class="sitemap-group">
+                        <h4>📢 캠퍼스 소식</h4>
+                        <ul class="sitemap-list">
+                            <li><a href="#notice-board" onclick="navigateToPage('notices')">📋 내부 공지사항 관리</a></li>
+                            <li><a href="#menu-scanner" onclick="navigateToPage('cafeteria')">🍔 주간 식단표 (이미지 스캔)</a></li>
+                            <li><a href="#contact-list" onclick="navigateToPage('contacts')">📞 행정 및 보안 비상 연락망</a></li>
+                        </ul>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- [자바스크립트 모달 제어 함수] -->
     <script>
-        function switchPage(pageId, element) {
-            // 1. 모든 메인 콘텐츠 패널 숨기기
-            const panels = document.querySelectorAll('.page-panel');
-            panels.forEach(panel => panel.classList.remove('active'));
+        // 1. 사이트맵 모달 활성화 (Flex 정렬로 화면 정중앙 팝업)
+        function openSitemap() {
+            const modal = document.getElementById('sitemapModal');
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // 뒷 배경 스크롤 차단
+        }
 
-            // 2. 모든 사이드바 메뉴 활성화 클래스 제거
-            const menuItems = document.querySelectorAll('.menu-item');
-            menuItems.forEach(item => item.classList.remove('active'));
+        // 2. 사이트맵 모달 비활성화
+        function closeSitemap() {
+            const modal = document.getElementById('sitemapModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = ''; // 스크롤 복구
+        }
 
-            // 3. 선택한 페이지와 메뉴 항목 활성화
-            document.getElementById(pageId).classList.add('active');
-            element.classList.add('active');
+        // 3. 모달 외부 영역(어두운 투명 여백) 클릭 시 자연스럽게 닫히는 이벤트
+        function closeSitemapOutside(event) {
+            const modal = document.getElementById('sitemapModal');
+            if (event.target === modal) {
+                closeSitemap();
+            }
+        }
+
+        // 4. 사이트맵 메뉴 선택 시 작동할 페이지네이션 연동 함수 인터페이스
+        function navigateToPage(pageTarget) {
+            // 모달 안의 메뉴를 선택하면 먼저 모달 창을 닫아줍니다.
+            closeSitemap();
+            
+            // 여기에 기존 소스코드의 페이지 전환 함수(예: showSection(pageTarget))를 호출해 연동하세요.
+            console.log("이동 타겟 페이지:", pageTarget); 
         }
     </script>
 </body>
