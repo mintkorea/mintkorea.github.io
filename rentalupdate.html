@@ -140,7 +140,7 @@
             const targetUrl = `https://songeui.catholic.ac.kr/ko/service/application-for-rental_calendar.do?mode=getReservedData&start=${sDateStr}&end=${eDateStr}`;
             
             // 공공 우회용 초고속 CORS 프록시 서버 활용
-            const proxyUrl = `https://cors-anywhere.azm.workers.dev/${targetUrl}`;
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
             
             try {
                 const response = await fetch(proxyUrl);
