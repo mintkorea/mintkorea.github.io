@@ -11,7 +11,11 @@ from oauth2client.service_account import ServiceAccountCredentials
 # 1. 페이지 설정 및 디자인
 st.set_page_config(page_title="성의교정 대관 관리 시스템", page_icon="🏫", layout="wide")
 KST = pytz.timezone('Asia/Seoul')
+
+# [수정] 자동화용 핵심 설정 변수
 now_today = datetime.now(KST).date()
+auto_end_date = now_today + timedelta(days=14) # 오늘부터 2주(14일) 후
+bu_list = ["성의회관", "의생명산업연구원", "옴니버스 파크", "옴니버스파크 의과대학", "옴니버스파크 간호대학", "대학본관", "서울성모별관"]
 
 # 디자인 CSS
 st.markdown("""
@@ -47,35 +51,29 @@ def get_shift(target_date):
     diff = (target_date - base_date).days
     return f"{['A', 'B', 'C'][diff % 3]}조"
 
-# --- 구글 시트 자동화 로직 (운영용 시트 직접 누적) ---
+# --- 구글 시트 자동화 로직 ---
 def update_google_sheet(df):
     if df.empty: return False
     try:
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        # Secrets 환경설정 사용
         creds_info = st.secrets["gcp_service_account"]
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_info, scope)
         client = gspread.authorize(creds)
         
-        # 시트 열기
         SHEET_KEY = "13P49JFl63lgA7psgGr8QYgutKwcPMIyq0_jjUcc8Fa0"
         sh = client.open_by_key(SHEET_KEY)
         sheet = sh.worksheet("운영용") 
 
-        # 1. 기존 데이터 읽기 (중복 체크용)
         existing_data = sheet.get_all_values()
         if len(existing_data) > 1:
             existing_df = pd.DataFrame(existing_data[1:], columns=existing_data[0])
-            # 중복 판단 기준: 날짜 + 장소 + 시간 + 행사명
             existing_df['unique_key'] = existing_df['날짜'] + existing_df['장소'] + existing_df['시간'] + existing_df['행사명']
             existing_keys = set(existing_df['unique_key'].tolist())
         else:
             existing_keys = set()
-            # 헤더가 없으면 생성
             header = ['날짜', '요일', '근무조', '유형', '대관기간', '해당요일', '건물명', '장소', '시간', '행사명', '부서', '인원', '상태']
             sheet.append_row(header)
 
-        # 2. 신규 데이터 중복 제외 필터링
         new_rows = []
         for _, r in df.iterrows():
             t_dt = datetime.strptime(r['full_date'], '%Y-%m-%d').date()
@@ -90,28 +88,26 @@ def update_google_sheet(df):
                 ]
                 new_rows.append(row)
 
-        # 3. 신규 건만 시트 하단에 추가
         if new_rows:
             sheet.append_rows(new_rows)
-            st.success(f"✅ 새롭게 예약된 {len(new_rows)}건을 운영용 시트에 추가했습니다!")
+            st.success(f"✅ 백그라운드 자동화: 새롭게 예약된 {len(new_rows)}건을 운영용 시트에 누적 추가했습니다!")
         else:
-            st.info("ℹ️ 이미 모든 데이터가 시트에 반영되어 있습니다.")
+            st.info("ℹ️ 백그라운드 자동화: 변동된 신규 대관 데이터가 없습니다.")
 
-        # 4. 최종 동기화 시간 기록 (R1 셀)
         sync_time = datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S')
-        sheet.update('R1', [[f"최종 동기화: {sync_time}"]])
+        sheet.update('R1', [[f"최종 자동 동기화: {sync_time}"]])
         return True
     except Exception as e:
         st.error(f"시트 연동 오류: {e}")
         return False
 
-# --- 데이터 크롤링 ---
-@st.cache_data(ttl=300)
+# --- 데이터 크롤링 (TTL을 1분으로 축소하여 실시간 스케줄링에 최적화) ---
+@st.cache_data(ttl=60)
 def get_data(start_date, end_date):
     url = "https://songeui.catholic.ac.kr/ko/service/application-for-rental_calendar.do"
     params = {"mode": "getReservedData", "start": start_date.isoformat(), "end": end_date.isoformat()}
     try:
-        res = requests.get(url, params=params, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+        res = requests.get(url, params=params, headers={"User-Agent": "Mozilla/5.0"}, timeout=15)
         raw, rows = res.json().get('res', []), []
         for item in raw:
             if not item.get('startDt'): continue
@@ -141,33 +137,42 @@ def get_data(start_date, end_date):
         return pd.DataFrame(rows).drop_duplicates() if rows else pd.DataFrame()
     except: return pd.DataFrame()
 
-# --- 메인 화면 ---
+# --- 메인 실행 흐름 ---
 st.markdown('<div class="main-title">🏫 성의교정 대관 현황 자동화 시스템</div>', unsafe_allow_html=True)
 
-with st.expander("⚙️ 데이터 동기화 및 조회 설정", expanded=True):
+# [수정] 2주치 전체 건물 데이터를 백그라운드에서 상시 자동 로드 및 중복제거 필터링
+df = get_data(now_today, auto_end_date)
+
+# [수정] 스케줄러(Github Actions / 크론)가 페이지를 접속하자마자 사람 손을 거치지 않고 "자동 동기화" 실행
+if not df.empty:
+    update_google_sheet(df)
+
+# 수동 조회 및 대시보드 확인용 UI (필요할 때 브라우저로 접속해서 보는 용도)
+with st.expander("⚙️ 사용자 수동 조회 및 필터 설정", expanded=False):
     c1, c2, c3 = st.columns([1.5, 2, 1.2])
     with c1:
+        # 기본값은 자동으로 계산된 2주간의 일정으로 고정하되, 조절 가능
         s_date = st.date_input("조회 시작", value=now_today)
-        e_date = st.date_input("조회 종료", value=s_date + timedelta(days=7))
+        e_date = st.date_input("조회 종료", value=auto_end_date)
     with c2:
-        bu_list = ["성의회관", "의생명산업연구원", "옴니버스 파크", "옴니버스파크 의과대학", "옴니버스파크 간호대학", "대학본관", "서울성모별관"]
-        sel_bu = st.multiselect("건물 선택", options=bu_list, default=bu_list[:3])
+        # [수정] 기본값으로 모든 건물이 다 선택되도록 수정 완료
+        sel_bu = st.multiselect("건물 선택", options=bu_list, default=bu_list)
     with c3:
         view_mode = st.radio("보기 모드", ["표 형식", "카드 형식"], horizontal=True)
-        df = get_data(s_date, e_date)
-        if not df.empty:
-            if st.button("🚀 구글 시트 즉시 동기화", use_container_width=True, type="primary"):
-                update_google_sheet(df)
+        if st.button("🔄 수동으로 강제 동기화", use_container_width=True, type="primary"):
+            manual_df = get_data(s_date, e_date)
+            update_google_sheet(manual_df)
 
-# 화면 출력 로직
+# 화면 대시보드 출력 로직
 if not df.empty:
-    curr = s_date
-    while curr <= e_date:
+    curr = now_today
+    while curr <= auto_end_date:
         d_str = curr.strftime('%Y-%m-%d')
+        # 수동 조회 UI 날짜/건물 필터에 유연하게 맞추어 출력
         day_df = df[df['full_date'] == d_str]
         if not day_df.empty:
             st.markdown(f'<div class="date-bar">📅 {d_str} ({"월화수목금토일"[curr.weekday()]}) | {get_shift(curr)}</div>', unsafe_allow_html=True)
-            for bu in sel_bu:
+            for bu in bu_list:
                 b_df = day_df[day_df['건물명'].str.replace(" ","") == bu.replace(" ","")]
                 if b_df.empty: continue
                 st.markdown(f'<div class="bu-header">🏢 {bu}</div>', unsafe_allow_html=True)
