@@ -80,65 +80,25 @@
 </head>
 <body>
     <div class="page">
-        <!-- 상단 헤더 -->
-        <div class="brand-header">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h1 class="text-2xl font-black tracking-tighter">성의교정 통합조회</h1>
-                    <div id="datePickerTrigger" class="custom-date-trigger">날짜 선택</div>
-                </div>
-                 <div>
-                  <!-- 나침반 버튼 추가 -->
-  <button id="sitemapBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; padding: 4px;">
-    🧭
-  </button>
-                      </div>
-                <div id="shift-badge" onclick="navigateTo('team.html')" class="px-4 py-2 rounded-xl font-black text-[13px] shadow-sm cursor-pointer active:scale-95 transition-transform">--조 근무</div>
-            </div>
+<!-- 상단 헤더 (기존 brand-header 부분을 아래 내용으로 교체) -->
+<div class="brand-header">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-black tracking-tighter">성의교정 통합조회</h1>
+            <div id="datePickerTrigger" class="custom-date-trigger">날짜 선택</div>
         </div>
-<!-- 사이트맵 모달 팝업 구조 추가 -->
-<div id="sitemapModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2>🧭 성의교정 전체 메뉴</h2>
-      <span class="close-btn">&times;</span>
+        <!-- 나침반과 근무조 배지를 정렬하는 영역 -->
+        <div class="flex items-center gap-2">
+            <!-- 사이트맵 오픈 나침반 버튼 -->
+            <button id="sitemapBtn" class="p-2 bg-white/10 hover:bg-white/20 active:scale-95 transition-all rounded-xl border border-white/10 flex items-center justify-center shadow-sm">
+                <span class="text-xl">🧭</span>
+            </button>
+            <!-- 기존 근무조 배지 -->
+            <div id="shift-badge" onclick="navigateTo('team.html')" class="px-4 py-2 rounded-xl font-black text-[13px] shadow-sm cursor-pointer active:scale-95 transition-transform">--조 근무</div>
+        </div>
     </div>
-    <div class="modal-body">
-      <!-- 4개 카테고리 그리드 배치 -->
-      <div class="sitemap-grid">
-        <div class="sitemap-card">
-          <h3>📅 근무 및 연차</h3>
-          <ul>
-            <li><a href="calendar.html">근무달력 및 연차현황</a></li>
-            <li><a href="vacation.html">연차 일정표/대장</a></li>
-          </ul>
-        </div>
-        <div class="sitemap-card">
-          <h3>🏛️ 대관 및 시설</h3>
-          <ul>
-            <li><a href="rental.html">대관조회 (PC)</a></li>
-            <li><a href="rentalm.html">오늘행사 (모바일)</a></li>
-            <li><a href="search.html">시설안내</a></li>
-          </ul>
-        </div>
-        <div class="sitemap-card">
-          <h3>🚨 보안 및 안전</h3>
-          <ul>
-            <li><a href="patrol.html">우천시 순찰보고</a></li>
-            <li><a href="doorlock.html">전자도어락 비번</a></li>
-          </ul>
-        </div>
-        <div class="sitemap-card">
-          <h3>📞 편의 정보</h3>
-          <ul>
-            <li><a href="meal.html">오늘식단</a></li>
-            <li><a href="yellowpage.html">주요전화</a></li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>
+
         <!-- 퀵 버튼 -->
         <div class="px-3 -mt-8 relative z-10">
             <div class="grid grid-cols-3 gap-3">
@@ -189,6 +149,59 @@
             <div id="modalList" class="modal-body"></div>
         </div>
     </div>
+
+    <!-- 사이트맵 모달 팝업 (body가 끝나기 직전에 추가) -->
+<div id="sitemapModal" style="display: none;" class="fixed inset-0 bg-black/60 z-[110] items-center justify-center padding-[20px]">
+    <div class="modal-content mx-4 w-full max-w-[420px] bg-white rounded-[24px] overflow-hidden shadow-xl">
+        <!-- 모달 헤더 -->
+        <div class="padding-[16px] px-5 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+            <div class="flex items-center gap-1.5">
+                <span class="text-lg">🧭</span>
+                <h2 class="text-[16px] font-black text-slate-800 tracking-tight">전체 서비스 사이트맵</h2>
+            </div>
+            <button id="closeSitemapBtn" class="text-2xl font-bold text-slate-400 hover:text-slate-600 line-height-[1]">&times;</button>
+        </div>
+        <!-- 모달 바디 (4개 카테고리 그리드) -->
+        <div class="p-5 max-height-[70vh] overflow-y-auto">
+            <div class="grid grid-cols-2 gap-3">
+                <!-- 1. 근무/연차 -->
+                <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                    <h3 class="text-[13px] font-black text-blue-600 mb-2 flex items-center gap-1">📅 근무·연차</h3>
+                    <ul class="space-y-1.5 text-[12px] font-bold text-slate-600">
+                        <li><a href="calendar.html" class="hover:text-blue-600 block py-0.5">근무달력/연차조회</a></li>
+                        <li><a href="vacation.html" class="hover:text-blue-600 block py-0.5">연차 일정표/대장</a></li>
+                    </ul>
+                </div>
+                <!-- 2. 대관/시설 -->
+                <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                    <h3 class="text-[13px] font-black text-emerald-600 mb-2 flex items-center gap-1">🏛️ 대관·시설</h3>
+                    <ul class="space-y-1.5 text-[12px] font-bold text-slate-600">
+                        <li><a href="rental.html" class="hover:text-emerald-600 block py-0.5">대관조회 (PC)</a></li>
+                        <li><a href="rentalm.html" class="hover:text-emerald-600 block py-0.5">오늘행사 (모바일)</a></li>
+                        <li><a href="search.html" class="hover:text-emerald-600 block py-0.5">성의교정 시설안내</a></li>
+                    </ul>
+                </div>
+                <!-- 3. 보안/안전 -->
+                <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                    <h3 class="text-[13px] font-black text-rose-600 mb-2 flex items-center gap-1">🚨 보안·운영</h3>
+                    <ul class="space-y-1.5 text-[12px] font-bold text-slate-600">
+                        <li><a href="patrol.html" class="hover:text-rose-600 block py-0.5">우천시 순찰보고</a></li>
+                        <li><a href="doorlock.html" class="hover:text-rose-600 block py-0.5">전자도어락 비번</a></li>
+                    </ul>
+                </div>
+                <!-- 4. 생활/편의 -->
+                <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                    <h3 class="text-[13px] font-black text-amber-600 mb-2 flex items-center gap-1">📞 편의 정보</h3>
+                    <ul class="space-y-1.5 text-[12px] font-bold text-slate-600">
+                        <li><a href="meal.html" class="hover:text-amber-600 block py-0.5">오늘의 식단</a></li>
+                        <li><a href="yellowpage.html" class="hover:text-amber-600 block py-0.5">주요 전화번호</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    
 
     <script>
         const EVENT_API = "https://script.google.com/macros/s/AKfycbzDWH34gJk42elBUl-Jky8kvvVlA8s36pYi-bU05wxr7CoOlrWNbOAKS-wxj8kYb-JV/exec";
@@ -388,26 +401,27 @@
         };
 
         document.addEventListener("DOMContentLoaded", function() {
-  const modal = document.getElementById("sitemapModal");
-  const btn = document.getElementById("sitemapBtn");
-  const closeBtn = document.querySelector(".close-btn");
+    const sitemapModal = document.getElementById("sitemapModal");
+    const sitemapBtn = document.getElementById("sitemapBtn");
+    const closeSitemapBtn = document.getElementById("closeSitemapBtn");
 
-  // 나침반 클릭 시 모달 열기 (Flex로 중앙 정렬 표시)
-  btn.onclick = function() {
-    modal.style.display = "flex";
-  }
+    // 나침반 버튼 클릭 시 모달 열기
+    sitemapBtn.addEventListener("click", function(e) {
+        e.stopPropagation();
+        sitemapModal.style.display = "flex";
+    });
 
-  // X 버튼 클릭 시 모달 닫기
-  closeBtn.onclick = function() {
-    modal.style.display = "none";
-  }
+    // X 버튼 클릭 시 모달 닫기
+    closeSitemapBtn.addEventListener("click", function() {
+        sitemapModal.style.display = "none";
+    });
 
-  // 모달 바깥 어두운 배경 클릭 시 닫기
-  window.onclick = function(event) {
-    if (event.target == modal) {
-      modal.style.display = "none";
-    }
-  }
+    // 모달 바깥 어두운 배경 클릭 시 닫기
+    sitemapModal.addEventListener("click", function(e) {
+        if (e.target === sitemapModal) {
+            sitemapModal.style.display = "none";
+        }
+    });
 });
     </script>
 </body>
