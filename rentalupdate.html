@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>성의교정 대관 관리 시스템</title>
+    <!-- Tailwind CSS (레이아웃용) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Malgun Gothic', dotum, sans-serif; background-color: #f8f9fa; }
+        .main-title { font-size: 24px; font-weight: bold; color: #1E3A5F; text-align: center; margin-bottom: 15px; }
+        .date-bar { background-color: #343a40; color: white; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; margin-top: 25px; margin-bottom: 12px; font-size: 16px; }
+        .bu-header { font-size: 17px; font-weight: bold; color: #1E3A5F; margin: 15px 0 8px 0; border-left: 5px solid #1E3A5F; padding-left: 10px; background: #f1f4f9; padding: 6px 10px; }
+        
+        /* 테이블 스타일 */
+        .custom-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; table-layout: fixed; background: white; }
+        .custom-table th { background: #f8f9fa; border: 1px solid #dee2e6; padding: 10px 5px; text-align: center; color: #495057; }
+        .custom-table td { border: 1px solid #dee2e6; padding: 10px 8px; text-align: center; vertical-align: middle; }
+        .event-cell { text-align: left !important; font-weight: 500; }
+        .time-text { color: #e74c3c; font-weight: bold; font-size: 14px; }
+        
+        /* 카드 스타일 */
+        .mobile-card { background: white; border: 1px solid #eef0f2; border-radius: 8px; padding: 12px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .period-tag { font-size: 11px; color: #2196F3; margin-top: 4px; display: block; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <div class="main-title">🏫 성의교정 대관 현황 자동화 시스템</div>
+
+        <!--설정 영역 (Streamlit의 Expander 대용) -->
+        <div class="bg-white border rounded-lg p-4 mb-6 shadow-sm">
+            <div class="font-bold text-gray-700 mb-3 flex items-center">⚙️ 데이터 동기화 및 조회 설정</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- 1. 날짜 선택 -->
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">조회 시작 / 종료</label>
+                    <div class="flex gap-2">
+                        <input type="date" id="startDate" class="border rounded p-1 w-full text-sm">
+                        <input type="date" id="endDate" class="border rounded p-1 w-full text-sm">
+                    </div>
+                </div>
+                <!-- 2. 건물 선택 -->
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">건물 선택</label>
+                    <div id="buildingContainer" class="flex flex-wrap gap-1 mt-1">
+                        <!-- JS에서 동적 생성 -->
+                    </div>
+                </div>
+                <!-- 3. 보기 모드 및 다운로드 -->
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">보기 모드</label>
+                    <div class="flex gap-4 items-center mb-2">
+                        <label class="text-sm"><input type="radio" name="viewMode" value="table" checked onchange="renderData()"> 표 형식</label>
+                        <label class="text-sm"><input type="radio" name="viewMode" value="card" onchange="renderData()"> 카드 형식</label>
+                    </div>
+                    <button onclick="downloadCSV()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-4 rounded text-sm transition shadow">
+                        📊 엑셀(CSV) 파일로 내보내기
+                    </button>
+                </div>
+            </div>
+            <div class="mt-4 flex justify-end">
+                <button onclick="fetchAndProcessData()" class="bg-blue-900 hover:bg-blue-950 text-white font-bold py-2 px-6 rounded text-sm transition shadow">
+                    🔍 대관 현황 조회하기
+                </button>
+            </div>
+        </div>
+
+        <!-- 로딩바 -->
+        <div id="loading" class="hidden text-center my-8 text-gray-500 font-medium">
+            <div class="animate-spin inline-block w-6 h-6 border-[3px] border-current border-t-transparent text-blue-600 rounded-full mb-2"></div>
+            <div>데이터를 가져오는 중입니다...</div>
+        </div>
+
+        <!-- 결과 출력 영역 -->
+        <div id="resultContainer"></div>
+    </div>
+
+    <script>
+        const KST_OFFSET = 9 * 60 * 60 * 1000;
+        const buList = ["성의회관", "의생명산업연구원", "옴니버스 파크", "옴니버스파크 의과대학", "옴니버스파크 간호대학", "대학본관", "서울성모별관"];
+        let defaultSelected = ["성의회관", "의생명산업연구원", "옴니버스 파크"];
+        let fetchedData = []; // 가공된 전체 데이터 배열
+
+        // 초기 설정
+        window.onload = function() {
+            // 오늘 및 7일 뒤 날짜 기본값 세팅
+            const today = new Date(Date.now() + KST_OFFSET).toISOString().split('T')[0];
+            const nextWeek = new Date(Date.now() + KST_OFFSET + (7 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+            document.getElementById('startDate').value = today;
+            document.getElementById('endDate').value = nextWeek;
+
+            // 건물 체크박스 생성
+            const container = document.getElementById('buildingContainer');
+            buList.forEach(bu => {
+                const checked = defaultSelected.includes(bu) ? 'checked' : '';
+                container.innerHTML += `
+                    <label class="inline-flex items-center bg-gray-100 px-2 py-1 rounded text-xs cursor-pointer hover:bg-gray-200">
+                        <input type="checkbox" name="buSelect" value="${bu}" ${checked} class="mr-1" onchange="renderData()"> ${bu}
+                    </label>
+                `;
+            });
+
+            fetchAndProcessData(); // 시작하자마자 자동 조회
+        };
+
+        function getWeekdayName(dateStr) {
+            const days = ["일", "월", "화", "수", "목", "금", "토"];
+            return days[new Date(dateStr).getDay()];
+        }
+
+        function getShift(dateStr) {
+            const baseDate = new Date("2026-03-13");
+            const targetDate = new Date(dateStr);
+            const diffTime = targetDate - baseDate;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            const shifts = ['A', 'B', 'C'];
+            // 음수 처리 보정
+            const idx = ((diffDays % 3) + 3) % 3;
+            return `${shifts[idx]}조`;
+        }
+
+        function getWeekdayNamesFromCodes(codes) {
+            const days = {"1":"월", "2":"화", "3":"수", "4":"목", "5":"금", "6":"토", "7":"일"};
+            if (!codes) return "";
+            return String(codes).split(",").map(c => days[c.trim()] || "").filter(Boolean).join(",");
+        }
+
+        // 핵심 데이터 패치 및 정제 (Python의 get_data 로직 변환)
+        async function fetchAndProcessData() {
+            const sDateStr = document.getElementById('startDate').value;
+            const eDateStr = document.getElementById('endDate').value;
+            if(!sDateStr || !eDateStr) return alert("시작일과 종료일을 선택해주세요.");
+
+            const loading = document.getElementById('loading');
+            const resultContainer = document.getElementById('resultContainer');
+            loading.classList.remove('hidden');
+            resultContainer.innerHTML = "";
+
+            const url = `https://songeui.catholic.ac.kr/ko/service/application-for-rental_calendar.do?mode=getReservedData&start=${sDateStr}&end=${eDateStr}`;
+            
+            try {
+                const response = await fetch(url);
+                const json = await response.json();
+                const raw = json.res || [];
+                
+                const rows = [];
+                const startLimit = new Date(sDateStr);
+                const endLimit = new Date(eDateStr);
+
+                raw.forEach(item => {
+                    if (!item.startDt) return;
+                    const sDt = new Date(item.startDt);
+                    const eDt = new Date(item.endDt);
+                    const isPeriod = item.startDt !== item.endDt;
+                    const pRng = `${item.startDt}~${item.endDt}`;
+                    const dNms = getWeekdayNamesFromCodes(item.allowDay);
+                    
+                    const allowed = item.allowDay ? String(item.allowDay).split(",").map(d => d.trim()).filter(d => !isNaN(d)) : [];
+
+                    // 날짜 루프 돌며 데이터 분할 확장
+                    let curr = new Date(sDt);
+                    while (curr <= eDt) {
+                        if (curr >= startLimit && curr <= endLimit) {
+                            // ISO 기준 요일 (월=1, ..., 일=7)
+                            let dayNo = curr.getDay(); 
+                            if(dayNo === 0) dayNo = 7; 
+
+                            if (allowed.length === 0 || allowed.includes(String(dayNo))) {
+                                const fullDate = curr.toISOString().split('T')[0];
+                                rows.push({
+                                    full_date: fullDate,
+                                    is_period: isPeriod,
+                                    period_range: pRng,
+                                    allowed_days: dNms,
+                                    건물명: String(item.buNm || '').trim(),
+                                    장소: item.placeNm || '-',
+                                    시간: `${item.startTime || ''}~${item.endTime || ''}`,
+                                    행사명: item.eventNm || '-',
+                                    부서: item.mgDeptNm || '-',
+                                    인원: String(item.peopleCount || '0'),
+                                    상태: item.status === 'Y' ? '확정' : '대기'
+                                });
+                            }
+                        }
+                        curr.setDate(curr.getDate() + 1);
+                    }
+                });
+
+                // 중복 제거 (Key 조합 기준)
+                const seen = new Set();
+                fetchedData = rows.filter(item => {
+                    const k = item.full_date + item.장소 + item.시간 + item.행사명;
+                    if(seen.has(k)) return false;
+                    seen.add(k);
+                    return true;
+                });
+
+                renderData();
+            } catch (error) {
+                console.error(error);
+                resultContainer.innerHTML = `<div class="text-red-500 text-center font-bold">데이터를 가져오는 중 오류가 발생했습니다. (${error.message})</div>`;
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
+        // 화면 렌더링 로직 (Python의 화면 출력부 변환)
+        function renderData() {
+            const resultContainer = document.getElementById('resultContainer');
+            if (fetchedData.length === 0) {
+                resultContainer.innerHTML = '<div class="bg-blue-50 text-blue-700 p-4 rounded text-center text-sm shadow-sm">선택한 기간에 대관 데이터가 없습니다.</div>';
+                return;
+            }
+
+            const sDateStr = document.getElementById('startDate').value;
+            const eDateStr = document.getElementById('endDate').value;
+            const viewMode = document.querySelector('input[name="viewMode"]:checked').value;
+            
+            // 선택된 건물 필터 배열
+            const selectedBuildings = Array.from(document.querySelectorAll('input[name="buSelect"]:checked')).map(el => el.value.replace(/\s+/g, ''));
+
+            let html = "";
+            let curr = new Date(sDateStr);
+            const endLimit = new Date(eDateStr);
+
+            while (curr <= endLimit) {
+                const dStr = curr.toISOString().split('T')[0];
+                const dayRows = fetchedData.filter(r => r.full_date === dStr);
+
+                if (dayRows.length > 0) {
+                    let dateBarAdded = false;
+                    let dayHtml = "";
+
+                    // 날짜 내 건물 순회
+                    buList.forEach(bu => {
+                        if (!selectedBuildings.includes(bu.replace(/\s+/g, ''))) return;
+
+                        const buRows = dayRows.filter(r => r.건물명.replace(/\s+/g, '') === bu.replace(/\s+/g, ''));
+                        if (buRows.length === 0) return;
+
+                        // 시간 순 정렬
+                        buRows.sort((a,b) => a.시간.localeCompare(b.시간));
+
+                        if (!dateBarAdded) {
+                            dayHtml += `<div class="date-bar">📅 ${dStr} (${getWeekdayName(dStr)}) | ${getShift(dStr)}</div>`;
+                            dateBarAdded = true;
+                        }
+
+                        dayHtml += `<div class="bu-header">🏢 ${bu}</div>`;
+
+                        if (viewMode === "table") {
+                            dayHtml += `<table class="custom-table"><thead><tr><th style="width:20%">장소</th><th style="width:15%">시간</th><th>행사명</th><th style="width:20%">부서</th><th style="width:10%">상태</th></tr></thead><tbody>`;
+                            buRows.forEach(r => {
+                                dayHtml += `<tr><td>${r.장소}</td><td class="time-text">${r.시간}</td><td class="event-cell">${r.행사명}</td><td>${r.부서}</td><td>${r.상태}</td></tr>`;
+                            });
+                            dayHtml += `</tbody></table>`;
+                        } else {
+                            buRows.forEach(r => {
+                                dayHtml += `
+                                    <div class="mobile-card">
+                                        <span class="time-text">🕒 ${r.시간}</span> | <b>${r.장소}</b><br/>
+                                        <div style="margin-top:5px;"><b>${r.행사명}</b> (${r.부서})</div>
+                                        ${r.is_period ? `<span class="period-tag">🗓️ ${r.period_range}</span>` : ''}
+                                    </div>`;
+                            });
+                        }
+                    });
+
+                    html += dayHtml;
+                }
+                curr.setDate(curr.getDate() + 1);
+            }
+
+            resultContainer.innerHTML = html || '<div class="bg-yellow-50 text-yellow-700 p-4 rounded text-center text-sm shadow-sm">선택한 건물에 매칭되는 데이터가 없습니다.</div>';
+        }
+
+        // CSV 백업 다운로드 기능 (구글 시트 업로드 대용)
+        function downloadCSV() {
+            if (fetchedData.length === 0) return alert("다운로드할 데이터가 없습니다.");
+            
+            let csvContent = "\uFEFF날짜,요일,근무조,유형,대관기간,해당요일,건물명,장소,시간,행사명,부서,인원,상태\n";
+            
+            fetchedData.forEach(r => {
+                const row = [
+                    r.full_date, getWeekdayName(r.full_date), getShift(r.full_date),
+                    r.is_period ? "기간" : "당일", r.period_range,
+                    r.is_period ? r.allowed_days : getWeekdayName(r.full_date),
+                    r.건물명, r.장소, r.시간, r.행사명, r.부서, r.인원, r.상태
+                ].map(val => `"${val.replace(/"/g, '""')}"`).join(",");
+                csvContent += row + "\n";
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", `대관현황_백업_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
