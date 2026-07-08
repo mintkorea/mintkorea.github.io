@@ -111,10 +111,14 @@
                     <label class="block text-xs font-semibold text-slate-400 mb-1.5">링크 앞에 붙을 기본 아이콘</label>
                     <input type="text" id="prefixIcon" value="▶" class="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl py-2 px-3 text-sm text-slate-200 outline-none">
                 </div>
-                <div class="flex items-end pb-2">
+                <div class="flex flex-col justify-end gap-2.5 pb-2">
                     <label class="flex items-center gap-2.5 cursor-pointer select-none text-xs text-slate-300">
                         <input type="checkbox" id="targetBlank" checked class="w-4 h-4 rounded border-slate-800 bg-slate-950 text-indigo-600 focus:ring-indigo-500/55 focus:ring-offset-0">
                         새 창으로 열기 (target="_blank")
+                    </label>
+                    <label class="flex items-center gap-2.5 cursor-pointer select-none text-xs text-slate-300">
+                        <input type="checkbox" id="useDbTitle" checked class="w-4 h-4 rounded border-slate-800 bg-slate-950 text-indigo-600 focus:ring-indigo-500/55 focus:ring-offset-0">
+                        매칭 성공 시 RSS 정식 제목으로 자동 치환
                     </label>
                 </div>
             </div>
@@ -373,6 +377,7 @@ function generateHTML() {
     const rawInput = document.getElementById("rawInput").value;
     const prefixIcon = document.getElementById("prefixIcon").value;
     const targetBlank = document.getElementById("targetBlank").checked;
+    const useDbTitle = document.getElementById("useDbTitle").checked;
     
     if (!rawInput.trim()) {
         showNotification("변환할 제목을 먼저 입력해 주세요.", true);
@@ -399,8 +404,8 @@ function generateHTML() {
 
         if (match) {
             const blankAttr = targetBlank ? ' target="_blank" rel="noopener"' : '';
-            // 매칭 시 해당 DB 타이틀을 사용하거나 입력 제목을 정제하여 활용
-            const titleForDisplay = trimmedLine.replace(/^[🔗▶\s\-\•\*\d\.]+/g, '').trim();
+            // useDbTitle 옵션이 활성화된 경우 RSS 피드의 정식 제목(match.title)으로 대체, 아니면 원본 정제 제목 사용
+            const titleForDisplay = useDbTitle ? match.title : trimmedLine.replace(/^[🔗▶\s\-\•\*\d\.]+/g, '').trim();
             linksHtml += `<a title="${titleForDisplay}" href="${match.url}"${blankAttr}>${prefixIcon} ${titleForDisplay}</a><br /><br />`;
             matchCount++;
         } else {
