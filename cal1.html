@@ -3,191 +3,383 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>근무 달력 시스템 (독립형)</title>
+    <title>성의교정 연차 관리 시스템</title>
+    <!-- Tailwind CSS 및 FontAwesome 로드 -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 파이어베이스 라이브러리 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
-        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f1f5f9; padding: 12px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-left: 1px solid #f1f5f9; border-top: 1px solid #f1f5f9; }
+        .calendar-cell { height: 64px; border-right: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; display: flex; flex-direction: column; justify-content: space-between; padding: 4px; position: relative; transition: all 0.2s; }
+        .calendar-cell.is-today { background-color: #fef08a !important; border: 2px solid #eab308; z-index: 10; }
+        .calendar-cell.is-highlighted { border: 1px solid rgba(0,0,0,0.1); }
+        .calendar-cell.is-highlighted .date-area { color: white !important; font-weight: 900; }
+        .calendar-cell.is-highlighted .date-area span { color: white !important; }
+        .date-area { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 700; color: #475569; }
+        .shift-area { font-size: 9px; font-weight: 900; padding: 1px 0; border-radius: 4px; text-align: center; margin-top: auto; }
+        .admin-active { border-top: 4px solid #ef4444 !important; }
+        .tag-sung { background: #f3e8ff; color: #7e22ce; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 6px; }
+        .tag-omni { background: #ffedd5; color: #c2410c; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 6px; }
+        .lbl-본부 { background: #f1f5f9; color: #475569; }
+        .lbl-A { background: #fffbeb; color: #b45309; }
+        .lbl-B { background: #fff1f2; color: #be123c; }
+        .lbl-C { background: #eff6ff; color: #1d4ed8; }
+        .staff-btn { border: 1px solid #e2e8f0; border-radius: 10px; padding: 6px 0; text-align: center; font-size: 11px; font-weight: 900; color: #334155; background: #f8fafc; }
+        .staff-btn:active { background: #e2e8f0; }
+        .admin-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-bottom: 8px; }
+        .admin-row.three-cols { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         
-        /* 캘린더 기본 구조 */
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; background: white; }
-        .calendar-cell { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; display: flex; flex-direction: column; aspect-ratio: 1 / 1.3; min-height: 60px; position: relative; }
-        
-        /* 날짜 및 조 표시 영역 */
-        .date-area { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; }
-        .shift-area { flex: 1.2; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1rem; }
-        
-        /* 공통 색상 */
-        .sunday { color: #ef4444 !important; }
-        .saturday { color: #3b82f6 !important; }
-        .is-today { outline: 3px solid #ef4444; outline-offset: -3px; z-index: 10; background-color: #fef2f2 !important; }
-        
-        /* 이동 버튼 스타일 */
-        .nav-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 8px; font-weight: bold; color: #475569; transition: all 0.2s; }
-        .nav-btn:active { background: #e2e8f0; transform: scale(0.95); }
+        /* 하단 연차 명단 패널 스타일 */
+        .floating-list { position: fixed; bottom: -100%; left: 0; right: 0; height: 75vh; background: #f8fafc; border-top-left-radius: 24px; border-top-right-radius: 24px; box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.1); transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50; display: flex; flex-direction: column; }
+        .floating-list.active { bottom: 0; }
+        .floating-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: none; z-index: 40; }
+        .floating-list.active + .floating-overlay { display: block; }
+        .list-today-card { border: 2px solid #ef4444; background-color: #fff5f5; }
     </style>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-500 selection:text-white">
 
-    <div class="max-w-md mx-auto space-y-4">
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-black text-slate-500">강조 조 선택:</span>
-                <select id="shiftSelect" onchange="renderCalendar()" class="text-xs p-2 bg-slate-50 border rounded-lg font-black w-36 outline-none text-[#2E4077]">
-                    <option value="none">강조 안 함</option>
-                    <option value="A">A조 강조</option>
-                    <option value="B">B조 강조</option>
-                    <option value="C">C조 강조</option>
-                </select>
+    <!-- 상단 바 -->
+    <div id="headerBar" class="bg-white border-b border-slate-200 sticky top-0 z-30 transition-all duration-300">
+        <div class="max-w-md mx-auto px-4 h-14 flex items-center justify-between">
+            <h1 class="font-black text-base tracking-tight text-slate-800 flex items-center gap-2" onclick="handleAdminAuth()">
+                <i class="fa-solid class bg-blue-600 text-white w-6 h-6 rounded-lg flex items-center justify-center text-xs shadow-sm shadow-blue-200">성의</i>
+                <span>연차 관리 시스템</span>
+            </h1>
+            <div class="flex items-center gap-1.5">
+                <button onclick="toggleFloatingList()" class="bg-blue-50 text-blue-600 font-black text-xs px-3 py-2 rounded-xl border border-blue-100 flex items-center gap-1">
+                    <i class="fa-solid fa-clipboard-list"></i> 연차 명단
+                </button>
             </div>
-        </div>
-
-        <div id="singleNav" class="flex items-center justify-between bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
-            <div class="flex gap-1">
-                <button onclick="changeYear(-1)" class="nav-btn text-slate-300">≪</button>
-                <button onclick="changeMonth(-1)" class="nav-btn">＜</button>
-            </div>
-            <h2 id="cal-title" class="text-sm font-black text-[#2E4077]"></h2>
-            <div class="flex gap-1">
-                <button onclick="changeMonth(1)" class="nav-btn">＞</button>
-                <button onclick="changeYear(1)" class="nav-btn text-slate-300">≫</button>
-            </div>
-        </div>
-
-        <div id="calendar-area">
-            <div id="single-view" class="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200">
-                <div class="grid grid-cols-7 text-center font-black text-[10px] py-3 bg-slate-50 text-slate-400 border-b">
-                    <div class="sunday">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="saturday">토</div>
-                </div>
-                <div id="calendar-grid-body" class="calendar-grid"></div>
-            </div>
-
-            <div id="multi-view" class="hidden space-y-6"></div>
-        </div>
-
-        <div class="flex justify-center pt-4">
-            <button onclick="toggleViewMode()" id="toggleModeBtn" class="bg-[#2E4077] text-white px-8 py-4 rounded-full font-black text-sm shadow-xl active:scale-95 transition-all">📅 6개월 모아보기</button>
         </div>
     </div>
 
+    <!-- 메인 컨테이너 -->
+    <main class="max-w-md mx-auto pb-24">
+        
+        <!-- 달력 섹션 -->
+        <section id="section-cal" class="px-3 pt-3">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-3">
+                <div class="p-3 border-b border-slate-100 flex items-center justify-between bg-white">
+                    <div class="flex items-center gap-1">
+                        <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-600"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                        <span id="monthTitle" class="font-black text-base text-slate-700 min-w-[90px] text-center">2026년 3월</span>
+                        <button onclick="changeMonth(1)" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-600"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                    </div>
+                    <div class="flex gap-1">
+                        <select id="shiftSelect" onchange="renderCalendar()" class="bg-slate-50 border border-slate-200 rounded-xl px-2 py-1.5 font-black text-xs text-slate-600 focus:outline-none focus:border-blue-500">
+                            <option value="">조 강조 선택</option>
+                        </select>
+                        <button id="btn6m" onclick="toggle6Month()" class="bg-slate-100 text-slate-600 font-black text-xs px-2.5 py-1.5 rounded-xl border border-slate-200">6개월</button>
+                    </div>
+                </div>
+                <div id="calendarContainer" class="flex flex-col gap-4 p-2 bg-white"></div>
+            </div>
+            
+            <!-- 마커 범례 안내 -->
+            <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-sm flex justify-around text-[10px] font-bold text-slate-500">
+                <div class="flex items-center gap-1.5"><div class="w-2 h-2 rounded-full bg-purple-400"></div> 성의회관 연차</div>
+                <div class="flex items-center gap-1.5"><div class="w-2 h-2 rounded-full bg-orange-400"></div> 옴니버스 연차</div>
+                <div class="flex items-center gap-1.5"><div class="w-3 h-3 border-2 border-yellow-500 bg-yellow-200 rounded-sm"></div> 오늘 날짜</div>
+            </div>
+        </section>
+
+        <!-- 통계/관리 섹션 -->
+        <section id="section-man" class="px-3 pt-3 hidden">
+            <div id="manageGrid"></div>
+        </section>
+    </main>
+
+    <!-- 하단 고정 탭 바 -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-200 z-30 shadow-lg">
+        <div class="max-w-md mx-auto flex">
+            <button id="tab-cal-btn" onclick="switchTab('cal')" class="flex-1 py-3 text-sm font-black text-blue-600 border-b-2 border-blue-600 flex flex-col items-center gap-0.5">
+                <i class="fa-solid fa-calendar-days text-base"></i><span class="text-[10px]">근무 달력</span>
+            </button>
+            <button id="tab-man-btn" onclick="switchTab('man')" class="flex-1 py-3 text-sm font-black text-slate-400 flex flex-col items-center gap-0.5">
+                <i class="fa-solid fa-chart-pie text-base"></i><span class="text-[10px]">연차 통계</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 하단 팝업식 연차 명단 패널 -->
+    <div id="floatingList" class="floating-list">
+        <div class="w-full flex justify-center py-2.5" onclick="toggleFloatingList()">
+            <div class="w-12 h-1.5 bg-slate-300 rounded-full"></div>
+        </div>
+        <div class="px-4 pb-3 border-b flex items-center justify-between">
+            <h3 class="font-black text-base text-slate-800">이달의 실시간 연차 현황</h3>
+            <button id="togglePastBtn" onclick="togglePast()" class="bg-slate-100 text-slate-600 border font-bold text-xs px-2.5 py-1.5 rounded-xl">과거 내역 보기</button>
+        </div>
+        <div id="listContent" class="flex-1 overflow-y-auto pt-3 pb-8"></div>
+    </div>
+    <div class="floating-overlay" onclick="toggleFloatingList()"></div>
+
+    <!-- 공용 모달 (상세보기 / 수정용) -->
+    <div id="commonModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-end sm:items-center justify-center p-0 sm:p-4" onclick="if(event.target===this) closeModal()">
+        <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl shadow-xl flex flex-col max-h-[85vh] animate-slide-up">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-3xl sm:rounded-t-2xl">
+                <h3 id="modalHeader" class="font-black text-base text-slate-800 tracking-tight">상세 정보</h3>
+                <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold"><i class="fa-solid fa-xmark text-sm"></i></button>
+            </div>
+            <div id="modalBody" class="p-4 overflow-y-auto flex-1 bg-slate-50/50"></div>
+        </div>
+    </div>
+
+    <!-- 내부 로직 자바스크립트 -->
     <script>
-        // 기본 설정 (패턴 및 기준일)
-        const config = {
-            baseDate: '2026-03-09', // C조 기준일
-            patterns: [
-                { name: 'C', color: '#E3F2FD', highlight: '#1976D2' },
-                { name: 'A', color: '#FFF3E0', highlight: '#F57C00' },
-                { name: 'B', color: '#FFEBEE', highlight: '#D32F2F' }
-            ]
-        };
+        // 1. 파이어베이스 및 기초 환경 설정
+        const firebaseConfig = { apiKey: "AIzaSyAu38FXMBUgoeYy1GDViTetsJ68ivHsGyM", projectId: "catholic-security-system" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const docRef = db.collection("vacation_system").doc("data");
 
-        let viewMode = 'single';
-        let curY = new Date().getFullYear();
-        let curM = new Date().getMonth();
+        // 명단 데이터 통합 정의
+        const STAFF = [
+            {n:'이규용',g:'본부',t:'성의회관'}, {n:'박상현',g:'본부',t:'옴니버스'}, {n:'유정수',g:'본부',t:'성의회관'}, {n:'오제준',g:'본부',t:'옴니버스'}, 
+            {n:'배준용',g:'A',t:'성의회관'}, {n:'이명구',g:'A',t:'성의회관'}, {n:'김영중',g:'A',t:'성의회관'}, {n:'김삼동',g:'A',t:'성의회관'}, {n:'손병휘',g:'A',t:'옴니버스'}, {n:'권순호',g:'A',t:'옴니버스'}, {n:'김전식',g:'A',t:'옴니버스'},
+            {n:'심규천',g:'B',t:'성의회관'}, {n:'임종현',g:'B',t:'성의회관'}, {n:'권영국',g:'B',t:'성의회관'}, {n:'전준수',g:'B',t:'성의회관'}, {n:'황일범',g:'B',t:'옴니버스'}, {n:'이상길',g:'B',t:'옴니버스'}, {n:'허용',g:'B',t:'옴니버스'},
+            {n:'황재업',g:'C',t:'성의회관'}, {n:'이태원',g:'C',t:'성의회관'}, {n:'김태언',g:'C',t:'성의회관'}, {n:'이정석',g:'C',t:'성의회관'}, {n:'피재영',g:'C',t:'옴니버스'}, {n:'남형민',g:'C',t:'옴니버스'}, {n:'강경훈',g:'C',t:'옴니버스'}
+        ];
 
-        // 근무 조 계산 로직
-        function getShift(targetDate) {
-            const d = new Date(targetDate); d.setHours(0,0,0,0);
-            const base = new Date(config.baseDate); base.setHours(0,0,0,0);
-            const diff = Math.round((d - base) / 86400000);
-            return config.patterns[((diff % 3) + 3) % 3];
+        let vData = {}, currentYear = 2026, currentMonth = new Date().getMonth(), isAdmin = false, is6Month = false, showPast = false;
+        const CONFIG = { baseDate: '2026-03-09', shifts: ['C', 'A', 'B'], colors: { C: ['#eff6ff', '#2563eb'], A: ['#fffbeb', '#d97706'], B: ['#fff1f2', '#e11d48'] } };
+
+        // 탭 전환 제어
+        function switchTab(type) {
+            document.getElementById('section-cal').classList.toggle('hidden', type !== 'cal');
+            document.getElementById('section-man').classList.toggle('hidden', type !== 'man');
+            document.getElementById('tab-cal-btn').className = type === 'cal' ? 'flex-1 py-3 text-sm font-black text-blue-600 border-b-2 border-blue-600 flex flex-col items-center gap-0.5' : 'flex-1 py-3 text-sm font-black text-slate-400 flex flex-col items-center gap-0.5';
+            document.getElementById('tab-man-btn').className = type === 'man' ? 'flex-1 py-3 text-sm font-black text-blue-600 border-b-2 border-blue-600 flex flex-col items-center gap-0.5' : 'flex-1 py-3 text-sm font-black text-slate-400 flex flex-col items-center gap-0.5';
+            if(type === 'man') renderManageGrid();
         }
 
-        // 달력 그리드 생성 함수
-        function renderGrid(container, year, month) {
-            container.innerHTML = '';
-            const target = document.getElementById('shiftSelect').value;
-            const first = new Date(year, month, 1).getDay();
-            const last = new Date(year, month + 1, 0).getDate();
-            const todayStr = new Date().toDateString();
-
-            // 시작 빈 칸
-            for(let i=0; i<first; i++) {
-                container.innerHTML += `<div class="calendar-cell bg-slate-50/50"></div>`;
-            }
-
-            // 날짜 칸 생성
-            for(let d=1; d<=last; d++) {
-                const dt = new Date(year, month, d);
-                dt.setHours(12, 0, 0, 0);
-                const shift = getShift(dt);
-                const isHighlighted = (target === shift.name);
-                
-                const cell = document.createElement('div');
-                cell.className = `calendar-cell ${dt.toDateString() === todayStr ? 'is-today' : ''}`;
-                
-                // 강조 시 배경색 적용
-                cell.style.backgroundColor = isHighlighted ? shift.highlight : 'transparent';
-                
-                // 텍스트 색상 결정
-                const dateClass = isHighlighted ? 'text-white' : (dt.getDay() === 0 ? 'sunday' : dt.getDay() === 6 ? 'saturday' : '');
-                const shiftStyle = isHighlighted ? 'background:transparent; color:white;' : `background:${shift.color}; color:#1e293b;`;
-
-                cell.innerHTML = `
-                    <div class="date-area ${dateClass}">${d}</div>
-                    <div class="shift-area" style="${shiftStyle}">${shift.name}</div>
-                `;
-                container.appendChild(cell);
-            }
+        // 관리자 인증 토글
+        function handleAdminAuth() {
+            if(!isAdmin && prompt("비밀번호를 입력하세요.") === "1234") isAdmin = true; else isAdmin = false;
+            document.getElementById('headerBar').classList.toggle('admin-active', isAdmin);
+            renderCalendar();
         }
 
-        // 메인 렌더링 컨트롤러
+        // 교대조 연산 함수
+        function getShiftInfo(date) {
+            const diff = Math.round((new Date(date).setHours(0,0,0,0) - new Date(CONFIG.baseDate)) / 86400000);
+            const sName = CONFIG.shifts[((diff % 3) + 3) % 3];
+            return { name: sName, color: CONFIG.colors[sName][1], bg: CONFIG.colors[sName][0] };
+        }
+
+        // 근무 달력 렌더링 함수
         function renderCalendar() {
-            const singleView = document.getElementById('single-view');
-            const multiView = document.getElementById('multi-view');
-            const nav = document.getElementById('singleNav');
-
-            if(viewMode === 'single') {
-                singleView.classList.remove('hidden');
-                multiView.classList.add('hidden');
-                nav.classList.remove('hidden');
-                document.getElementById('cal-title').innerText = `${curY}년 ${curM + 1}월`;
-                renderGrid(document.getElementById('calendar-grid-body'), curY, curM);
-            } else {
-                singleView.classList.add('hidden');
-                multiView.classList.remove('hidden');
-                nav.classList.add('hidden');
-                multiView.innerHTML = '';
+            const container = document.getElementById('calendarContainer'); container.innerHTML = '';
+            document.getElementById('monthTitle').innerText = `${currentYear}년 ${currentMonth + 1}월`;
+            const hS = document.getElementById('shiftSelect').value;
+            
+            for(let i=0; i < (is6Month?6:1); i++) {
+                let ty = currentYear, tm = currentMonth + i; 
+                if(tm > 11){ ty += Math.floor(tm / 12); tm = tm % 12; }
                 
-                for(let i=0; i<6; i++){
-                    let d = new Date(curY, curM + i, 1);
-                    let year = d.getFullYear();
-                    let month = d.getMonth();
+                const mKey = `${ty}-${String(tm+1).padStart(2,'0')}`;
+                const grid = document.createElement('div'); grid.className = 'calendar-grid bg-white mb-2';
+                
+                // 요일 헤더 주입
+                ['일','월','화','수','목','금','토'].forEach(d => grid.innerHTML += `<div class="text-center font-bold text-[10px] py-1.5 bg-slate-50 border-b text-slate-400">${d}</div>`);
+                
+                const first = new Date(ty, tm, 1).getDay(), last = new Date(ty, tm + 1, 0).getDate();
+                for(let b=0; b<first; b++) grid.innerHTML += `<div class="calendar-cell bg-slate-50/20"></div>`;
+                
+                for(let d=1; d<=last; d++) {
+                    const dt = new Date(ty, tm, d), s = getShiftInfo(dt), isH = (hS === s.name);
+                    const cell = document.createElement('div');
+                    cell.className = `calendar-cell ${isH?'is-highlighted':''} ${dt.toDateString() === new Date().toDateString()?'is-today':''}`;
+                    if(isH) cell.style.backgroundColor = s.color;
                     
-                    let card = document.createElement('div');
-                    card.className = "bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden";
-                    card.innerHTML = `<div class="p-3 bg-[#2E4077] text-white text-center font-black text-xs">${year}년 ${month + 1}월</div>`;
+                    let dots = '', vocs = [];
+                    const mD = vData[mKey] || {};
+                    for(let n in mD) {
+                        if(String(mD[n]).split(',').map(x=>x.trim()).includes(String(d))) {
+                            const st = STAFF.find(p=>p.n===n); if(st) vocs.push(st);
+                        }
+                    }
+                    if(vocs.some(v=>v.t==='성의회관')) dots += `<div class="w-1.5 h-1.5 rounded-full bg-purple-400"></div>`;
+                    if(vocs.some(v=>v.t==='옴니버스')) dots += `<div class="w-1.5 h-1.5 rounded-full bg-orange-400"></div>`;
                     
-                    let grid = document.createElement('div');
-                    grid.className = 'calendar-grid';
-                    renderGrid(grid, year, month);
+                    cell.innerHTML = `
+                        <div class="date-area ${dt.getDay()===0?'text-red-500':''}">
+                            <span>${d}</span>
+                            <div class="flex gap-0.5">${dots}</div>
+                        </div>
+                        <div class="shift-area" style="background:${isH?'transparent':s.bg}; color:${isH?'white':s.color}">${s.name}</div>
+                    `;
                     
-                    card.appendChild(grid);
-                    multiView.appendChild(card);
+                    // 변수 스코프 꼬임 방지를 위한 클로저 캡처 처리
+                    const targetY = ty, targetM = tm, targetD = d;
+                    cell.onclick = () => showDetail(targetY, targetM, targetD);
+                    grid.appendChild(cell);
+                }
+                
+                if(is6Month) {
+                    const mTitle = document.createElement('div');
+                    mTitle.className = 'font-black text-xs text-slate-500 pl-1 pt-2';
+                    mTitle.innerText = `● ${ty}년 ${tm + 1}월`;
+                    container.appendChild(mTitle);
+                }
+                container.appendChild(grid);
+            }
+        }
+
+        // 일자별 세부 모달 팝업
+        function showDetail(y, m, d) {
+            const mKey = `${y}-${String(m+1).padStart(2,'0')}`, modal = document.getElementById('commonModal'), body = document.getElementById('modalBody');
+            const targetShift = getShiftInfo(new Date(y, m, d)).name;
+            document.getElementById('modalHeader').innerText = `${m+1}월 ${d}일 (${targetShift}조) 연차 정보`;
+            
+            const refresh = () => {
+                body.innerHTML = ''; const mD = vData[mKey] || {}; let count = 0;
+                for(let n in mD) if(String(mD[n]).split(',').map(x=>x.trim()).includes(String(d))) {
+                    const p = STAFF.find(s=>s.n===n); if(!p) continue; count++;
+                    body.innerHTML += `
+                        <div class="flex items-center gap-2 p-3 border rounded-xl mb-2 bg-white shadow-sm">
+                            <span class="${p.t==='성의회관'?'tag-sung':'tag-omni'}">${p.t}</span>
+                            <span class="font-bold flex-1 text-slate-700">${p.n}</span>
+                            ${isAdmin?`<button onclick="removeV('${mKey}',${d},'${p.n}')" class="text-red-500 px-2 font-black text-sm">✕</button>`:''}
+                        </div>`;
+                }
+                if(count === 0) body.innerHTML = `<p class="text-center py-6 text-slate-400 text-xs">등록된 연차 신청자가 없습니다.</p>`;
+                
+                if(isAdmin) {
+                    body.innerHTML += `<div class="mt-4 pt-3 border-t border-slate-200"><div class="text-[10px] font-black text-slate-400 mb-2">지휘부 및 본부 명단</div><div class="admin-row"></div>`;
+                    const headRow = body.querySelector('.admin-row');
+                    STAFF.filter(s => s.g === '본부').forEach(p => {
+                        const btn = document.createElement('button'); btn.className = 'staff-btn'; btn.innerText = p.n;
+                        btn.onclick = () => addV(mKey, d, p.n); headRow.appendChild(btn);
+                    });
+                    
+                    body.innerHTML += `<div class="text-[10px] font-black text-slate-400 mb-2">${targetShift}조 근무자 추가</div><div class="admin-row sung-row"></div><div class="admin-row three-cols omni-row"></div></div>`;
+                    const sRow = body.querySelector('.sung-row'); const oRow = body.querySelector('.omni-row');
+                    STAFF.filter(s => s.g === targetShift).forEach(p => {
+                        const btn = document.createElement('button'); btn.className = 'staff-btn'; btn.innerText = p.n;
+                        btn.onclick = () => addV(mKey, d, p.n);
+                        if(p.t === '성의회관') sRow.appendChild(btn); else oRow.appendChild(btn);
+                    });
+                }
+            };
+            
+            window.removeV = async (mk, day, name) => {
+                let days = vData[mk][name].split(',').map(x=>x.trim()).filter(x=>x!==String(day));
+                if(days.length===0) delete vData[mk][name]; else vData[mk][name]=days.join(',');
+                await docRef.update({ vacation: vData }); refresh();
+            };
+            
+            window.addV = async (mk, day, name) => {
+                if(!vData[mk]) vData[mk]={};
+                let days = vData[mk][name]?vData[mk][name].split(',').map(x=>x.trim()):[];
+                if(!days.includes(String(day))){ days.push(String(day)); vData[mk][name]=days.join(','); await docRef.update({ vacation: vData }); refresh(); }
+            };
+            
+            refresh(); modal.classList.remove('hidden'); modal.classList.add('flex');
+        }
+
+        // 연차 통계 화면 그리드 구성
+        function renderManageGrid() {
+            let html = ''; const groups = ['본부', 'A', 'B', 'C'];
+            groups.forEach(g => {
+                html += `<div class="bg-white rounded-2xl mb-3 flex overflow-hidden border border-slate-200 shadow-sm"><div class="w-11 flex items-center justify-center font-black text-[11px] lbl-${g}" style="writing-mode: vertical-lr; text-orientation: upright;">${g}${g==='본부'?'':'조'}</div><div class="flex-1 grid grid-cols-3 gap-2 p-3">`;
+                STAFF.filter(m => m.g === g).forEach(m => {
+                    let tot = 0; for(let k in vData) if(vData[k][m.n]) tot += vData[k][m.n].split(',').filter(x=>x.trim()).length;
+                    html += `<div class="h-11 border border-slate-200 rounded-xl flex items-center justify-center font-black relative bg-slate-50" onclick="openStaffModal('${m.n}')"><span class="text-xs text-slate-700">${m.n}</span>${tot>0?`<span class="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold border border-white">${tot}</span>`:''}</div>`;
+                });
+                html += `</div></div>`;
+            });
+            document.getElementById('manageGrid').innerHTML = html;
+        }
+
+        // 개인별 1년 연차 캘린더 관리 모달
+        function openStaffModal(name) {
+            const body = document.getElementById('modalBody'); document.getElementById('modalHeader').innerText = `${name} 대원 연차 관리`;
+            let grid = `<div class="grid grid-cols-3 gap-2">`;
+            for(let i=1; i<=12; i++){
+                const mk = `2026-${String(i).padStart(2,'0')}`, val = vData[mk]?.[name] || "";
+                grid += `<div class="border rounded-xl p-2 text-center ${val?'bg-blue-50 border-blue-200':'bg-white'}" onclick="editPrompt('${mk}','${name}',${i})"><div class="text-[10px] font-bold text-slate-400">${i}월</div><div class="text-xs font-black text-blue-600 truncate">${val||'-'}</div></div>`;
+            }
+            body.innerHTML = grid + `</div>`;
+            document.getElementById('commonModal').classList.remove('hidden'); document.getElementById('commonModal').classList.add('flex');
+        }
+
+        // 프롬프트 기반 연차 수동 일괄입력/수정
+        async function editPrompt(mk, name, m) {
+            if(!isAdmin) { alert("관리자 권한이 필요합니다. 상단 '성의' 타이틀을 눌러 로그인하세요."); return; }
+            const val = prompt(`${m}월 연차 희망일 입력 (쉼표 분리 예: 5,12,23)`, vData[mk]?.[name] || "");
+            if(val !== null) {
+                if(!vData[mk]) vData[mk] = {}; vData[mk][name] = val.replace(/[^0-9,]/g, '');
+                await docRef.update({ vacation: vData }); openStaffModal(name);
+            }
+        }
+
+        // 우측 하단 슬라이드 패널 토글 및 데이터 동기화 연동 완료
+        function toggleFloatingList() {
+            const list = document.getElementById('floatingList'); list.classList.toggle('active');
+            if(list.classList.contains('active')) renderFloatingList();
+        }
+
+        // 과거 내역 보기 토글
+        function togglePast() { 
+            showPast = !showPast; 
+            document.getElementById('togglePastBtn').innerText = showPast ? "과거 숨기기" : "과거 내역 보기"; 
+            renderFloatingList(); 
+        }
+
+        // 버그 해결 완료된 연차 종합 리스트 출력문
+        function renderFloatingList() {
+            const content = document.getElementById('listContent'); content.innerHTML = '';
+            const now = new Date(); now.setHours(0,0,0,0);
+            
+            // 핵심 수정: 현재 유저가 보고 있는 달력의 연도와 월 데이터를 실시간 연동
+            const mKey = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;
+            let hasContent = false;
+
+            for(let d=1; d<=31; d++) {
+                const targetDate = new Date(currentYear, currentMonth, d);
+                if (targetDate.getMonth() !== currentMonth) continue; // 월말 일수 초과 차단 예외처리
+                if(!showPast && targetDate < now) continue;
+
+                let dayVocs = [];
+                for(let n in (vData[mKey]||{})) if(String(vData[mKey][n]).split(',').map(x=>x.trim()).includes(String(d))) {
+                    const st = STAFF.find(s=>s.n===n); if(st) dayVocs.push(st);
+                }
+
+                if(dayVocs.length > 0) {
+                    hasContent = true;
+                    const isToday = targetDate.toDateString() === now.toDateString();
+                    const s = getShiftInfo(targetDate);
+                    let names = '';
+                    dayVocs.forEach(v => names += `<div class="flex items-center gap-1.5 bg-slate-50 px-2 py-1 border border-slate-200 rounded-lg"><span class="${v.t==='성의회관'?'tag-sung':'tag-omni'}">${v.t}</span><span class="text-xs font-bold text-slate-700">${v.n}</span></div>`);
+                    content.innerHTML += `
+                        <div class="bg-white border border-slate-200 rounded-2xl p-3 mx-4 mb-2 flex items-center gap-3 ${isToday?'list-today-card shadow-sm':''}">
+                            <div class="flex flex-col items-center gap-0.5 min-w-[45px] border-r pr-2">
+                                <span class="text-xs font-black ${isToday?'text-red-500':'text-slate-500'}">${d}일</span>
+                                <div class="w-6 h-4 rounded text-white text-[9px] font-black flex items-center justify-center" style="background:${s.color}">${s.name}</div>
+                            </div>
+                            <div class="flex flex-wrap gap-1 flex-1">${names}</div>
+                        </div>`;
                 }
             }
+            if(!hasContent) content.innerHTML = `<p class="text-center py-20 text-slate-400 font-bold text-xs">${currentMonth + 1}월 내역이 비어있습니다.</p>`;
         }
 
-        // 유틸리티 함수들
-        function toggleViewMode() {
-            viewMode = (viewMode === 'single' ? 'multi' : 'single');
-            document.getElementById('toggleModeBtn').innerText = (viewMode === 'single' ? '📅 6개월 모아보기' : '📱 상세 달력 보기');
-            renderCalendar();
-        }
+        // 제어 핸들러 및 기타 제어 이벤트들
+        function closeModal() { document.getElementById('commonModal').classList.add('hidden'); renderCalendar(); if(!document.getElementById('section-man').classList.contains('hidden')) renderManageGrid(); }
+        function toggle6Month() { is6Month = !is6Month; document.getElementById('btn6m').className = is6Month ? "bg-blue-600 text-white font-black text-xs px-2.5 py-1.5 rounded-xl" : "bg-slate-100 text-slate-600 font-black text-xs px-2.5 py-1.5 rounded-xl border border-slate-200"; renderCalendar(); }
+        function changeMonth(v) { currentMonth += v; if(currentMonth<0){currentMonth=11;currentYear--;} else if(currentMonth>11){currentMonth=0;currentYear++;} renderCalendar(); if(document.getElementById('floatingList').classList.contains('active')) renderFloatingList(); }
 
-        function changeMonth(v) {
-            curM += v;
-            if(curM < 0) { curM = 11; curY--; }
-            else if(curM > 11) { curM = 0; curY++; }
-            renderCalendar();
-        }
-
-        function changeYear(v) {
-            curY += v;
-            renderCalendar();
-        }
-
-        window.onload = renderCalendar;
+        // 파이어베이스 리얼타임 데이터 실시간 스냅샷 리스너
+        window.onload = () => {
+            docRef.onSnapshot(doc => { if(doc.exists) { vData = doc.data().vacation || {}; renderCalendar(); if(document.getElementById('floatingList').classList.contains('active')) renderFloatingList(); } });
+            CONFIG.shifts.forEach(s => document.getElementById('shiftSelect').innerHTML += `<option value="${s}">${s}조 강조</option>`);
+        };
     </script>
 </body>
 </html>
