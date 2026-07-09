@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>보고 문구 관리 시스템</title>
+    <!-- Tailwind CSS 연동 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body { 
+            font-family: 'Pretendard', sans-serif; 
+            background-color: #f1f5f9; 
+            color: #1e293b;
+            letter-spacing: -0.03em;
+        }
+        * { -webkit-tap-highlight-color: transparent; }
+        .page { width: 100%; max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; padding-bottom: 40px; }
+        
+        /* 모달 애니메이션 */
+        #modal { display: none; animation: fadeIn 0.2s ease-out; }
+        .modal-body-box { animation: slideUp 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
+</head>
+<body class="p-0 m-0">
+
+<div class="page">
+    
+    <!-- 1. 상단 타이틀 바 -->
+    <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] p-5 pt-6 pb-8 text-white rounded-b-[24px] shadow-md">
+        <h1 class="text-xl font-black tracking-tight flex items-center gap-2">
+            📋 스마트 보고 상용구 수첩
+        </h1>
+        <p class="text-xs font-medium text-slate-400 mt-1">자주 쓰는 보고 양식을 저장하고 빠르게 복사하세요.</p>
+    </div>
+
+    <!-- 2. 문구 추가 폼 (접이식 카드 레이아웃) -->
+    <div class="px-3 -mt-4 relative z-10">
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/60 space-y-3">
+            <div class="flex gap-2">
+                <input type="text" id="new-title" placeholder="예: [주간 보고], [교대 근무]" class="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-[14px] font-bold focus:outline-none focus:border-slate-400 bg-slate-50">
+                <input type="text" id="new-category" placeholder="분류(선택)" class="w-24 px-3 py-2 border border-slate-200 rounded-xl text-[14px] font-bold focus:outline-none focus:border-slate-400 bg-slate-50">
+            </div>
+            <textarea id="new-content" placeholder="이곳에 자주 쓰는 보고 서식이나 본문 내용을 입력하세요. (개행 가능)" class="w-full h-24 p-3 border border-slate-200 rounded-xl text-[13.5px] font-medium focus:outline-none focus:border-slate-400 bg-slate-50 resize-none"></textarea>
+            <button onclick="addTemplate()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[14px] rounded-xl shadow-sm transition-colors">
+                ➕ 새 보고 문구 등록하기
+            </button>
+        </div>
+    </div>
+
+    <!-- 3. 저장된 상용구 목록 구역 -->
+    <div class="px-3 mt-5 flex-grow space-y-4">
+        <div class="flex justify-between items-center px-1">
+            <h2 class="text-[15px] font-black text-slate-700">📌 나의 저장된 보고 양식</h2>
+            <button onclick="resetToDefault()" class="text-[11px] font-bold text-slate-400 hover:text-rose-500 underline">초기 기본값 재설정</button>
+        </div>
+        
+        <!-- 문구 카드들이 동적으로 생성되는 컨테이너 -->
+        <div id="template-list" class="space-y-3"></div>
+    </div>
+
+</div>
+
+<!-- 4. 편집 및 복사 모달창 -->
+<div id="modal" class="fixed inset-0 bg-black/60 z-[1000] flex items-center justify-center p-4">
+    <div class="modal-body-box w-full max-w-[400px] bg-white rounded-[24px] overflow-hidden shadow-xl">
+        <div class="px-5 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+            <h3 class="text-[15px] font-black text-slate-800" id="modal-title">📄 문구 확인 및 수정</h3>
+            <span class="text-xl text-slate-400 cursor-pointer font-bold hover:text-slate-600" onclick="closeModal()">&times;</span>
+        </div>
+        <div class="p-4">
+            <textarea id="report-edit" class="w-full h-[280px] p-3 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-bold text-slate-700 focus:outline-none focus:bg-white focus:border-slate-300 resize-none leading-relaxed"></textarea>
+            <button class="w-full mt-3 py-4 bg-[#1e293b] hover:bg-slate-800 text-white font-black text-[15px] rounded-xl shadow-md active:scale-[0.99] transition-transform" onclick="copyText()">
+                📋 클립보드 복사하기
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 초기 예시 데이터 생성
+    const defaultTemplates = [
+        {
+            id: 1,
+            title: "📢 일일 근무 인계 사항",
+            category: "보안근무",
+            content: "📢 일일 근무 인계 사항 고지\n\n[주요 점검 완료 지점]\n- 성의회관 외곽 및 지하 주차장 램프 구간 이상 무\n- 의산연 내부 제연창 및 연결통로 누수 여부 점검 완료\n\n[특이사항 및 전달]\n- 특이사항 없음\n\n이상 주간 근무 교대 완료 보고드립니다."
+        },
+        {
+            id: 2,
+            title: "🚨 시설물 파손 및 보수 요청",
+            category: "시설관리",
+            content: "[시설물 하자 보수 요청 보고]\n\n1. 발생 위치: \n2. 결함 내용: \n3. 현장 조치 상태: \n4. 비고: 사진 첨부 참조 부탁드립니다."
+        },
+        {
+            id: 3,
+            title: "📋 주간 주차 차량 관리 대장",
+            category: "행정업무",
+            content: "📋 주간 주차관리 및 통제 보고\n\n- 지상 주차장 통제구역 진입 차량 안내 완료\n- 지하주차장 사낭(모래주머니) 보유량 점검: 총 83EA 확인 완료"
+        }
+    ];
+
+    let templates = [];
+
+    // 로컬 스토리지 또는 기본값 로드
+    function init() {
+        const stored = localStorage.getItem('report_templates');
+        if (stored) {
+            templates = JSON.parse(stored);
+        } else {
+            templates = [...defaultTemplates];
+            saveToStorage();
+        }
+        renderTemplates();
+    }
+
+    function saveToStorage() {
+        localStorage.setItem('report_templates', JSON.stringify(templates));
+    }
+
+    // 화면에 템플릿 카드 렌더링
+    function renderTemplates() {
+        const listContainer = document.getElementById('template-list');
+        listContainer.innerHTML = '';
+
+        if(templates.length === 0) {
+            listContainer.innerHTML = `<div class="text-center py-10 text-slate-400 text-[13px] font-medium">등록된 보고 문구가 없습니다.<br>상단에서 새 양식을 등록해 주세요.</div>`;
+            return;
+        }
+
+        templates.forEach(t => {
+            const card = document.createElement('div');
+            card.className = "bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between gap-3 active:bg-slate-50 transition-colors";
+            card.innerHTML = `
+                <div class="cursor-pointer" onclick="openModal(${t.id})">
+                    <div class="flex items-center gap-2 mb-1">
+                        ${t.category ? `<span class="bg-slate-100 text-slate-600 text-[10px] font-black px-2 py-0.5 rounded-md">${t.category}</span>` : ''}
+                        <h3 class="font-black text-[14.5px] text-slate-800">${t.title}</h3>
+                    </div>
+                    <p class="text-[12.5px] text-slate-400 line-clamp-2 font-medium whitespace-pre-line">${t.content}</p>
+                </div>
+                <div class="flex justify-end gap-3 border-t border-slate-100 pt-2 text-[12px] font-bold">
+                    <button onclick="deleteTemplate(${t.id})" class="text-rose-500 hover:text-rose-700">삭제</button>
+                    <button onclick="openModal(${t.id})" class="text-emerald-600 hover:text-emerald-800 flex items-center gap-1">선택 및 불러오기 ➔</button>
+                </div>
+            `;
+            listContainer.appendChild(card);
+        });
+    }
+
+    // 새 양식 저장 등록
+    function addTemplate() {
+        const titleInput = document.getElementById('new-title');
+        const categoryInput = document.getElementById('new-category');
+        const contentInput = document.getElementById('new-content');
+
+        if(!titleInput.value.trim() || !contentInput.value.trim()) {
+            alert("제목과 본문 내용은 필수 입력 항목입니다.");
+            return;
+        }
+
+        const newTemplate = {
+            id: Date.now(), // 고유 ID 부여
+            title: titleInput.value.trim(),
+            category: categoryInput.value.trim() || "기타",
+            content: contentInput.value
+        };
+
+        templates.unshift(newTemplate); // 배열 가장 앞에 추가
+        saveToStorage();
+        renderTemplates();
+
+        // 입력 폼 비우기
+        titleInput.value = '';
+        categoryInput.value = '';
+        contentInput.value = '';
+        alert("새 보고 문구가 정상 등록되었습니다.");
+    }
+
+    // 양식 삭제
+    function deleteTemplate(id) {
+        if(confirm("이 문구를 정말 삭제하시겠습니까?")) {
+            templates = templates.filter(t => t.id !== id);
+            saveToStorage();
+            renderTemplates();
+        }
+    }
+
+    // 모달창 열고 내용 채우기
+    function openModal(id) {
+        const template = templates.find(t => t.id === id);
+        if(!template) return;
+
+        document.getElementById('modal-title').innerText = template.title;
+        document.getElementById('report-edit').value = template.content;
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+
+    // 클립보드 복사
+    function copyText() {
+        const text = document.getElementById('report-edit').value;
+        navigator.clipboard.writeText(text).then(() => {
+            alert("선택하신 보고 문구가 복사되었습니다!\n단톡방이나 메신저 창에 붙여넣기하세요.");
+            closeModal();
+        }).catch(() => {
+            alert("복사에 실패했습니다. 본문을 직접 길게 눌러 선택 복사해주세요.");
+        });
+    }
+
+    // 기본값으로 되돌리기
+    function resetToDefault() {
+        if(confirm("기본 예시 문구들로 초기화하시겠습니까?\n(직접 작성하신 문구는 모두 사라집니다.)")) {
+            localStorage.removeItem('report_templates');
+            init();
+        }
+    }
+
+    // 실행 시작점 등록
+    window.onload = init;
+</script>
+</body>
+</html>
