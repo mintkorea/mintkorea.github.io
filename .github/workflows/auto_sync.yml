@@ -1,1 +1,21 @@
+name: Streamlit Auto Sync Scheduler
 
+on:
+  schedule:
+    # 매일 새벽 6시 00분(한국 시간 KST)에 자동으로 호출합니다.
+    # UTC 기준이므로 21:00이 한국 시간 06:00입니다.
+    - cron: '0 16 * * *'
+  
+  # 필요할 때 깃허브에서 버튼을 눌러 수동으로 즉시 실행할 수도 있습니다.
+  workflow_dispatch:
+
+jobs:
+  trigger_sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH/HTTP Trigger Streamlit App
+        run: |
+          echo "대관 현황 동기화 웹 주소를 호출합니다..."
+          # 본인의 Streamlit 배포 주소 URL을 넣어주세요
+          curl -s "https://rentalupdate.streamlit.app/" > /dev/null
+          echo "호출 성공! 구글 시트 동기화가 완료되었습니다."
