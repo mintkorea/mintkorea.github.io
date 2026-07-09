@@ -12,7 +12,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 st.set_page_config(page_title="성의교정 대관 관리 시스템", page_icon="🏫", layout="wide")
 KST = pytz.timezone('Asia/Seoul')
 
-# [수정] 자동화용 핵심 설정 변수
+# 자동화용 핵심 설정 변수
 now_today = datetime.now(KST).date()
 auto_end_date = now_today + timedelta(days=14) # 오늘부터 2주(14일) 후
 bu_list = ["성의회관", "의생명산업연구원", "옴니버스 파크", "옴니버스파크 의과대학", "옴니버스파크 간호대학", "대학본관", "서울성모별관"]
@@ -26,19 +26,26 @@ st.markdown("""
     .main-title { font-size: 24px; font-weight: bold; color: #1E3A5F; text-align: center; margin-bottom: 10px; }
     .date-bar { background-color: #343a40; color: white; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; margin-top: 30px; margin-bottom: 12px; font-size: 16px; }
     .bu-header { font-size: 17px; font-weight: bold; color: #1E3A5F; margin: 15px 0 8px 0; border-left: 5px solid #1E3A5F; padding-left: 10px; background: #f1f4f9; padding: 6px 10px; }
-    
-    /* 테이블 스타일 */
     .custom-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; table-layout: fixed; background: white; }
     .custom-table th { background: #f8f9fa; border: 1px solid #dee2e6; padding: 10px 5px; text-align: center; color: #495057; }
     .custom-table td { border: 1px solid #dee2e6; padding: 10px 8px; text-align: center; vertical-align: middle; }
     .event-cell { text-align: left !important; font-weight: 500; }
-    
-    /* 카드 스타일 */
     .mobile-card { background: white; border: 1px solid #eef0f2; border-radius: 8px; padding: 12px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     .time-text { color: #e74c3c; font-weight: bold; font-size: 14px; }
     .period-tag { font-size: 11px; color: #2196F3; margin-top: 4px; display: block; }
     </style>
 """, unsafe_allow_html=True)
+
+# --- 📢 [새로 추가] 메신저 에러 알림 보내기 함수 ---
+def send_telegram_alert(message):
+    try:
+        # Streamlit 설정에 저장해둔 토큰과 아이디를 가져옵니다.
+        BOT_TOKEN = st.secrets["telegram_bot_token"]
+        CHAT_ID = st.secrets["telegram_chat_id"]
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+        requests.post(url, json={"chat_id": CHAT_ID, "text": message}, timeout=5)
+    except:
+        pass # 알림 보내기 자체가 실패한 경우는 프로그램 안 멈추게 조용히 통과
 
 # --- 유틸리티 함수 ---
 def get_weekday_names(codes):
@@ -47,9 +54,9 @@ def get_weekday_names(codes):
     return ",".join([days.get(c.strip(), "") for c in str(codes).split(",") if c.strip() in days])
 
 def get_shift(target_date):
-    base_date = date(2026, 3, 13) # 기준일
+    base_date = date(2025, 1, 1) # 기준일 수정 반영
     diff = (target_date - base_date).days
-    return f"{['A', 'B', 'C'][diff % 3]}조"
+    return f"{['C', 'A', 'B'][diff % 3]}조"
 
 # --- 구글 시트 자동화 로직 ---
 def update_google_sheet(df):
@@ -97,11 +104,14 @@ def update_google_sheet(df):
         sync_time = datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S')
         sheet.update('R1', [[f"최종 자동 동기화: {sync_time}"]])
         return True
+        
     except Exception as e:
         st.error(f"시트 연동 오류: {e}")
+        # 🚨 [수정 반영] 구글 시트 쓰기 실패 시 텔레그램 알림 발송
+        send_telegram_alert(f"⚠️ [대관 시스템 오류]\n구글 시트 연동에 실패했습니다.\n에러 내용: {str(e)}")
         return False
 
-# --- 데이터 크롤링 (TTL을 1분으로 축소하여 실시간 스케줄링에 최적화) ---
+# --- 데이터 크롤링 ---
 @st.cache_data(ttl=60)
 def get_data(start_date, end_date):
     url = "https://songeui.catholic.ac.kr/ko/service/application-for-rental_calendar.do"
@@ -135,15 +145,19 @@ def get_data(start_date, end_date):
                         })
                 curr += timedelta(days=1)
         return pd.DataFrame(rows).drop_duplicates() if rows else pd.DataFrame()
-    except: return pd.DataFrame()
+        
+    except Exception as e: 
+        # 🚨 [수정 반영] 대관 사이트 접속 실패 시 텔레그램 알림 발송
+        send_telegram_alert(f"⚠️ [대관 시스템 오류]\n성의교정 사이트 크롤링에 실패했습니다.\n에러 내용: {str(e)}")
+        return pd.DataFrame()
 
 # --- 메인 실행 흐름 ---
 st.markdown('<div class="main-title">🏫 성의교정 대관 현황 자동화 시스템</div>', unsafe_allow_html=True)
 
-# [수정] 2주치 전체 건물 데이터를 백그라운드에서 상시 자동 로드 및 중복제거 필터링
+# 2주치 전체 건물 데이터를 백그라운드에서 상시 자동 로드 및 중복제거 필터링
 df = get_data(now_today, auto_end_date)
 
-# [수정] 스케줄러(Github Actions / 크론)가 페이지를 접속하자마자 사람 손을 거치지 않고 "자동 동기화" 실행
+# 스케줄러가 페이지를 접속하자마자 사람 손을 거치지 않고 "자동 동기화" 실행
 if not df.empty:
     update_google_sheet(df)
 
@@ -151,11 +165,9 @@ if not df.empty:
 with st.expander("⚙️ 사용자 수동 조회 및 필터 설정", expanded=False):
     c1, c2, c3 = st.columns([1.5, 2, 1.2])
     with c1:
-        # 기본값은 자동으로 계산된 2주간의 일정으로 고정하되, 조절 가능
         s_date = st.date_input("조회 시작", value=now_today)
         e_date = st.date_input("조회 종료", value=auto_end_date)
     with c2:
-        # [수정] 기본값으로 모든 건물이 다 선택되도록 수정 완료
         sel_bu = st.multiselect("건물 선택", options=bu_list, default=bu_list)
     with c3:
         view_mode = st.radio("보기 모드", ["표 형식", "카드 형식"], horizontal=True)
@@ -168,7 +180,6 @@ if not df.empty:
     curr = now_today
     while curr <= auto_end_date:
         d_str = curr.strftime('%Y-%m-%d')
-        # 수동 조회 UI 날짜/건물 필터에 유연하게 맞추어 출력
         day_df = df[df['full_date'] == d_str]
         if not day_df.empty:
             st.markdown(f'<div class="date-bar">📅 {d_str} ({"월화수목금토일"[curr.weekday()]}) | {get_shift(curr)}</div>', unsafe_allow_html=True)
