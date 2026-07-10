@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>성의교정 주요 전화 & 비상대응포털</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+    <style>
+        * { box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
+        body { background-color: #f8fafc; margin: 0; padding: 0; color: #1e293b; -webkit-tap-highlight-color: transparent; }
+        .container { max-width: 600px; margin: 0 auto; background: white; min-height: 100vh; padding: 12px; position: relative; }
+        .app-title { font-weight: 900; color: #1e3a8a; font-size: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
+        
+        /* 검색 및 탭 */
+        .search-area { background: #f1f5f9; padding: 12px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
+        .search-container { position: relative; width: 100%; margin-bottom: 8px; }
+        .search-box { width: 100%; padding: 12px 40px 12px 14px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 16px; outline: none; }
+        .clear-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: #94a3b8; color: white; border-radius: 50%; border: none; display: none; align-items: center; justify-content: center; cursor: pointer; }
+        
+        .tabs-wrapper { overflow-x: auto; scrollbar-width: none; margin-bottom: 15px; }
+        .tabs-wrapper::-webkit-scrollbar { display: none; }
+        .tabs { display: flex; gap: 6px; width: max-content; padding: 2px 4px; }
+        .tab { padding: 10px 16px; background: #f1f5f9; border-radius: 20px; font-size: 13px; cursor: pointer; color: #64748b; font-weight: 700; text-align: center; white-space: nowrap; border: 1px solid #e2e8f0; }
+        .tab.active { background: #1e3a8a; color: white; border-color: #1e3a8a; }
+        .tab.tab-emergency { background: #fef2f2; color: #ef4444; border-color: #fca5a5; }
+        .tab.tab-emergency.active { background: #ef4444; color: white; border-color: #ef4444; }
+        
+        /* 리스트 구조 */
+        .phone-item { border-bottom: 1px solid #f1f5f9; padding: 12px 4px; display: flex; align-items: center; gap: 8px; min-height: 60px; }
+        .phone-item.emergency-highlight { background-color: #fff5f5; border-left: 4px solid #ef4444; padding-left: 8px; }
+        .info-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .top-row { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+        
+        .name-area { font-weight: 800; color: #0f172a; flex: 1; word-break: keep-all; line-height: 1.2; overflow: hidden; }
+        
+        /* 번호 영역 */
+        .num-area { 
+            font-size: 14px; 
+            font-weight: 800; 
+            color: #1e3a8a; 
+            text-align: right; 
+            letter-spacing: -0.02em; 
+            white-space: nowrap; 
+            flex-shrink: 0; 
+            min-width: 80px;
+            max-width: 110px;
+            overflow: hidden;
+        }
+        .phone-item.emergency-highlight .num-area { color: #ef4444; }
+        .highlight-num { color: #0ea5e9; font-style: italic; }
+        .phone-item.emergency-highlight .highlight-num { color: #ef4444; }
+        
+        /* 아이콘 영역 */
+        .icon-area { 
+            display: flex; 
+            justify-content: flex-end; 
+            gap: 8px; 
+            flex-shrink: 0; 
+            width: 64px; 
+            margin-left: auto;
+        }
+        .btn-icon { text-decoration: none; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; font-size: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; }
+        .btn-m { background: #ecfdf5; color: #059669; border-color: #d1fae5; }
+        .phone-item.emergency-highlight .btn-icon { background: #ef4444; color: white; border-color: #ef4444; }
+        .phone-item.emergency-highlight .btn-m { background: #f97316; color: white; border-color: #f97316; }
+        .btn-placeholder { width: 28px; height: 28px; flex-shrink: 0; }
+        .work-text { font-size: 12px; color: #64748b; font-weight: 500; margin-top: 4px; }
+
+        /* 하단 고정 알림 바 */
+        .fixed-footer-notice { background: #1e293b; color: #f8fafc; font-size: 11px; padding: 10px; text-align: center; font-weight: 600; border-top: 1px solid #334155; margin-top: 20px; border-radius: 8px; }
+
+        /* 관리자 및 모달 */
+        #admin-view { display: none; padding-bottom: 80px; }
+        .admin-controls { background: #f1f5f9; padding: 15px; border-radius: 10px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .admin-btn-group { display: flex; gap: 8px; }
+        .btn-admin { flex: 1; padding: 10px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; font-size: 13px; }
+        .btn-sync { background: #4285f4; color: white; }
+        .btn-upload { background: #34a853; color: white; }
+        .btn-pw { background: #64748b; color: white; }
+        .table-wrapper { overflow-x: auto; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 900px; }
+        th, td { border: 1px solid #e2e8f0; padding: 8px 4px; }
+        .save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 10px; border-top: 2px solid #e2e8f0; display: flex; gap: 8px; max-width: 600px; margin: 0 auto; z-index: 100; }
+        
+        /* 비상 가이드 및 패스워드 모달 공통 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
+        .modal-content { background: white; padding: 20px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; }
+        .modal-input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; }
+
+        /* 가이드 팝업 디자인 */
+        .guide-header { font-size: 16px; font-weight: 800; color: #ef4444; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; border-bottom: 2px solid #fee2e2; padding-bottom: 8px; }
+        .guide-section-title { font-size: 13px; font-weight: 700; color: #1e3a8a; margin-top: 12px; margin-bottom: 4px; background: #eff6ff; padding: 4px 8px; border-radius: 4px; }
+        .guide-box { font-size: 12px; color: #475569; line-height: 1.6; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .guide-box ul { margin: 0; padding-left: 18px; }
+        .guide-box li { margin-bottom: 2px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="app-title">성의교정 주요 전화 <button onclick="loginAdmin()" style="border:none; background:none; color:#ddd; font-size:10px; cursor:pointer;">Admin</button></div>
+
+    <div id="user-view">
+        <div class="search-area">
+            <div class="search-container">
+                <input type="text" id="search-input" class="search-box" placeholder="이름, 부서, 업무, 사고유형 검색...">
+                <button id="clear-search" class="clear-btn" onclick="clearSearch()">×</button>
+            </div>
+            <div class="option-row">
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:14px; font-weight:700; color:#475569;">
+                    <input type="checkbox" id="dept-only" onchange="renderList()"> 부서/장소명으로만 검색
+                </label>
+            </div>
+        </div>
+        <div class="tabs-wrapper">
+            <div class="tabs">
+                <div class="tab tab-emergency active" onclick="filterTab('🚨비상')">🚨비상/보고</div>
+                <div class="tab" onclick="filterTab('전체')">전체</div>
+                <div class="tab" onclick="filterTab('보안')">보안</div>
+                <div class="tab" onclick="filterTab('시설')">시설</div>
+                <div class="tab" onclick="filterTab('미화')">미화</div>
+                <div class="tab" onclick="filterTab('총무')">총무</div>
+                <div class="tab" onclick="filterTab('지원')">지원</div>
+                <div class="tab" onclick="filterTab('기타')">기타</div>
+            </div>
+        </div>
+        <div id="list-container"></div>
+        <div class="fixed-footer-notice">
+            🚨 미화팀/임직원 수리요청 시 FMS 등록 필수! 성의회관 또는 조장 즉시 보고[span_0](start_span)[span_0](end_span)
+        </div>
+    </div>
+
+    <!-- 관리자 뷰 -->
+    <div id="admin-view">
+        <div class="admin-controls">
+            <div class="admin-btn-group">
+                <button class="btn-admin btn-sync" onclick="syncWithGoogleSheet()">구글 시트 동기화</button>
+                <button class="btn-admin btn-upload" onclick="document.getElementById('csv-file').click()">PC 파일 업로드</button>
+                <input type="file" id="csv-file" style="display:none" accept=".csv" onchange="uploadCSV(this)">
+            </div>
+            <button class="btn-admin btn-pw" onclick="openPwModal()">비밀번호 변경</button>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead><tr style="background:#f8fafc;"><th>구분</th><th>부서명</th><th>담당자</th><th>전화</th><th>휴대폰</th><th>비고</th><th>keyword</th><th>삭제</th></tr></thead>
+                <tbody id="admin-table-body"></tbody>
+            </table>
+        </div>
+        <div class="save-bar">
+            <button onclick="saveAll()" style="flex:2; padding:15px; background:#1e3a8a; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">저장 및 적용</button>
+            <button onclick="location.reload()" style="flex:1; padding:15px; background:#64748b; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">취소</button>
+        </div>
+    </div>
+</div>
+
+<!-- 비밀번호 모달 -->
+<div id="pw-modal" class="modal">
+    <div class="modal-content">
+        <h3 style="margin-top:0">비밀번호 변경</h3>
+        <input type="password" id="new-pw" class="modal-input" placeholder="새 비밀번호 입력">
+        <div style="display:flex; gap:8px;">
+            <button onclick="changePassword()" style="flex:1; padding:10px; background:#1e3a8a; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">변경</button>
+            <button onclick="closePwModal()" style="flex:1; padding:10px; background:#e2e8f0; border:none; border-radius:6px; cursor:pointer;">닫기</button>
+        </div>
+    </div>
+</div>
+
+<!-- 🚨 유기적 연동: 비상 가이드 팝업 모달 -->
+<div id="emergency-modal" class="modal">
+    <div class="modal-content">
+        <div class="guide-header">
+            <span>🚨 비상 상황 보고 및 응대 가이드</span>
+        </div>
+        
+        <div class="guide-section-title">📞 전화를 걸기 전 필수 확인! (9대 보고 항목)</div>
+        <div class="guide-box">
+            <b>상황실/총무팀 보고 시 아래 내용을 명확히 전달하십시오.</b>[span_1](start_span)[span_1](end_span)
+            <ul style="margin-top:4px;">
+                <li><b>인명/화재/도난/누수사고</b> 발생 시 상황 즉시 공유[span_2](start_span)[span_2](end_span)</li>
+                <li>야간집회(10명 이상), 군경출동, 주요 VIP 방문 상황[span_3](start_span)[span_3](end_span)</li>
+                <li>주민항의(대관, 시신기증 관련 등) 접수 시[span_4](start_span)[span_4](end_span)</li>
+            </ul>
+        </div>
+
+        <div class="guide-section-title">🔄 성의교정 신속 보고 체계</div>
+        <div class="guide-box">
+            • <b>정상 보고</b>: 근무조장(반장) → 보안 부소장 → 보안 소장 → 총무팀 담당 → 총무팀 UM → 총무팀장[span_5](start_span)[span_5](end_span)<br>
+            • <b>비상 보고</b>: 근무조장(반장) → 총무팀 담당/UM → 총무팀장[span_6](start_span)[span_6](end_span)
+        </div>
+
+        <div class="guide-section-title">🛠️ 주요 조치 및 주의사항</div>
+        <div class="guide-box">
+            • <b>승강기 고장</b>: 탑승자 있을 시 <u>[탑승자명, 소속, 연락처]</u> 필수 기록[span_7](start_span)[span_7](end_span)<br>
+            • <b>누수/파손</b>: 조장 보고 후 즉시 FMS 등록 연계 처리[span_8](start_span)[span_8](end_span)
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:15px;">
+            <button id="guide-call-btn" style="flex:2; padding:12px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px;">⚠️ 확인 및 전화연결</button>
+            <button onclick="closeEmergencyModal()" style="flex:1; padding:12px; background:#e2e8f0; color:#475569; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px;">취소</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let allData = [];
+    let currentTab = "🚨비상"; // 첫 진입 시 비상 탭이 열리도록 설정
+    const tabPriority = { "🚨비상": 0, "보안": 1, "시설": 2, "미화": 3, "총무": 4, "지원": 5, "기타": 6 };
+    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpOX8Ll6no4uXd5jnK0umTY3U_eKZXcDK2z_f2EsxSQDuOqk4YGzNkULJn_WgjTFBUseCbl6smBh0Z/pub?gid=1424582869&single=true&output=csv";
+
+    const dbName = "YellowPage_DB";
+    let db;
+    const request = indexedDB.open(dbName, 1);
+    request.onupgradeneeded = e => { e.target.result.createObjectStore("contacts", { keyPath: "id", autoIncrement: true }); };
+    request.onsuccess = e => { db = e.target.result; loadLocalData(); };
+
+    function loadLocalData() {
+        const tx = db.transaction(["contacts"], "readonly");
+        const store = tx.objectStore("contacts");
+        const getAll = store.getAll();
+        getAll.onsuccess = () => {
+            allData = getAll.result;
+            if (allData.length === 0) syncWithGoogleSheet(true);
+            else renderList();
+        };
+    }
+
+    async function syncWithGoogleSheet(isAuto = false) {
+        if (!isAuto && !confirm("구글 시트의 데이터로 동기화하시겠습니까?")) return;
+        try {
+            const response = await fetch(SHEET_URL);
+            const csvText = await response.text();
+            processCSV(csvText);
+        } catch (e) { alert("동기화 실패"); }
+    }
+
+    function uploadCSV(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => processCSV(e.target.result);
+        reader.readAsText(file, "EUC-KR");
+    }
+
+    function processCSV(text) {
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        allData = lines.slice(1).map(line => {
+            const c = splitCSVLine(line);
+            return { cat: c[0]||"", dept: c[1]||"", name: c[2]||"", tel: c[3]||"", hp: c[4]||"", work: c[5]||"", keyword: c[6]||"" };
+        });
+        renderList();
+        if (document.getElementById('admin-view').style.display === 'block') renderAdminTable();
+    }
+
+    function splitCSVLine(line) {
+        const result = [];
+        let cur = '', inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') inQuotes = !inQuotes;
+            else if (char === ',' && !inQuotes) { result.push(cur.trim()); cur = ''; }
+            else cur += char;
+        }
+        result.push(cur.trim());
+        return result.map(v => v.replace(/^"|"$/g, '').trim());
+    }
+
+    function getChosung(str) {
+        const cho = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+        let result = "";
+        for (let i = 0; i < str.length; i++) {
+            const code = str.charCodeAt(i) - 44032;
+            result += (code > -1 && code < 11172) ? cho[Math.floor(code / 588)] : str.charAt(i);
+        }
+        return result;
+    }
+
+    // 유기적 가이드 모달 제어 함수
+    let targetPhoneUrl = "";
+    function triggerCallWithGuide(telUrl) {
+        targetPhoneUrl = telUrl;
+        document.getElementById('emergency-modal').style.display = 'flex';
+        document.getElementById('guide-call-btn').onclick = function() {
+            window.location.href = targetPhoneUrl;
+            closeEmergencyModal();
+        };
+    }
+    function closeEmergencyModal() { document.getElementById('emergency-modal').style.display = 'none'; }
+
+    function renderList() {
+        const query = document.getElementById('search-input').value.toLowerCase().trim();
+        const deptOnly = document.getElementById('dept-only').checked;
+        const container = document.getElementById('list-container');
+        document.getElementById('clear-search').style.display = query ? "flex" : "none";
+        container.innerHTML = "";
+
+        let filtered = allData.filter(item => {
+            // '🚨비상' 탭 선택 시, 구분(cat)에 '비상'이 포함되거나 시트 비고/키워드에 비상 속성이 있는 것 우선 필터링
+            const isEmergencyItem = (item.cat && item.cat.includes("비상")) || (item.keyword && item.keyword.includes("비상"));
+            const tabMatch = (currentTab === "전체") || 
+                             (currentTab === "🚨비상" && isEmergencyItem) || 
+                             (item.cat && item.cat.includes(currentTab));
+                             
+            if (!tabMatch) return false;
+            if (!query) return true;
+            
+            const name = (item.name||"").toLowerCase(), dept = (item.dept||"").toLowerCase(), work = (item.work||"").toLowerCase(), key = (item.keyword||"").toLowerCase();
+            const qCho = getChosung(query);
+            if (name.includes(query) || dept.includes(query) || work.includes(query) || key.includes(query)) return true;
+            const nCho = getChosung(name).includes(qCho), wCho = getChosung(work).includes(qCho), kCho = getChosung(key).includes(qCho), dCho = getChosung(dept).includes(qCho);
+            return deptOnly ? dCho : (nCho || wCho || kCho);
+        });
+
+        filtered.sort((a, b) => {
+            const getRank = c => { for(let k in tabPriority) { if(c.includes(k)) return tabPriority[k]; } return 99; };
+            const rA = getRank(a.cat), rB = getRank(b.cat);
+            if (rA !== rB) return rA - rB;
+            const nA = parseInt(a.cat.replace(/[^0-9]/g, "")) || 999, nB = parseInt(b.cat.replace(/[^0-9]/g, "")) || 999;
+            return nA !== nB ? nA - nB : new Intl.Collator('ko', {numeric: true}).compare(a.dept, b.dept);
+        });
+
+        filtered.forEach(r => {
+            let dName = r.name ? r.dept + ' ' + r.name : r.dept;
+            let fSize = dName.length > 15 ? "12px" : (dName.length > 12 ? "13.5px" : "15px");
+            
+            let rawNum = r.tel || r.hp || "";
+            let dNum = rawNum.replace('02-3147-','').replace('02-2258-','');
+            const getStyled = s => (s.includes('*1') || s.includes('2258')) ? `<span class="highlight-num">${s}</span>` : s;
+            
+            let callT = "";
+            const rawT = (r.tel||"").replace(/[^0-9*]/g,'');
+            if (rawT) {
+                if (r.tel.includes('*1')) callT = "022258" + rawT.replace('*1','');
+                else if (rawT.length === 4) callT = "023147" + rawT;
+                else callT = (rawT.length >= 7 && !rawT.startsWith('0')) ? "02" + rawT : rawT;
+            }
+
+            // 비상 항목 판정 (하이라이트 스타일링 및 모달 팝업 가이드 적용 대상)
+            const isEmergency = (r.cat && r.cat.includes("비상")) || (r.keyword && r.keyword.includes("비상")) || dName.includes("상황실") || dName.includes("소방서");
+            const itemClass = isEmergency ? "phone-item emergency-highlight" : "phone-item";
+
+            // 가이드 모달 거치기 vs 즉시 연결 스위칭
+            const tBtnClick = isEmergency && callT ? `onclick="triggerCallWithGuide('tel:${callT}')"` : (callT ? `href="tel:${callT}"` : '');
+            const mBtnClick = isEmergency && (r.hp||"").length > 5 ? `onclick="triggerCallWithGuide('tel:${r.hp.replace(/[^0-9]/g,"")}')"` : ((r.hp||"").length > 5 ? `href="tel:${r.hp.replace(/[^0-9]/g,"")}"` : '');
+
+            const tBtn = callT ? `<a ${tBtnClick} class="btn-icon">T</a>` : `<div class="btn-placeholder"></div>`;
+            const mBtn = (r.hp||"").length > 5 ? `<a ${mBtnClick} class="btn-icon btn-m">M</a>` : `<div class="btn-placeholder"></div>`;
+
+            container.insertAdjacentHTML('beforeend', `
+                <div class="${itemClass}">
+                    <div class="info-area">
+                        <div class="top-row">
+                            <div class="name-area" style="font-size:${fSize}">${dName}</div>
+                            <div class="num-area">${dNum ? getStyled(dNum) : ''}</div>
+                        </div>
+                        ${r.work ? `<div class="work-text">${r.work}</div>` : ''}
+                    </div>
+                    <div class="icon-area">${tBtn}${mBtn}</div>
+                </div>`);
+        });
+    }
+
+    function loginAdmin() {
+        const savedPw = localStorage.getItem("adminPw") || "1234";
+        if (prompt("비밀번호") === savedPw) {
+            document.getElementById('user-view').style.display='none';
+            document.getElementById('admin-view').style.display='block';
+            renderAdminTable();
+        }
+    }
+    function openPwModal() { document.getElementById('pw-modal').style.display = 'flex'; }
+    function closePwModal() { document.getElementById('pw-modal').style.display = 'none'; }
+    function changePassword() {
+        const newPw = document.getElementById('new-pw').value;
+        if (newPw) { localStorage.setItem("adminPw", newPw); alert("비밀번호가 변경되었습니다."); closePwModal(); }
+    }
+    function renderAdminTable() {
+        const tbody = document.getElementById('admin-table-body');
+        tbody.innerHTML = "";
+        allData.forEach((item, idx) => {
+            tbody.insertAdjacentHTML('beforeend', `<tr>
+                <td><input style="width:100%" value="${item.cat}" oninput="allData[${idx}].cat=this.value"></td>
+                <td><input style="width:100%" value="${item.dept}" oninput="allData[${idx}].dept=this.value"></td>
+                <td><input style="width:100%" value="${item.name}" oninput="allData[${idx}].name=this.value"></td>
+                <td><input style="width:100%" value="${item.tel}" oninput="allData[${idx}].tel=this.value"></td>
+                <td><input style="width:100%" value="${item.hp}" oninput="allData[${idx}].hp=this.value"></td>
+                <td><input style="width:100%" value="${item.work}" oninput="allData[${idx}].work=this.value"></td>
+                <td><input style="width:100%" value="${item.keyword}" oninput="allData[${idx}].keyword=this.value"></td>
+                <td style="text-align:center"><button onclick="allData.splice(${idx},1);renderAdminTable();" style="cursor:pointer;">×</button></td>
+            </tr>`);
+        });
+    }
+    async function saveAll() {
+        const tx = db.transaction(["contacts"], "readwrite");
+        const store = tx.objectStore("contacts");
+        store.clear();
+        allData.forEach(d => { const {id, ...rest} = d; store.add(rest); });
+        tx.oncomplete = () => { alert("저장되었습니다."); location.reload(); };
+    }
+    function filterTab(t) { currentTab = t; document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.innerText === t)); renderList(); }
+    function clearSearch() { document.getElementById('search-input').value = ""; renderList(); }
+    document.getElementById('search-input').addEventListener('input', renderList);
+</script>
+</body>
+</html>
