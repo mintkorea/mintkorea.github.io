@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; scroll-behavior: smooth; }; ; ; ; 
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; scroll-behavior: smooth; }
         .tab-transition { transition: all 0.2s ease-in-out; }
         .menu-main-style { white-space: nowrap !important; letter-spacing: -0.03em !important; word-break: keep-all; font-size: 1.5rem; line-height: 2rem; }
         .day-sun { color: #EF4444; }
@@ -45,7 +45,7 @@
             </div>
         </div>
 
-        <!-- [신규] 실시간 슬라이드 관리자 CSV 입력 패널 -->
+        <!-- 실시간 슬라이드 관리자 CSV 입력 패널 -->
         <div id="adminPanel" class="w-full bg-slate-900 text-slate-100 rounded-2xl p-4 mb-3 border border-slate-700 shadow-inner flex flex-col gap-3">
             <div class="flex justify-between items-center border-b border-slate-700 pb-2">
                 <span class="text-xs font-black text-amber-400 tracking-wider uppercase">⚙️ 식단 데이터 직접 적재 (ADMIN)</span>
@@ -102,6 +102,7 @@
     </div>
 
     <script>
+        // ⚠️ 주의: GAS에서 [새 배포] 후 나온 최신 웹 앱 URL로 반드시 변경하세요!
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwVQrFwaWiePxDEyh7yEOssCFUSZunS36UYtQKloXWGXD0I5qMvXlISpSRqroGrn5ZN/exec";
         
         // 근무조 설정
@@ -130,62 +131,62 @@
 
         function normalize(str) { return String(str).replace(/[^ㄱ-ㅎ가-힣a-zA-Z0-9]/g, ""); }
 
-        // 관리자 패널 열기/닫기 토글 함수
         function toggleAdminPanel() {
             const panel = document.getElementById('adminPanel');
             panel.classList.toggle('open');
         }
 
-        // [신규 로직] 관리자 모드에서 붙여넣은 CSV 데이터를 구글 앱스 스크립트로 POST 전송하는 함수
-       // HTML 내부의 uploadCSV 함수를 이것으로 교체하세요.
-async function uploadCSV() {
-    const csvText = document.getElementById('csvInput').value.trim();
-    const uploadBtn = document.getElementById('uploadBtn');
-    
-    if (!csvText) {
-        alert("업로드할 CSV 데이터를 입력창에 붙여넣어 주세요.");
-        return;
-    }
+        // [최적화 적용] 대용량 유실 없는 FormData 기반 POST 전송 함수
+        async function uploadCSV() {
+            const csvInput = document.getElementById('csvInput');
+            const csvText = csvInput.value.trim();
+            const uploadBtn = document.getElementById('uploadBtn');
+            
+            if (!csvText) {
+                alert("업로드할 CSV 데이터를 입력창에 붙여넣어 주세요.");
+                return;
+            }
 
-    if (!confirm("입력한 데이터로 구글 시트를 업데이트하시겠습니까?\n기존에 겹치는 날짜의 식단은 덮어씌워집니다.")) {
-        return;
-    }
+            if (!confirm("입력한 데이터로 구글 시트를 업데이트하시겠습니까?\n기존에 겹치는 날짜의 식단은 자동으로 업데이트(Upsert)됩니다.")) {
+                return;
+            }
 
-    try {
-        uploadBtn.disabled = true;
-        uploadBtn.innerText = "🔄 구글 시트 저장 및 데이터 동기화 중...";
-        uploadBtn.className = "w-full bg-slate-700 text-slate-400 text-xs font-black py-2.5 rounded-lg cursor-not-allowed";
+            try {
+                uploadBtn.disabled = true;
+                uploadBtn.innerText = "🔄 대용량 데이터 보안 전송 및 시트 적재 중...";
+                uploadBtn.className = "w-full bg-slate-700 text-slate-400 text-xs font-black py-2.5 rounded-lg cursor-not-allowed";
 
-        // CORS 프리플라이트 및 리다이렉션 제한을 우회하기 위해 GET 전송 방식으로 전송 규격 통일
-        const encodeData = encodeURIComponent(csvText);
-        const targetUrl = `${GAS_URL}?action=update_meal_csv&data=${encodeData}`;
+                // URL 글자수 제한을 피하기 위해 POST의 FormData 바디에 파라미터를 격리 적재
+                const formData = new FormData();
+                formData.append("action", "update_meal_csv");
+                formData.append("data", csvText);
 
-        const response = await fetch(targetUrl, {
-            method: "GET",
-            mode: "cors"
-        });
+                // 구글 웹앱 리다이렉트 정책을 안전하게 통과하는 Fetch 구조
+                const response = await fetch(GAS_URL, {
+                    method: "POST",
+                    body: formData
+                });
 
-        const result = await response.json();
+                const result = await response.json();
 
-        if (result.status === "success") {
-            alert("🎉 구글 시트 적재가 성공적으로 완료되었습니다!");
-            document.getElementById('csvInput').value = ""; // 입력란 초기화
-            toggleAdminPanel(); // 패널 닫기
-            await loadData(); // 최신 업로드 데이터로 화면 갱신
-        } else {
-            throw new Error(result.message || "서버 알 수 없는 오류");
+                if (result.status === "success") {
+                    alert(`🎉 구글 시트 적재 성공!\n총 ${result.count || 0}개의 식단이 정상 정재되었습니다.`);
+                    csvInput.value = ""; 
+                    toggleAdminPanel(); 
+                    await loadData(); 
+                } else {
+                    throw new Error(result.message || "구글 스크립트 내부 정재 실패");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("❌ 업로드 실패: 글자수 제한 초과 또는 GAS 웹앱 권한(모든 사용자) 설정 상태를 확인해 주세요.");
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.innerText = "구글 시드로 데이터 업로드 (정재 실행)";
+                uploadBtn.className = "w-full bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black py-2.5 rounded-lg shadow-md transition-colors active:scale-[0.99]";
+            }
         }
-    } catch (error) {
-        console.error(error);
-        alert("❌ 업로드 실패: 네트워크 연결 상태 또는 구글 앱스 스크립트(GAS) 수신 설정을 확인하세요.");
-    } finally {
-        uploadBtn.disabled = false;
-        uploadBtn.innerText = "구글 시드로 데이터 업로드 (정재 실행)";
-        uploadBtn.className = "w-full bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black py-2.5 rounded-lg shadow-md transition-colors active:scale-[0.99]";
-    }
-}
 
-        // 오프라인 우선 데이터 로드 로직
         async function loadData() {
             const dot = document.getElementById('statusDot');
             const txt = document.getElementById('statusText');
@@ -229,7 +230,6 @@ async function uploadCSV() {
             document.getElementById('dateDisplay').innerHTML = `${y}.${String(m).padStart(2,'0')}.${String(d).padStart(2,'0')} <span class="${weekIdx===0?'day-sun':(weekIdx===6?'day-sat':'')}">(${weekNames[weekIdx]})</span>`;
             document.getElementById('hiddenDatePicker').value = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 
-            // 근무조 계산
             const targetDate = new Date(currentDate); targetDate.setHours(0,0,0,0);
             const baseDate = new Date(shiftConfig.baseDate); baseDate.setHours(0,0,0,0);
             const diffDays = Math.floor((targetDate - baseDate) / 86400000);
@@ -239,7 +239,6 @@ async function uploadCSV() {
             badge.innerText = `${shift.name}조 근무`;
             badge.style.backgroundColor = shift.color;
 
-            // 탭 렌더링
             const tabsContainer = document.getElementById('tabs-container');
             tabsContainer.innerHTML = '';
             MEAL_ORDER.forEach(meal => {
@@ -254,7 +253,6 @@ async function uploadCSV() {
                 tabsContainer.appendChild(btn);
             });
 
-            // 데이터 매칭
             const key = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const dayData = allData[key] || allData[`${y}-${m}-${d}`] || null;
             let info = null;
@@ -262,7 +260,6 @@ async function uploadCSV() {
                 for (const k in dayData) { if (normalize(k) === normalize(activeTab)) { info = dayData[k]; break; } }
             }
 
-            // 카드 업데이트
             const menuCard = document.getElementById('menu-card');
             menuCard.style.borderColor = mealMeta[activeTab].color;
             document.getElementById('main-menu').innerText = info?.menu || "식단 정보가 없습니다.";
