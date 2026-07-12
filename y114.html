@@ -23,7 +23,7 @@
         .clear-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: #94a3b8; color: white; border-radius: 50%; border: none; display: none; align-items: center; justify-content: center; cursor: pointer; }
         .option-row { display: flex; justify-content: space-between; align-items: center; }
 
-        /* 4x2 격자 탭 레이아웃 */
+        /* 상단 탭 레이아웃 */
         .tabs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 15px; }
         .tab { padding: 10px 0; background: #f1f5f9; border-radius: 8px; font-size: 13px; cursor: pointer; color: #64748b; font-weight: 700; text-align: center; }
         .tab.active { background: #1e3a8a; color: white; }
@@ -57,7 +57,7 @@
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
         .modal-content { background: white; padding: 20px; border-radius: 12px; width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         
-        /* 보고체계 스타일 */
+        /* 보고체계 서브 탭 스타일 (가독성 증대) */
         .report-sub-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
         .sub-tab { flex: 1; padding: 10px; text-align: center; font-size: 16px; font-weight: 800; color: #64748b; cursor: pointer; border-radius: 6px; background: #f1f5f9; }
         .sub-tab.active { background: #1e3a8a; color: white; }
@@ -68,20 +68,22 @@
         .large-flow-step.em { background: #fff5f5; border-left-color: #ef4444; color: #b91c1c; }
         .large-flow-arrow { text-align: center; color: #94a3b8; font-size: 18px; margin: 4px 0; font-weight: bold; }
 
-        /* 필수보고 스타일 */
+        /* 필수보고 2x5 격자 구조 */
         .cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
         .report-card { background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 10px; padding: 16px 10px; text-align: center; font-size: 16px; font-weight: 800; color: #334155; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; min-height: 70px; word-break: keep-all; }
         .report-card:hover, .report-card.active { background: #e0f2fe; border-color: #0ea5e9; color: #0369a1; transform: translateY(-2px); }
         .report-card.card-all { background: #1e3a8a; color: white; border-color: #1e3a8a; font-size: 18px; }
         .report-card.card-all:hover { background: #1d4ed8; color: white; }
-        .card-detail-view { background: #f1f5f9; border-radius: 8px; padding: 15px; min-height: 60px; font-size: 16px; font-weight: 700; color: #1e293b; line-height: 1.5; border: 1px solid #cbd5e1; text-align: center; display: flex; align-items: center; justify-content: center; }
+        
+        /* 세부 내용 보기 창 */
+        .card-detail-view { background: #f1f5f9; border-radius: 8px; padding: 15px; min-height: 80px; max-height: 250px; overflow-y: auto; font-size: 16px; font-weight: 700; color: #1e293b; line-height: 1.6; border: 1px solid #cbd5e1; text-align: left; }
 
-        /* 하단 팝업용 리스트 인프라 */
-        .pop-contact-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 4px; border-bottom: 1px solid #e2e8f0; }
-        .pop-contact-info { display: flex; flex-direction: column; gap: 2px; text-align: left; }
-        .pop-label { font-size: 14px; font-weight: 800; color: #1e293b; }
-        .pop-sub { font-size: 12px; color: #64748b; }
-        .pop-num { font-size: 14px; font-weight: 700; color: #1e3a8a; }
+        /* 하단 팝업 내 연락처 리스트 포맷 */
+        .pop-contact-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 4px; border-bottom: 1px solid #e2e8f0; }
+        .pop-contact-info { display: flex; flex-direction: column; gap: 3px; text-align: left; }
+        .pop-label { font-size: 15px; font-weight: 800; color: #1e293b; }
+        .pop-sub { font-size: 12px; color: #64748b; line-height: 1.4; }
+        .pop-num { font-size: 14px; font-weight: 700; color: #1e3a8a; margin-top: 2px; }
         .guide-title { font-size: 18px; font-weight: 800; color: #1e3a8a; margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; text-align: center; }
     </style>
 </head>
@@ -122,7 +124,7 @@
 
         <div id="list-container"></div>
 
-        <!-- 하단 상황별 조치 버튼 바 -->
+        <!-- 하단 상황별 조치 버튼 바 (8개 원본 규격) -->
         <div class="bottom-action-bar">
             <div class="action-quick-btn" onclick="openActionModal('누수')">💧 누수</div>
             <div class="action-quick-btn" onclick="openActionModal('전기')">⚡ 전기</div>
@@ -163,7 +165,7 @@
     </div>
 </div>
 
-<!-- 2. 필수보고 모달창 -->
+<!-- 2. 필수보고 모달창 (2x5 격자) -->
 <div id="essential-modal" class="modal">
     <div class="modal-content" style="max-width: 480px;">
         <div class="guide-title" style="color:#b91c1c;">🚨 필수 보고 내용 (9대 사건)</div>
@@ -181,7 +183,8 @@
             <div class="report-card" onmouseover="showCardDetail(9)" onclick="showCardDetail(9)">9. VIP 방문</div>
         </div>
 
-        <div id="card-detail-target" class="card-detail-view">카드를 선택하거나 마우스를 올려주세요.</div>
+        <!-- 일괄 노출 및 단독 노출 공용창 -->
+        <div id="card-detail-target" class="card-detail-view"></div>
 
         <button onclick="closeModal('essential-modal')" style="width:100%; padding:14px; background:#1e293b; color:white; border:none; border-radius:8px; font-weight:bold; font-size:16px; cursor:pointer; margin-top:15px;">창 닫기</button>
     </div>
@@ -202,55 +205,65 @@
     let allData = [];
 
     const essentialDetails = {
-        "전체": "각 카드에 마우스를 올리시면 상세 보고 내역을 빠르게 확인하실 수 있습니다.",
-        1: "의산연 화학품 폭발사고, 교통 등 인명피해 일체",
-        2: "119 소방서 실시간 출동 상황 및 원내 화재 징후",
-        3: "CCTV 확인 요청 (서식 확인서 승인 프로세스 후 진행)",
-        4: "장마·태풍 등으로 인한 시설 침수 예방 및 누수 수습",
-        5: "개별 이사, 대형 장비 반출입, 원내 중계기 설치 등",
-        6: "17:00 이후 10명 이상의 단체 원내 집회 건 일체",
-        7: "군부대, 검찰, 경찰(순찰차 포함) 원내 진입 및 출동 현황",
-        8: "대관 불만 및 기타 민원 사항 (시신기증 관련 포함)",
-        9: "총장, 법인신부, 장관, 국회의원 등 원내 내방 현황"
+        1: "1. 인명사고사: 의산연 화학품 폭발사고, 교통 등 인명피해 일체",
+        2: "2. 화재사고: 119 소방서 실시간 출동 상황 및 원내 화재 징후",
+        3: "3. 도난사고: CCTV 확인 요청 (서식 확인서 승인 프로세스 후 진행)",
+        4: "4. 누수사고: 장마·태풍 등으로 인한 시설 침수 예방 및 누수 수습",
+        5: "5. 공사관계: 개별 이사, 대형 장비 반출입, 원내 중계기 설치 등",
+        6: "6. 야간집회: 17:00 이후 10명 이상의 단체 원내 집회 건 일체",
+        7: "7. 군경 출동: 군부대, 검찰, 경찰(순찰차 포함) 원내 진입 및 출동 현황",
+        8: "8. 주민항의: 대관 불만 및 기타 민원 사항 (시신기증 관련 포함)",
+        9: "9. VIP 방문: 총장, 법인신부, 장관, 국회의원 등 원내 내방 현황"
     };
 
-    // 원본 PDF 연동 상황별 세부 조치 연락처 구조 전면 업데이트
+    // PDF 원문 기반 완벽 매핑 데이터 구조
     const actionContacts = {
         "누수": [
-            { label: "소량누수 (설비팀)", sub: "일반 누수 발생 시", tel: "*1-5624" },
-            { label: "대량누수 (전기팀)", sub: "단독 전력 차단 및 지원", tel: "*1-5672" },
-            { label: "소방누수 (전기팀)", sub: "스프링클러 및 소방배관 단수", tel: "*1-5672" }
+            { label: "소량누수 (설비팀)", sub: "누수 인지 시 즉시 보고", tel: "*1-5624" },
+            { label: "대량누수 (전기팀)", sub: "관련부서(연구실/교실 등) 지원 및 전력 차단", tel: "*1-5672" },
+            { label: "소방누수 (전기팀)", sub: "스프링클러 및 소방 배관 통제", tel: "*1-5672" }
         ],
         "전기": [
-            { label: "전기관련 (전기팀)", sub: "동력 및 전등 고장", tel: "*1-5672" },
-            { label: "유도등 오작동 (통합관제)", sub: "24시간 상시 접수", tel: "2258-5555" }
+            { label: "전기관련 (전기팀)", sub: "조명, 전력 및 동력 불량 수리", tel: "*1-5672" },
+            { label: "유도등 오작동 (통합관제)", sub: "24시간 상시 모니터링 및 접수", tel: "2258-5555" }
         ],
         "승강기": [
-            { label: "주간 고장 (반송통제)", sub: "주간 즉시 고장 접수창구", tel: "*1-5616" },
-            { label: "야간 고장 (FMLG)", sub: "야간 및 공휴일 당직 전파", tel: "1899-7144" }
+            { label: "주간 고장 (반송통제)", sub: "주간 즉시 고장 수리 및 접수", tel: "*1-5616" },
+            { label: "야간 고장 (FMLG)", sub: "야간 및 공휴일 당직 비상 대응", tel: "1899-7144" },
+            { label: "🚨 탑승자 갇힘 사고 발생 시 기록 사항", sub: "①탑승자명 ②소속 ③연락처 등을 철저히 기록할 것", tel: "" }
         ],
         "문창문": [
-            { label: "일반문 (성의회관)", sub: "성의회관 12, 13층 담당자 부재시 (장인아 010-5210-7034)", tel: "8300" },
-            { label: "자동문 (통합관제)", sub: "센서 오작동 및 상시 개방", tel: "2258-5555" },
-            { label: "카드문 (통신팀)", sub: "SECOM 단말 및 권한 오류", tel: "*1-5712" },
-            { label: "임상 강사실 (병원별관)", sub: "별관 내부 강사실 문 제어", tel: "*1-1115" },
-            { label: "장애인화장실 (통합관제)", sub: "화장실 내부 비상호출 등", tel: "2258-5555" },
-            { label: "배연창 (통신팀)", sub: "환기 및 배연 시스템 오류", tel: "*1-5712" }
+            { label: "일반문 (성의회관 영선)", sub: "성의회관 12, 13층 담당자 부재시: 장인아 010-5210-7034", tel: "8300" },
+            { label: "자동문 (통합관제)", sub: "센서 불량 및 상시 개방 잠금 오류", tel: "2258-5555" },
+            { label: "카드문 (통신팀)", sub: "SECOM 단말기 및 출입 권한 통제", tel: "*1-5712" },
+            { label: "임상 강사실 (병원별관)", sub: "별관 내부 강사실 출입 통제", tel: "*1-1115" },
+            { label: "장애인화장실 (통합관제)", sub: "내부 비상 벨 오작동 및 고장", tel: "2258-5555" },
+            { label: "배연창 (통신팀)", sub: "창문 제어 및 환기 시스템", tel: "*1-5712" }
         ],
         "냉난방": [
-            { label: "중앙 공조기 (통합관제)", sub: "중앙 제어 및 스케줄 조정", tel: "2258-5555" },
-            { label: "개별 냉방기 (설비팀)", sub: "EHP 및 천장형 개별 에어컨", tel: "*1-5624" }
+            { label: "중앙 공조기 (통합관제)", sub: "종합 공조 시스템 제어", tel: "2258-5555" },
+            { label: "개별 냉방기 (설비팀)", sub: "EHP 및 개별 천장형 에어컨 관리", tel: "*1-5624" }
         ],
         "교육/기자재": [
-            { label: "총무팀 상담전화", sub: "시신기증 전담 안내 라인", tel: "2258-7135" },
-            { label: "주상건 차장", sub: "시신기증 업무 담당자", tel: "010-9496-6483" },
-            { label: "손미연 선임", sub: "시신기증 업무 담당자", tel: "010-9283-5195" },
-            { label: "참사랑묘역 (용인공원묘원 內)", sub: "경기도 용인시 처인구 모현읍 오산로 154-62 (오산리 306-2) 천주교 서울대교구", tel: "031-334-0807" }
+            { label: "냉동고/인큐베이터/저온실 (설비팀)", sub: "실험실 장비 이상 징후 발생 시", tel: "*1-5624" },
+            { label: "저온실 전기 이상 (전기팀)", sub: "전력 공급 불안정 수리", tel: "*1-5672" },
+            { label: "의학교육지원팀 (한정욱 차장)", sub: "마리아홀 사용 장애 지원", tel: "8261" },
+            { label: "의학교육지원팀 (김태남)", sub: "의산연 빔프로젝트관리, 마리아홀 사용 장애", tel: "8262" },
+            { label: "의학교육지원팀 (전성현)", sub: "마리아홀 사용 장애 지원", tel: "8263" },
+            { label: "정보지원팀 (PC고장)", sub: "컴퓨터 A/S 및 정보 인프라 관리", tel: "*1-5820" },
+            { label: "시청각실 (강의시스템)", sub: "음향 및 영상 시스템 제어", tel: "8263" }
+        ],
+        "시신기증": [
+            { label: "총무팀 상담전화", sub: "시신기증 전담 안내 통합 번호", tel: "2258-7135" },
+            { label: "주상건 차장", sub: "시신기증 업무 총괄 담당", tel: "010-9496-6483" },
+            { label: "손미연 선임", sub: "시신기증 업무 실무 담당", tel: "010-9283-5195" },
+            { label: "참사랑묘역 (용인공원묘원 내)", sub: "경기도 용인시 처인구 모현읍 오산로 154-62 (오산리 306-2) 천주교 서울대교구", tel: "031-334-0807" }
         ],
         "기타": [
-            { label: "인터넷 / CCTV고장 (통신팀)", sub: "네트워크 및 보안 카메라 장애", tel: "*1-5712" },
-            { label: "변기막힘 (설비팀)", sub: "배관 보수 및 막힘 해결", tel: "*1-5624" },
-            { label: "병원별관 의자파손 / 천장텍스 (성의회관)", sub: "시설 영선 및 내외장 보수", tel: "8300" }
+            { label: "인터넷 장애 (통신팀)", sub: "네트워크 및 IP 끊김 현상 처리", tel: "*1-5712" },
+            { label: "CCTV 고장 (통신팀)", sub: "녹화 장비 및 카메라 화면 불량", tel: "*1-5712" },
+            { label: "변기 막힘 (설비팀)", sub: "화장실 배관 막힘 및 역류 수선", tel: "*1-5624" },
+            { label: "병원별관 의자파손 / 천장텍스 (성의회관)", sub: "시설 영선 보수 및 환경 개선 관리", tel: "8300" }
         ]
     };
 
@@ -378,10 +391,21 @@
         }
     }
 
+    // 필수보고 전체보기 및 개별 카드 보기 통합 스크립트 수정 완료
     function openEssentialModal() { document.getElementById('essential-modal').style.display = 'flex'; showCardDetail('전체'); }
     function showCardDetail(key) {
         document.querySelectorAll('.report-card').forEach(c => c.classList.remove('active'));
-        document.getElementById('card-detail-target').innerText = essentialDetails[key];
+        const target = document.getElementById('card-detail-target');
+        
+        if (key === '전체') {
+            let allText = `<div style="font-weight:800; margin-bottom:8px; color:#b91c1c;">📋 9대 사건 일괄 보기</div>`;
+            for (let i = 1; i <= 9; i++) {
+                allText += `<div style="margin-bottom:6px; border-bottom:1px dashed #cbd5e1; padding-bottom:4px;">${essentialDetails[i]}</div>`;
+            }
+            target.innerHTML = allText;
+        } else {
+            target.innerHTML = `<div style="padding:10px 0; color:#1e3a8a;">${essentialDetails[key]}</div>`;
+        }
     }
 
     function openActionModal(key) {
@@ -414,7 +438,7 @@
                     <div class="pop-contact-info">
                         <span class="pop-label">${c.label}</span>
                         <span class="pop-sub" style="word-break:keep-all; max-width:320px;">${c.sub}</span>
-                        <span class="pop-num">${targetNum}</span>
+                        ${targetNum ? `<span class="pop-num">${targetNum}</span>` : ''}
                     </div>
                     ${targetNum ? `<a href="tel:${url}" class="btn-icon" style="width:36px; height:36px; font-size:14px;">📞</a>` : ''}
                 </div>`);
