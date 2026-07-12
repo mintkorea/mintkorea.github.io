@@ -4,66 +4,117 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>성의교정 주요 전화</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jschardet/3.0.0/jschardet.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
     <style>
-        /* CSS 스타일 유지 */
         * { box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
-        body { background-color: #f8fafc; margin: 0; padding: 0; color: #1e293b; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #f8fafc; margin: 0; padding: 0; color: #1e293b; -webkit-tap-highlight-color: transparent; padding-bottom: 180px; }
         .container { max-width: 600px; margin: 0 auto; background: white; min-height: 100vh; padding: 12px; position: relative; }
+        
+        /* 상단 헤더 */
         .app-title { font-weight: 900; color: #1e3a8a; font-size: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
+        .header-links { display: flex; gap: 8px; align-items: center; }
+        .header-links button { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 800; color: #334155; cursor: pointer; }
+        .header-links button.btn-emergency-link { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
+
+        /* 검색 영역 */
         .search-area { background: #f1f5f9; padding: 12px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
         .search-container { position: relative; width: 100%; margin-bottom: 8px; }
-        .search-box { width: 100%; padding: 12px 40px 12px 14px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 16px; outline: none; transition: all 0.2s; }
-        .search-box:focus { border-color: #1e3a8a; background: white; }
-        .clear-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: #94a3b8; color: white; border-radius: 50%; border: none; font-size: 14px; display: none; align-items: center; justify-content: center; cursor: pointer; }
-        .option-row { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #475569; font-weight: 700; padding-left: 2px; }
-        .option-row input[type="checkbox"] { width: 17px; height: 17px; accent-color: #1e3a8a; cursor: pointer; }
-        .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 15px; }
-        .tab { padding: 10px 0; background: #f1f5f9; border-radius: 6px; font-size: 13px; cursor: pointer; color: #64748b; font-weight: 700; text-align: center; }
+        .search-box { width: 100%; padding: 12px 40px 12px 14px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 16px; outline: none; }
+        .clear-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: #94a3b8; color: white; border-radius: 50%; border: none; display: none; align-items: center; justify-content: center; cursor: pointer; }
+        .option-row { display: flex; justify-content: space-between; align-items: center; }
+
+        /* 4x2 격자 탭 레이아웃 */
+        .tabs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 15px; }
+        .tab { padding: 10px 0; background: #f1f5f9; border-radius: 8px; font-size: 13px; cursor: pointer; color: #64748b; font-weight: 700; text-align: center; }
         .tab.active { background: #1e3a8a; color: white; }
-        .phone-item { border-bottom: 1px solid #f1f5f9; padding: 12px 4px; display: flex; align-items: flex-start; }
-        .info-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; justify-content: center; min-height: 28px; }
-        .top-row { display: flex; align-items: center; justify-content: space-between; }
-        .name-area { font-size: 15px; font-weight: 800; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
-        .num-area { font-size: 14px; font-weight: 800; color: #1e3a8a; text-align: right; margin-right: 12px; flex: 1; letter-spacing: -0.02em; }
-        .special-num { color: #0ea5e9; }
-        .icon-area { width: 64px; display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0; align-self: center; }
-        .btn-icon { text-decoration: none; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; font-size: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .btn-m { background: #ecfdf5; color: #059669; border-color: #d1fae5; }
-        .btn-placeholder { width: 28px; }
-        .work-text { font-size: 12px; color: #64748b; font-weight: 500; margin-top: 4px; line-height: 1.4; }
-        #admin-view { display: none; padding-bottom: 80px; }
-        .table-wrapper { overflow-x: auto; border: 1px solid #e2e8f0; margin-top: 10px; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 700px; }
-        th, td { border: 1px solid #e2e8f0; padding: 8px 4px; }
-        .save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 10px; border-top: 2px solid #e2e8f0; display: flex; gap: 8px; max-width: 600px; margin: 0 auto; z-index: 100; }
+        .tab.tab-emergency { background: #fee2e2; color: #ef4444; }
+        .tab.tab-emergency.active { background: #ef4444; color: white; }
         
-        /* 추가된 스타일 */
-        .sync-box { background:#f1f5f9; padding:15px; border-radius:10px; margin-bottom:15px; border: 1px dashed #cbd5e1; }
-        .btn-sync { background:#4285f4; color:white; border:none; padding:10px 15px; border-radius:6px; cursor:pointer; font-weight:bold; width: 100%; margin-top: 10px; }
+        /* 리스트 내역 */
+        .phone-item { border-bottom: 1px solid #f1f5f9; padding: 12px 4px; display: flex; align-items: center; gap: 8px; min-height: 60px; }
+        .phone-item.emergency-highlight { background-color: #fff5f5; border-left: 4px solid #ef4444; padding-left: 8px; }
+        .info-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .top-row { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+        .name-area { font-weight: 800; color: #0f172a; flex: 1; word-break: keep-all; line-height: 1.2; overflow: hidden; font-size: 15px; }
+        .num-area { font-size: 14px; font-weight: 800; color: #1e3a8a; text-align: right; letter-spacing: -0.02em; white-space: nowrap; flex-shrink: 0; min-width: 80px; }
+        .phone-item.emergency-highlight .num-area { color: #ef4444; }
+        
+        .icon-area { display: flex; justify-content: flex-end; gap: 6px; flex-shrink: 0; width: 64px; margin-left: auto; }
+        .btn-icon { text-decoration: none; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; font-size: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; }
+        .btn-m { background: #ecfdf5; color: #059669; border-color: #d1fae5; }
+        .phone-item.emergency-highlight .btn-icon { background: #ef4444; color: white; border-color: #ef4444; }
+        .phone-item.emergency-highlight .btn-m { background: #f97316; color: white; border-color: #f97316; }
+        .btn-placeholder { width: 28px; height: 28px; flex-shrink: 0; }
+        .work-text { font-size: 12px; color: #64748b; font-weight: 500; margin-top: 4px; }
+
+        /* 하단 고정 상황별 조치 버튼 바 (원문 복구 4x2 구조) */
+        .bottom-action-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #ffffff; padding: 10px 12px 14px 12px; border-top: 1px solid #cbd5e1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-width: 600px; margin: 0 auto; z-index: 90; box-shadow: 0 -4px 12px rgba(0,0,0,0.08); }
+        .action-quick-btn { padding: 12px 0; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; font-weight: 800; color: #334155; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+        .action-quick-btn:active { background: #e2e8f0; }
+        .action-quick-btn.em-btn { background: #fff5f5; border-color: #fca5a5; color: #dc2626; }
+
+        /* 모달 시스템 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
+        .modal-content { background: white; padding: 20px; border-radius: 12px; width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        
+        /* 1. 보고체계 개편 스타일 */
+        .report-sub-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+        .sub-tab { flex: 1; padding: 10px; text-align: center; font-size: 16px; font-weight: 800; color: #64748b; cursor: pointer; border-radius: 6px; background: #f1f5f9; }
+        .sub-tab.active { background: #1e3a8a; color: white; }
+        .sub-tab.em.active { background: #dc2626; color: white; }
+        .report-flow-container { display: none; padding: 10px 5px; }
+        .report-flow-container.active { display: block; }
+        .large-flow-step { background: #eff6ff; border-left: 6px solid #3b82f6; padding: 14px 18px; margin-bottom: 10px; border-radius: 0 8px 8px 0; font-size: 18px; font-weight: 800; color: #1e3a8a; }
+        .large-flow-step.em { background: #fff5f5; border-left-color: #ef4444; color: #b91c1c; }
+        .large-flow-arrow { text-align: center; color: #94a3b8; font-size: 18px; margin: 4px 0; font-weight: bold; }
+
+        /* 2. 필수보고 2x5 카드 인터페이스 스타일 */
+        .cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
+        .report-card { background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 10px; padding: 16px 10px; text-align: center; font-size: 16px; font-weight: 800; color: #334155; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; min-height: 70px; word-break: keep-all; }
+        .report-card:hover, .report-card.active { background: #e0f2fe; border-color: #0ea5e9; color: #0369a1; transform: translateY(-2px); }
+        .report-card.card-all { background: #1e3a8a; color: white; border-color: #1e3a8a; font-size: 18px; }
+        .report-card.card-all:hover { background: #1d4ed8; color: white; }
+        .card-detail-view { background: #f1f5f9; border-radius: 8px; padding: 15px; min-height: 60px; font-size: 16px; font-weight: 700; color: #1e293b; line-height: 1.5; border: 1px solid #cbd5e1; text-align: center; display: flex; align-items: center; justify-content: center; }
+
+        /* 하단 팝업용 리스트 인프라 */
+        .pop-contact-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 4px; border-bottom: 1px solid #e2e8f0; }
+        .pop-contact-info { display: flex; flex-direction: column; gap: 2px; text-align: left; }
+        .pop-label { font-size: 14px; font-weight: 800; color: #1e293b; }
+        .pop-sub { font-size: 12px; color: #64748b; }
+        .pop-num { font-size: 14px; font-weight: 700; color: #1e3a8a; }
+        .guide-title { font-size: 18px; font-weight: 800; color: #1e3a8a; margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="app-title">성의교정 주요 전화 <button onclick="checkAdminPw()" style="border:none; background:none; color:#eee; font-size:10px;">Admin</button></div>
+    <!-- 상단 앱 바 -->
+    <div class="app-title">
+        <span>성의교정 주요 전화</span>
+        <div class="header-links">
+            <button class="btn-emergency-link" onclick="openReportModal()">보고체계</button>
+            <button onclick="openEssentialModal()">필수보고</button>
+        </div>
+    </div>
 
+    <!-- 메인 콘텐츠 뷰 -->
     <div id="user-view">
         <div class="search-area">
             <div class="search-container">
-                <input type="text" id="search-input" class="search-box" placeholder="성함, 부서, 번호(4자리) 검색...">
+                <input type="text" id="search-input" class="search-box" placeholder="이름, 부서, 업무, 키워드 검색...">
                 <button id="clear-search" class="clear-btn" onclick="clearSearch()">×</button>
             </div>
             <div class="option-row">
-                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:14px; font-weight:700; color:#475569;">
                     <input type="checkbox" id="dept-only" onchange="renderList()"> 부서/장소명으로만 검색
                 </label>
             </div>
         </div>
 
-        <div class="tabs">
-            <div class="tab active" onclick="filterTab('전체')">전체</div>
+        <!-- 상단 탭 버튼 바 -->
+        <div class="tabs-grid">
+            <div class="tab tab-emergency active" onclick="filterTab('🚨비상')">🚨비상</div>
+            <div class="tab" onclick="filterTab('전체')">전체</div>
             <div class="tab" onclick="filterTab('보안')">보안</div>
             <div class="tab" onclick="filterTab('시설')">시설</div>
             <div class="tab" onclick="filterTab('미화')">미화</div>
@@ -71,171 +122,239 @@
             <div class="tab" onclick="filterTab('지원')">지원</div>
             <div class="tab" onclick="filterTab('기타')">기타</div>
         </div>
+
+        <!-- 결과 리스트 출력 컨테이너 -->
         <div id="list-container"></div>
-    </div>
 
-    <div id="admin-view">
-        <div class="sync-box">
-            <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">☁️ 구글 시트 동기화</div>
-            <div style="font-size: 11px; color: #64748b; margin-bottom: 10px;">온라인 시트의 최신 데이터를 가져와 저장합니다.</div>
-            <button onclick="syncWithGoogleSheet()" class="btn-sync">Google 시트 데이터 가져오기</button>
-        </div>
-
-        <div style="background:#f1f5f9; padding:15px; border-radius:10px; margin-bottom:15px;">
-            <strong>CSV 파일 업로드 (PC파일)</strong>
-            <input type="file" id="csv-file" accept=".csv" onchange="handleCsvUpload(this)">
-        </div>
-
-        <button onclick="addRow()" style="background:#10b981; color:white; border:none; padding:8px 12px; border-radius:6px; margin-bottom:10px;">+ 직접 추가</button>
-        
-        <div class="table-wrapper">
-            <table>
-                <thead><tr style="background:#f8fafc;"><th>구분</th><th>부서</th><th>성함</th><th>전화</th><th>휴대폰</th><th>비고</th><th>삭제</th></tr></thead>
-                <tbody id="admin-table-body"></tbody>
-            </table>
-        </div>
-        <div class="save-bar">
-            <button onclick="saveAll()" style="flex:2; padding:15px; background:#1e3a8a; color:white; border:none; border-radius:8px; font-weight:bold;">저장</button>
-            <button onclick="location.reload()" style="flex:1; padding:15px; background:#64748b; color:white; border:none; border-radius:8px; font-weight:bold;">취소</button>
+        <!-- 하단 상황별 조치 전용 단축 메뉴바 (원본 복구 및 수정 완료) -->
+        <div class="bottom-action-bar">
+            <div class="action-quick-btn" onclick="openActionModal('누수')">💧 누수</div>
+            <div class="action-quick-btn" onclick="openActionModal('전기')">⚡ 전기</div>
+            <div class="action-quick-btn" onclick="openActionModal('승강기')">🛗 승강기</div>
+            <div class="action-quick-btn" onclick="openActionModal('문창문')">🚪 문/창문</div>
+            <div class="action-quick-btn" onclick="openActionModal('냉난방')">❄️ 냉난방</div>
+            <div class="action-quick-btn" onclick="openActionModal('교육/기자재')">🔬 교육/기자재</div>
+            <div class="action-quick-btn em-btn" onclick="openActionModal('시신기증')">🕊️ 시신기증</div>
+            <div class="action-quick-btn" onclick="openActionModal('기타')">⚙️ 기타</div>
         </div>
     </div>
 </div>
 
-<script>
-    let allData = [];
-    let currentTab = "전체";
-    const tabPriority = { "보안": 1, "시설": 2, "미화": 3, "총무": 4, "지원": 5, "기타": 6 };
-
-    function getChosung(str) {
-        const cho = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
-        let result = "";
-        for (let i = 0; i < str.length; i++) {
-            const code = str.charCodeAt(i) - 44032;
-            if (code > -1 && code < 11172) result += cho[Math.floor(code / 588)];
-            else result += str.charAt(i);
-        }
-        return result;
-    }
-
-    const dbName = "Contact_Final_Order_DB";
-    let db;
-    const request = indexedDB.open(dbName, 1);
-    request.onupgradeneeded = e => { e.target.result.createObjectStore("contacts", { keyPath: "id", autoIncrement: true }); };
-    request.onsuccess = e => { db = e.target.result; loadFromDB(); };
-
-    function loadFromDB() {
-        const transaction = db.transaction(["contacts"], "readonly");
-        const store = transaction.objectStore("contacts");
-        const getAll = store.getAll();
-        getAll.onsuccess = () => { allData = getAll.result; renderList(); renderAdminTable(); };
-    }
-
-    // 구글 시트 동기화 함수
-    async function syncWithGoogleSheet() {
-        const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpOX8Ll6no4uXd5jnK0umTY3U_eKZXcDK2z_f2EsxSQDuOqk4YGzNkULJn_WgjTFBUseCbl6smBh0Z/pub?gid=1424582869&single=true&output=csv";
+<!-- 1. 개편된 보고체계 전용 모달창 -->
+<div id="report-modal" class="modal">
+    <div class="modal-content">
+        <div class="report-sub-tabs">
+            <div id="sub-tab-normal" class="sub-tab active" onclick="switchReportTab('normal')">🔵 정상 보고 체계</div>
+            <div id="sub-tab-emergency" class="sub-tab em" onclick="switchReportTab('emergency')">🔴 비상 보고 체계</div>
+        </div>
         
-        if (!confirm("구글 시트의 최신 데이터로 전체 목록을 갱신하시겠습니까?")) return;
+        <!-- 정상 보고 디스플레이 -->
+        <div id="flow-normal" class="report-flow-container active">
+            <div class="large-flow-step">① 근무조장 (반장)</div><div class="large-flow-arrow">▼</div>
+            <div class="large-flow-step">② 보안 부소장</div><div class="large-flow-arrow">▼</div>
+            <div class="large-flow-step">③ 보안 소장</div><div class="large-flow-arrow">▼</div>
+            <div class="large-flow-step">④ 총무팀 담당</div><div class="large-flow-arrow">▼</div>
+            <div class="large-flow-step">⑤ 총무팀 UM</div><div class="large-flow-arrow">▼</div>
+            <div class="large-flow-step">⑥ 총무팀장</div>
+        </div>
 
+        <!-- 비상 보고 디스플레이 -->
+        <div id="flow-emergency" class="report-flow-container">
+            <div class="large-flow-step em">① 근무조장 (반장)</div><div class="large-flow-arrow">▼</div>
+            <div class="large-flow-step em">② 총무팀 담당 / UM</div><div class="large-flow-arrow">▼</div>
+            <div class="large-flow-step em">③ 총무팀장</div>
+        </div>
+
+        <button onclick="closeModal('report-modal')" style="width:100%; padding:14px; background:#1e293b; color:white; border:none; border-radius:8px; font-weight:bold; font-size:16px; cursor:pointer; margin-top:15px;">창 닫기</button>
+    </div>
+</div>
+
+<!-- 2. 필수보고 2x5 격자 카드 모달창 -->
+<div id="essential-modal" class="modal">
+    <div class="modal-content" style="max-width: 480px;">
+        <div class="guide-title" style="color:#b91c1c;">🚨 필수 보고 내용 (9대 사건)</div>
+        
+        <!-- 2x5 카드 배열 구조 -->
+        <div class="cards-grid">
+            <div class="report-card card-all" onmouseover="showCardDetail('전체')" onclick="showCardDetail('전체')">전체보기</div>
+            <div class="report-card" onmouseover="showCardDetail(1)" onclick="showCardDetail(1)">1. 인명사고사</div>
+            <div class="report-card" onmouseover="showCardDetail(2)" onclick="showCardDetail(2)">2. 화재사고</div>
+            <div class="report-card" onmouseover="showCardDetail(3)" onclick="showCardDetail(3)">3. 도난사고</div>
+            <div class="report-card" onmouseover="showCardDetail(4)" onclick="showCardDetail(4)">4. 누수사고</div>
+            <div class="report-card" onmouseover="showCardDetail(5)" onclick="showCardDetail(5)">5. 공사관계</div>
+            <div class="report-card" onmouseover="showCardDetail(6)" onclick="showCardDetail(6)">6. 야간집회</div>
+            <div class="report-card" onmouseover="showCardDetail(7)" onclick="showCardDetail(7)">7. 군경 출동</div>
+            <div class="report-card" onmouseover="showCardDetail(8)" onclick="showCardDetail(8)">8. 주민항의</div>
+            <div class="report-card" onmouseover="showCardDetail(9)" onclick="showCardDetail(9)">9. VIP 방문</div>
+        </div>
+
+        <!-- 하단 본문 출력창 -->
+        <div id="card-detail-target" class="card-detail-view">카드를 선택하거나 마우스를 올려주세요.</div>
+
+        <button onclick="closeModal('essential-modal')" style="width:100%; padding:14px; background:#1e293b; color:white; border:none; border-radius:8px; font-weight:bold; font-size:16px; cursor:pointer; margin-top:15px;">창 닫기</button>
+    </div>
+</div>
+
+<!-- 상황별 조치 모달창 -->
+<div id="action-modal" class="modal">
+    <div class="modal-content">
+        <div id="action-modal-title" class="guide-title"></div>
+        <div id="action-modal-list" style="margin-bottom:15px;"></div>
+        <button onclick="closeModal('action-modal')" style="width:100%; padding:12px; background:#64748b; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">창 닫기</button>
+    </div>
+</div>
+
+<script>
+    let currentTab = "🚨비상";
+    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpOX8Ll6no4uXd5jnK0umTY3U_eKZXcDK2z_f2EsxSQDuOqk4YGzNkULJn_WgjTFBUseCbl6smBh0Z/pub?gid=1424582869&single=true&output=csv";
+    let allData = [];
+
+    // 필수보고 매핑 데이터
+    const essentialDetails = {
+        "전체": "각 카드에 마우스를 올리시면 상세 보고 내역을 빠르게 확인하실 수 있습니다.",
+        1: "의산연 화학품 폭발사고, 교통 등 인명피해 일체",
+        2: "119 소방서 실시간 출동 상황 및 원내 화재 징후",
+        3: "CCTV 확인 요청 (서식 확인서 승인 프로세스 후 진행)",
+        4: "장마·태풍 등으로 인한 시설 침수 예방 및 누수 수습",
+        5: "개별 이사, 대형 장비 반출입, 원내 중계기 설치 등",
+        6: "17:00 이후 10명 이상의 단체 원내 집회 건 일체",
+        7: "군부대, 검찰, 경찰(순찰차 포함) 원내 진입 및 출동 현황",
+        8: "대관 불만 및 기타 민원 사항 (시신기증 관련 포함)",
+        9: "총장, 법인신부, 장관, 국회의원 등 원내 내방 현황"
+    };
+
+    // 하단 8개 상황별 원문 매핑 백업 데이터 복구
+    const actionContacts = {
+        "누수": [
+            { label: "소량누수 (설비팀)", sub: "국번 2258 내선연결", tel: "*1-5624" },
+            { label: "대량누수 (전기팀)", sub: "단독 전력 차단 및 지원", tel: "*1-5672" },
+            { label: "소방누수 (전기팀)", sub: "스프링클러 및 소방배관 단수", tel: "*1-5672" }
+        ],
+        "전기": [
+            { label: "전기관련 오작동 (전기팀)", sub: "조명 및 동력 불량 수리", tel: "*1-5672" },
+            { label: "유도등 오작동 (통합관제)", sub: "24시간 접수 및 처리", tel: "2258-5555" }
+        ],
+        "승강기": [
+            { label: "승강기 주간 고장 (반송통제)", sub: "주간 즉시 고장 접수창구", tel: "*1-5616" },
+            { label: "승강기 야간 고장 (FMLG)", sub: "야간 및 공휴일 당직 전파", tel: "1899-7144" }
+        ],
+        "문창문": [
+            { label: "일반문 고장 (성의회관)", sub: "출입문 영선 보수 관리", tel: "8300" },
+            { label: "자동문 오류 (통합관제)", sub: "센서 오작동 및 상시 개방", tel: "2258-5555" },
+            { label: "카드문 개폐오류 (통신팀)", sub: "SECOM 단말 및 출입 권한", tel: "*1-5712" }
+        ],
+        "냉난방": [
+            { label: "중앙 공조기 (통합관제)", sub: "중앙 제어 공급 스케줄 조정", tel: "2258-5555" },
+            { label: "개별 냉방기 (설비팀)", sub: "EHP 및 천장형 개별 에어컨 고장", tel: "*1-5624" }
+        ],
+        "교육/기자재": [
+            { label: "정보지원팀", sub: "PC 고장, 컴퓨터 A/S 담당", tel: "*1-5820" },
+            { label: "시청각실", sub: "강의실 내 음향 및 영상 장비 제어", tel: "8263" }
+        ],
+        "시신기증": [
+            { label: "참사랑묘역 (용인공원묘원 內)", sub: "용인시 모현읍 오산로 154-62", tel: "031-334-0807" },
+            { label: "총무팀 상담전화", sub: "시신기증 업무 전담 안내", tel: "02-2258-7135" }
+        ],
+        "기타": [
+            { label: "통합관제센터", sub: "주야간 원내 민원 및 비상 접수", tel: "2258-5555" },
+            { label: "성의교정 종합안내", sub: "기타 대표 종합 문의 라인", tel: "3147-8114" }
+        ]
+    };
+
+    window.onload = function() { fetchSheetData(); };
+
+    async function fetchSheetData() {
         try {
-            const response = await fetch(sheetUrl);
-            if (!response.ok) throw new Error("네트워크 응답이 올바르지 않습니다.");
+            const response = await fetch(SHEET_CSV_URL);
+            const dataText = await response.text();
+            const lines = dataText.split(/\r?\n/).filter(line => line.trim());
             
-            const csvText = await response.text();
-            const lines = csvText.split(/\r?\n/).filter(l => l.trim());
-            
-            // 첫 번째 줄(헤더)을 제외하고 파싱
             allData = lines.slice(1).map(line => {
-                const c = splitCSVLine(line);
-                return { cat: c[0]||"", dept: c[1]||"", name: c[2]||"", tel: c[3]||"", hp: c[4]||"", work: c[5]||"" };
+                const cells = splitCSV(line);
+                return {
+                    cat: cells[0] || "", dept: cells[1] || "", name: cells[2] || "",
+                    tel: cells[3] || "", hp: cells[4] || "", work: cells[5] || "", keyword: cells[6] || ""
+                };
             });
-
-            // 즉시 저장 로직 호출
-            await performSave();
-            alert("동기화 성공 및 저장 완료!");
-            location.reload();
-        } catch (error) {
-            console.error(error);
-            alert("동기화 중 오류가 발생했습니다. 구글 시트 웹 게시 설정을 확인해주세요.");
+            renderList();
+        } catch (err) {
+            console.error("데이터 로드 실패", err);
         }
+    }
+
+    function splitCSV(line) {
+        const result = [];
+        let current = '', inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') inQuotes = !inQuotes;
+            else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
+            else current += char;
+        }
+        result.push(current.trim());
+        return result.map(v => v.replace(/^"|"$/g, '').trim());
     }
 
     function renderList() {
         const query = document.getElementById('search-input').value.toLowerCase().trim();
         const deptOnly = document.getElementById('dept-only').checked;
         const container = document.getElementById('list-container');
+        
         document.getElementById('clear-search').style.display = query ? "flex" : "none";
         container.innerHTML = "";
 
-        const sorted = [...allData].sort((a, b) => {
-            const catA = a.cat || "";
-            const catB = b.cat || "";
-            const hasNumA = /\d/.test(catA);
-            const hasNumB = /\d/.test(catB);
-            if (hasNumA && !hasNumB) return -1;
-            if (!hasNumA && hasNumB) return 1;
-            if (hasNumA && hasNumB) {
-                const nA = parseInt(catA.replace(/[^0-9]/g, ""), 10);
-                const nB = parseInt(catB.replace(/[^0-9]/g, ""), 10);
-                if (nA !== nB) return nA - nB;
-            }
-            const getRank = (cat) => {
-                for (let k in tabPriority) { if (cat.includes(k)) return tabPriority[k]; }
-                return 99;
-            };
-            const rankA = getRank(catA), rankB = getRank(catB);
-            if (rankA !== rankB) return rankA - rankB;
-            if (a.dept !== b.dept) return new Intl.Collator('ko').compare(a.dept || "", b.dept || "");
-            return new Intl.Collator('ko').compare(a.name || "", b.name || "");
+        let filtered = allData.filter(item => {
+            const rawCat = item.cat.trim();
+            const isEmergencyItem = rawCat.startsWith("보안/안내01") || item.dept.includes("상황실") || item.keyword.includes("비상") || item.keyword.includes("긴급");
+            
+            let isTabMatched = false;
+            if (currentTab === "전체") isTabMatched = true;
+            else if (currentTab === "🚨비상") isTabMatched = isEmergencyItem;
+            else isTabMatched = rawCat.startsWith(currentTab);
+
+            if (!isTabMatched) return false;
+            if (!query) return true;
+
+            const dept = item.dept.toLowerCase();
+            const name = item.name.toLowerCase();
+            const work = item.work.toLowerCase();
+            const key = item.keyword.toLowerCase();
+
+            if (dept.includes(query)) return true;
+            if (deptOnly) return false;
+
+            return name.includes(query) || work.includes(query) || key.includes(query);
         });
 
-        sorted.filter(item => {
-            const tabMatch = (currentTab === "전체") || (item.cat && item.cat.includes(currentTab));
-            if (!tabMatch) return false;
-            if (!query) return true;
-            
-            const name = (item.name || "").toLowerCase();
-            const dept = (item.dept || "").toLowerCase();
-            const work = (item.work || "").toLowerCase();
-            const tel = (item.tel || "").replace(/[^0-9]/g, "");
-            const hp = (item.hp || "").replace(/[^0-9]/g, "");
-            const nCho = getChosung(name), dCho = getChosung(dept);
+        filtered.sort((a, b) => a.cat.localeCompare(b.cat, undefined, {numeric: true, sensitivity: 'base'}));
 
-            const searchableWork = (work === "보안대원") ? "" : work;
-            const isMatchNum = (query.length >= 4) && (tel.includes(query) || hp.includes(query));
+        if(filtered.length === 0) {
+            container.innerHTML = `<div style="text-align:center; padding:40px 0; color:#94a3b8; font-size:14px;">조회 가능한 내역이 없습니다.</div>`;
+            return;
+        }
 
-            if (deptOnly) {
-                return dept.includes(query) || dCho.includes(query);
-            } else {
-                return name.includes(query) || nCho.includes(query) || 
-                       dept.includes(query) || dCho.includes(query) ||
-                       searchableWork.includes(query) || getChosung(searchableWork).includes(query) ||
-                       isMatchNum;
+        filtered.forEach(r => {
+            let displayName = r.name ? `${r.dept} (${r.name})` : r.dept;
+            let finalNum = r.tel || r.hp || "";
+            let callUrl = "";
+            let cleanT = r.tel.replace(/[^0-9*]/g, "");
+            if(cleanT) {
+                if(cleanT.startsWith("3147") || cleanT.startsWith("2258") || cleanT.startsWith("2023") || cleanT.startsWith("1899") || cleanT.startsWith("8263")) callUrl = "02" + cleanT;
+                else if(cleanT.startsWith("*1")) callUrl = "022258" + cleanT.replace("*1", "");
+                else if(cleanT.length === 4) callUrl = "023147" + cleanT;
+                else callUrl = cleanT.startsWith("0") ? cleanT : "02" + cleanT;
             }
-        }).forEach(r => {
-            const dName = r.name ? `${r.dept} ${r.name}` : r.dept;
-            let telHtml = "", tBtn = "", mBtn = "";
 
-            if (r.tel) {
-                const isSpecial = r.tel.includes('*1') || r.tel.includes('2258');
-                const displayTel = r.tel.replace('02-3147-','').replace('02-2258-','');
-                telHtml = `<span class="${isSpecial ? 'special-num' : ''}">${displayTel}</span>`;
-                let callNum = r.tel.replace(/[^0-9*]/g,'');
-                if (r.tel.includes('*1')) callNum = "022258" + callNum.replace('*1', '');
-                else if (callNum.length === 4) callNum = "023147" + callNum;
-                tBtn = `<a href="tel:${callNum}" class="btn-icon">T</a>`;
-            } else { tBtn = `<div class="btn-placeholder"></div>`; }
-
-            if (r.hp) {
-                const hpCall = r.hp.replace(/[^0-9]/g,'');
-                mBtn = `<a href="tel:${hpCall}" class="btn-icon btn-m">M</a>`;
-            } else { mBtn = `<div class="btn-placeholder"></div>`; }
+            const tBtn = r.tel ? `<a href="tel:${callUrl}" class="btn-icon">T</a>` : `<div class="btn-placeholder"></div>`;
+            const mBtn = r.hp ? `<a href="tel:${r.hp.replace(/[^0-9]/g, "")}" class="btn-icon btn-m">M</a>` : `<div class="btn-placeholder"></div>`;
+            const isEmStyle = r.cat.startsWith("보안/안내01") || r.dept.includes("상황실");
 
             container.insertAdjacentHTML('beforeend', `
-                <div class="phone-item">
+                <div class="${isEmStyle ? "phone-item emergency-highlight" : "phone-item"}">
                     <div class="info-area">
                         <div class="top-row">
-                            <div class="name-area">${dName}</div>
-                            <div class="num-area">${telHtml}</div>
+                            <div class="name-area">${displayName}</div>
+                            <div class="num-area">${finalNum}</div>
                         </div>
                         ${r.work ? `<div class="work-text">${r.work}</div>` : ''}
                     </div>
@@ -244,92 +363,66 @@
         });
     }
 
-    function clearSearch() { const i = document.getElementById('search-input'); i.value = ""; i.focus(); renderList(); }
-    function filterTab(t) { currentTab = t; document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.innerText === t)); renderList(); }
+    function filterTab(t) { 
+        currentTab = t; 
+        document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.innerText === t)); 
+        renderList(); 
+    }
+    
+    function clearSearch() { document.getElementById('search-input').value = ""; renderList(); }
     document.getElementById('search-input').addEventListener('input', renderList);
 
-    function renderAdminTable() {
-        const tbody = document.getElementById('admin-table-body');
-        tbody.innerHTML = "";
-        allData.forEach((item, idx) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><input style="width:100%" value="${item.cat||''}" onchange="allData[${idx}].cat=this.value"></td>
-                <td><input style="width:100%" value="${item.dept||''}" onchange="allData[${idx}].dept=this.value"></td>
-                <td><input style="width:100%" value="${item.name||''}" onchange="allData[${idx}].name=this.value"></td>
-                <td><input style="width:100%" value="${item.tel||''}" onchange="allData[${idx}].tel=this.value"></td>
-                <td><input style="width:100%" value="${item.hp||''}" onchange="allData[${idx}].hp=this.value"></td>
-                <td><input style="width:100%" value="${item.work||''}" onchange="allData[${idx}].work=this.value"></td>
-                <td style="text-align:center"><button onclick="allData.splice(${idx},1);renderAdminTable();">×</button></td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-
-    function addRow() { allData.unshift({cat:"보안1",dept:"",name:"",tel:"",hp:"",work:""}); renderAdminTable(); }
-
-    function splitCSVLine(line) {
-        const result = [];
-        let cur = '', inQuotes = false;
-        for (let i = 0; i < line.length; i++) {
-            const char = line[i];
-            if (char === '"') inQuotes = !inQuotes;
-            else if (char === ',' && !inQuotes) { result.push(cur.trim()); cur = ''; }
-            else cur += char;
+    // [보고체계] 관련 제어 모직
+    function openReportModal() { document.getElementById('report-modal').style.display = 'flex'; switchReportTab('normal'); }
+    function switchReportTab(type) {
+        document.querySelectorAll('.sub-tab').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.report-flow-container').forEach(el => el.classList.remove('active'));
+        if(type === 'normal') {
+            document.getElementById('sub-tab-normal').classList.add('active');
+            document.getElementById('flow-normal').classList.add('active');
+        } else {
+            document.getElementById('sub-tab-emergency').classList.add('active');
+            document.getElementById('flow-emergency').classList.add('active');
         }
-        result.push(cur.trim());
-        return result.map(v => v.replace(/^"|"$/g, ''));
     }
 
-    function handleCsvUpload(input) {
-        const file = input.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const arrayBuffer = e.target.result;
-            const detected = jschardet.detect(String.fromCharCode.apply(null, new Uint8Array(arrayBuffer).slice(0, 1000)));
-            const text = new TextDecoder(detected.encoding || 'utf-8').decode(arrayBuffer);
-            const lines = text.split(/\r?\n/).filter(l => l.trim());
-            allData = lines.slice(1).map(line => {
-                const c = splitCSVLine(line);
-                return { cat: c[0], dept: c[1], name: c[2], tel: c[3], hp: c[4], work: c[5] };
-            });
-            renderAdminTable();
-            alert("로드 완료 (하단 저장 버튼을 눌러야 최종 반영됩니다.)");
-        };
-        reader.readAsArrayBuffer(file);
+    // [필수보고] 카드 제어 기능
+    function openEssentialModal() { document.getElementById('essential-modal').style.display = 'flex'; showCardDetail('전체'); }
+    function showCardDetail(key) {
+        document.querySelectorAll('.report-card').forEach(c => c.classList.remove('active'));
+        document.getElementById('card-detail-target').innerText = essentialDetails[key];
     }
 
-    async function performSave() {
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction(["contacts"], "readwrite");
-            const store = transaction.objectStore("contacts");
-            store.clear();
-            for (const item of allData) { 
-                const {id, ...rest} = item; 
-                store.add(rest); 
+    // 하단 퀵 모달 바
+    function openActionModal(key) {
+        const modal = document.getElementById('action-modal');
+        const titleEl = document.getElementById('action-modal-title');
+        const listEl = document.getElementById('action-modal-list');
+        
+        titleEl.innerText = `${key} 관련 비상연락망`;
+        listEl.innerHTML = "";
+        
+        (actionContacts[key] || []).forEach(c => {
+            let targetNum = c.tel || c.hp || "";
+            let url = "";
+            if(c.tel) {
+                let clean = c.tel.replace("*1-","").replace("-","");
+                url = (c.tel.startsWith("3147") || c.tel.startsWith("031") || c.tel.startsWith("1899") || c.tel.startsWith("2258")) ? (clean.startsWith("0") ? clean : "02" + clean) : "022258" + clean;
             }
-            transaction.oncomplete = () => resolve();
-            transaction.onerror = () => reject();
+            listEl.insertAdjacentHTML('beforeend', `
+                <div class="pop-contact-item">
+                    <div class="pop-contact-info">
+                        <span class="pop-label">${c.label}</span>
+                        <span class="pop-sub">${c.sub}</span>
+                        <span class="pop-num">${targetNum}</span>
+                    </div>
+                    ${targetNum ? `<a href="tel:${url}" class="btn-icon" style="width:36px; height:36px; font-size:14px;">📞</a>` : ''}
+                </div>`);
         });
+        modal.style.display = 'flex';
     }
 
-    async function saveAll() {
-        try {
-            await performSave();
-            alert("저장됨");
-            location.reload();
-        } catch(e) {
-            alert("저장 실패");
-        }
-    }
-
-    function checkAdminPw() { 
-        if (prompt("비밀번호") === "1234") { 
-            document.getElementById('user-view').style.display='none'; 
-            document.getElementById('admin-view').style.display='block'; 
-        } 
-    }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 </script>
 </body>
 </html>
