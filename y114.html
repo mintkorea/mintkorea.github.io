@@ -7,13 +7,13 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
     <style>
         * { box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
-        body { background-color: #f8fafc; margin: 0; padding: 0; color: #1e293b; -webkit-tap-highlight-color: transparent; padding-bottom: 160px; }
+        body { background-color: #f8fafc; margin: 0; padding: 0; color: #1e293b; -webkit-tap-highlight-color: transparent; padding-bottom: 180px; }
         .container { max-width: 600px; margin: 0 auto; background: white; min-height: 100vh; padding: 12px; position: relative; }
         
         /* 상단 헤더 */
         .app-title { font-weight: 900; color: #1e3a8a; font-size: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
         .header-links { display: flex; gap: 8px; align-items: center; }
-        .header-links button { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; color: #334155; cursor: pointer; }
+        .header-links button { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 800; color: #334155; cursor: pointer; }
         .header-links button.btn-emergency-link { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
 
         /* 검색 영역 */
@@ -22,7 +22,6 @@
         .search-box { width: 100%; padding: 12px 40px 12px 14px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 16px; outline: none; }
         .clear-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: #94a3b8; color: white; border-radius: 50%; border: none; display: none; align-items: center; justify-content: center; cursor: pointer; }
         .option-row { display: flex; justify-content: space-between; align-items: center; }
-        .btn-admin-hidden { border: none; background: none; color: #cbd5e1; font-size: 12px; cursor: pointer; padding: 4px; font-weight: bold; }
 
         /* 4x2 격자 탭 레이아웃 */
         .tabs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 15px; }
@@ -37,10 +36,8 @@
         .info-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .top-row { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
         .name-area { font-weight: 800; color: #0f172a; flex: 1; word-break: keep-all; line-height: 1.2; overflow: hidden; font-size: 15px; }
-        
         .num-area { font-size: 14px; font-weight: 800; color: #1e3a8a; text-align: right; letter-spacing: -0.02em; white-space: nowrap; flex-shrink: 0; min-width: 80px; }
         .phone-item.emergency-highlight .num-area { color: #ef4444; }
-        .highlight-num { color: #0ea5e9; font-style: italic; }
         
         .icon-area { display: flex; justify-content: flex-end; gap: 6px; flex-shrink: 0; width: 64px; margin-left: auto; }
         .btn-icon { text-decoration: none; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; font-size: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; }
@@ -50,45 +47,55 @@
         .btn-placeholder { width: 28px; height: 28px; flex-shrink: 0; }
         .work-text { font-size: 12px; color: #64748b; font-weight: 500; margin-top: 4px; }
 
-        /* 하단 고정 상황별 조치 버튼 바 (4x2 구조) */
+        /* 하단 고정 상황별 조치 버튼 바 */
         .bottom-action-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #ffffff; padding: 10px 12px 14px 12px; border-top: 1px solid #cbd5e1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-width: 600px; margin: 0 auto; z-index: 90; box-shadow: 0 -4px 12px rgba(0,0,0,0.08); }
         .action-quick-btn { padding: 12px 0; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; font-weight: 800; color: #334155; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
         .action-quick-btn:active { background: #e2e8f0; }
         .action-quick-btn.em-btn { background: #fff5f5; border-color: #fca5a5; color: #dc2626; }
 
-        /* 모달 인프라 */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.55); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
-        .modal-content { background: white; padding: 20px; border-radius: 12px; width: 95%; max-width: 380px; max-height: 85vh; overflow-y: auto; }
-        .guide-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
-        .guide-table th, .guide-table td { border: 1px solid #e2e8f0; padding: 8px 6px; }
-        .guide-table th { background: #f1f5f9; font-weight: 700; }
+        /* 모달 시스템 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
+        .modal-content { background: white; padding: 20px; border-radius: 12px; width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        
+        /* 보고체계 스타일 */
+        .report-sub-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+        .sub-tab { flex: 1; padding: 10px; text-align: center; font-size: 16px; font-weight: 800; color: #64748b; cursor: pointer; border-radius: 6px; background: #f1f5f9; }
+        .sub-tab.active { background: #1e3a8a; color: white; }
+        .sub-tab.em.active { background: #dc2626; color: white; }
+        .report-flow-container { display: none; padding: 10px 5px; }
+        .report-flow-container.active { display: block; }
+        .large-flow-step { background: #eff6ff; border-left: 6px solid #3b82f6; padding: 14px 18px; margin-bottom: 10px; border-radius: 0 8px 8px 0; font-size: 18px; font-weight: 800; color: #1e3a8a; }
+        .large-flow-step.em { background: #fff5f5; border-left-color: #ef4444; color: #b91c1c; }
+        .large-flow-arrow { text-align: center; color: #94a3b8; font-size: 18px; margin: 4px 0; font-weight: bold; }
 
+        /* 필수보고 스타일 */
+        .cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
+        .report-card { background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 10px; padding: 16px 10px; text-align: center; font-size: 16px; font-weight: 800; color: #334155; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; min-height: 70px; word-break: keep-all; }
+        .report-card:hover, .report-card.active { background: #e0f2fe; border-color: #0ea5e9; color: #0369a1; transform: translateY(-2px); }
+        .report-card.card-all { background: #1e3a8a; color: white; border-color: #1e3a8a; font-size: 18px; }
+        .report-card.card-all:hover { background: #1d4ed8; color: white; }
+        .card-detail-view { background: #f1f5f9; border-radius: 8px; padding: 15px; min-height: 60px; font-size: 16px; font-weight: 700; color: #1e293b; line-height: 1.5; border: 1px solid #cbd5e1; text-align: center; display: flex; align-items: center; justify-content: center; }
+
+        /* 하단 팝업용 리스트 인프라 */
         .pop-contact-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 4px; border-bottom: 1px solid #e2e8f0; }
-        .pop-contact-info { display: flex; flex-direction: column; gap: 2px; }
-        .pop-label { font-size: 13px; font-weight: 800; color: #1e293b; }
-        .pop-sub { font-size: 11px; color: #64748b; }
-        .pop-num { font-size: 13px; font-weight: 700; color: #1e3a8a; }
-
-        .guide-title { font-size: 16px; font-weight: 800; color: #1e3a8a; margin-top: 0; margin-bottom: 12px; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
-        .guide-title.em { color: #dc2626; border-bottom-color: #fca5a5; }
-        .flow-step { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 6px 10px; margin-bottom: 6px; border-radius: 0 6px 6px 0; font-size: 13px; font-weight: 600; }
-        .flow-step.em { background: #fff5f5; border-left-color: #ef4444; }
-        .flow-arrow { text-align: center; color: #94a3b8; font-size: 11px; margin: 2px 0; }
+        .pop-contact-info { display: flex; flex-direction: column; gap: 2px; text-align: left; }
+        .pop-label { font-size: 14px; font-weight: 800; color: #1e293b; }
+        .pop-sub { font-size: 12px; color: #64748b; }
+        .pop-num { font-size: 14px; font-weight: 700; color: #1e3a8a; }
+        .guide-title { font-size: 18px; font-weight: 800; color: #1e3a8a; margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- 상단 앱 바 -->
     <div class="app-title">
         <span>성의교정 주요 전화</span>
         <div class="header-links">
-            <button class="btn-emergency-link" onclick="openGuide('report')">보고체계</button>
-            <button onclick="openGuide('essential')">필수보고</button>
+            <button class="btn-emergency-link" onclick="openReportModal()">보고체계</button>
+            <button onclick="openEssentialModal()">필수보고</button>
         </div>
     </div>
 
-    <!-- 메인 콘텐츠 뷰 -->
     <div id="user-view">
         <div class="search-area">
             <div class="search-container">
@@ -99,11 +106,9 @@
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:14px; font-weight:700; color:#475569;">
                     <input type="checkbox" id="dept-only" onchange="renderList()"> 부서/장소명으로만 검색
                 </label>
-                <button class="btn-admin-hidden" onclick="loginAdmin()">·</button>
             </div>
         </div>
 
-        <!-- 4x2 격자 배치의 상단 탭 버튼 바 -->
         <div class="tabs-grid">
             <div class="tab tab-emergency active" onclick="filterTab('🚨비상')">🚨비상</div>
             <div class="tab" onclick="filterTab('전체')">전체</div>
@@ -115,20 +120,70 @@
             <div class="tab" onclick="filterTab('기타')">기타</div>
         </div>
 
-        <!-- 결과 리스트 출력 컨테이너 -->
         <div id="list-container"></div>
 
-        <!-- 하단 상황별 조치 전용 단축 메뉴바 -->
+        <!-- 하단 상황별 조치 버튼 바 -->
         <div class="bottom-action-bar">
             <div class="action-quick-btn" onclick="openActionModal('누수')">💧 누수</div>
             <div class="action-quick-btn" onclick="openActionModal('전기')">⚡ 전기</div>
             <div class="action-quick-btn" onclick="openActionModal('승강기')">🛗 승강기</div>
             <div class="action-quick-btn" onclick="openActionModal('문창문')">🚪 문/창문</div>
             <div class="action-quick-btn" onclick="openActionModal('냉난방')">❄️ 냉난방</div>
-            <div class="action-quick-btn" onclick="openActionModal('정전')">🔌 정전</div>
-            <div class="action-quick-btn em-btn" onclick="openActionModal('화재')">🔥 화재</div>
+            <div class="action-quick-btn" onclick="openActionModal('교육/기자재')">🔬 교육/기자재</div>
             <div class="action-quick-btn em-btn" onclick="openActionModal('시신기증')">🕊️ 시신기증</div>
+            <div class="action-quick-btn" onclick="openActionModal('기타')">⚙️ 기타</div>
         </div>
+    </div>
+</div>
+
+<!-- 1. 보고체계 모달창 -->
+<div id="report-modal" class="modal">
+    <div class="modal-content">
+        <div class="report-sub-tabs">
+            <div id="sub-tab-normal" class="sub-tab active" onclick="switchReportTab('normal')">🔵 정상 보고 체계</div>
+            <div id="sub-tab-emergency" class="sub-tab em" onclick="switchReportTab('emergency')">🔴 비상 보고 체계</div>
+        </div>
+        
+        <div id="flow-normal" class="report-flow-container active">
+            <div class="large-flow-step">① 근무조장 (반장)</div><div class="large-flow-arrow">▼</div>
+            <div class="large-flow-step">② 보안 부소장</div><div class="large-flow-arrow">▼</div>
+            <div class="large-flow-step">③ 보안 소장</div><div class="large-flow-arrow">▼</div>
+            <div class="large-flow-step">④ 총무팀 담당</div><div class="large-flow-arrow">▼</div>
+            <div class="large-flow-step">⑤ 총무팀 UM</div><div class="large-flow-arrow">▼</div>
+            <div class="large-flow-step">⑥ 총무팀장</div>
+        </div>
+
+        <div id="flow-emergency" class="report-flow-container">
+            <div class="large-flow-step em">① 근무조장 (반장)</div><div class="large-flow-arrow">▼</div>
+            <div class="large-flow-step em">② 총무팀 담당 / UM</div><div class="large-flow-arrow">▼</div>
+            <div class="large-flow-step em">③ 총무팀장</div>
+        </div>
+
+        <button onclick="closeModal('report-modal')" style="width:100%; padding:14px; background:#1e293b; color:white; border:none; border-radius:8px; font-weight:bold; font-size:16px; cursor:pointer; margin-top:15px;">창 닫기</button>
+    </div>
+</div>
+
+<!-- 2. 필수보고 모달창 -->
+<div id="essential-modal" class="modal">
+    <div class="modal-content" style="max-width: 480px;">
+        <div class="guide-title" style="color:#b91c1c;">🚨 필수 보고 내용 (9대 사건)</div>
+        
+        <div class="cards-grid">
+            <div class="report-card card-all" onmouseover="showCardDetail('전체')" onclick="showCardDetail('전체')">전체보기</div>
+            <div class="report-card" onmouseover="showCardDetail(1)" onclick="showCardDetail(1)">1. 인명사고사</div>
+            <div class="report-card" onmouseover="showCardDetail(2)" onclick="showCardDetail(2)">2. 화재사고</div>
+            <div class="report-card" onmouseover="showCardDetail(3)" onclick="showCardDetail(3)">3. 도난사고</div>
+            <div class="report-card" onmouseover="showCardDetail(4)" onclick="showCardDetail(4)">4. 누수사고</div>
+            <div class="report-card" onmouseover="showCardDetail(5)" onclick="showCardDetail(5)">5. 공사관계</div>
+            <div class="report-card" onmouseover="showCardDetail(6)" onclick="showCardDetail(6)">6. 야간집회</div>
+            <div class="report-card" onmouseover="showCardDetail(7)" onclick="showCardDetail(7)">7. 군경 출동</div>
+            <div class="report-card" onmouseover="showCardDetail(8)" onclick="showCardDetail(8)">8. 주민항의</div>
+            <div class="report-card" onmouseover="showCardDetail(9)" onclick="showCardDetail(9)">9. VIP 방문</div>
+        </div>
+
+        <div id="card-detail-target" class="card-detail-view">카드를 선택하거나 마우스를 올려주세요.</div>
+
+        <button onclick="closeModal('essential-modal')" style="width:100%; padding:14px; background:#1e293b; color:white; border:none; border-radius:8px; font-weight:bold; font-size:16px; cursor:pointer; margin-top:15px;">창 닫기</button>
     </div>
 </div>
 
@@ -137,74 +192,70 @@
     <div class="modal-content">
         <div id="action-modal-title" class="guide-title"></div>
         <div id="action-modal-list" style="margin-bottom:15px;"></div>
-        <button onclick="closeActionModal()" style="width:100%; padding:12px; background:#64748b; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">창 닫기</button>
-    </div>
-</div>
-
-<!-- 안내 모달창 -->
-<div id="guide-modal" class="modal">
-    <div class="modal-content" style="max-width: 420px;">
-        <div id="guide-modal-content"></div>
-        <button onclick="closeGuide()" style="width:100%; padding:12px; background:#1e3a8a; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer; margin-top:12px;">확인</button>
+        <button onclick="closeModal('action-modal')" style="width:100%; padding:12px; background:#64748b; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">창 닫기</button>
     </div>
 </div>
 
 <script>
-    // 앱 내 가중치 기준 선언 및 기본 탭 설정
     let currentTab = "🚨비상";
-    const tabPriorityMap = { "🚨비상": 0, "보안": 1, "시설": 2, "미화": 3, "총무": 4, "지원": 5, "기타": 6, "전체": 7 };
-    
-    // 공개 배포용 웹 CSV 실시간 Endpoint 주소
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpOX8Ll6no4uXd5jnK0umTY3U_eKZXcDK2z_f2EsxSQDuOqk4YGzNkULJn_WgjTFBUseCbl6smBh0Z/pub?gid=1424582869&single=true&output=csv";
     let allData = [];
 
-    // 원본 데이터 이미지 기반 팝업 연락처 객체
+    const essentialDetails = {
+        "전체": "각 카드에 마우스를 올리시면 상세 보고 내역을 빠르게 확인하실 수 있습니다.",
+        1: "의산연 화학품 폭발사고, 교통 등 인명피해 일체",
+        2: "119 소방서 실시간 출동 상황 및 원내 화재 징후",
+        3: "CCTV 확인 요청 (서식 확인서 승인 프로세스 후 진행)",
+        4: "장마·태풍 등으로 인한 시설 침수 예방 및 누수 수습",
+        5: "개별 이사, 대형 장비 반출입, 원내 중계기 설치 등",
+        6: "17:00 이후 10명 이상의 단체 원내 집회 건 일체",
+        7: "군부대, 검찰, 경찰(순찰차 포함) 원내 진입 및 출동 현황",
+        8: "대관 불만 및 기타 민원 사항 (시신기증 관련 포함)",
+        9: "총장, 법인신부, 장관, 국회의원 등 원내 내방 현황"
+    };
+
+    // 원본 PDF 연동 상황별 세부 조치 연락처 구조 전면 업데이트
     const actionContacts = {
         "누수": [
-            { label: "소량누수 (설비팀)", sub: "국번 2258 내선연결", tel: "*1-5624" },
+            { label: "소량누수 (설비팀)", sub: "일반 누수 발생 시", tel: "*1-5624" },
             { label: "대량누수 (전기팀)", sub: "단독 전력 차단 및 지원", tel: "*1-5672" },
             { label: "소방누수 (전기팀)", sub: "스프링클러 및 소방배관 단수", tel: "*1-5672" }
         ],
         "전기": [
-            { label: "전기관련 오작동 (전기팀)", sub: "조명 및 동력 불량 수리", tel: "*1-5672" },
-            { label: "유도등 오작동 (통합관제)", sub: "24시간 접수 및 처리", tel: "2258-5555" }
+            { label: "전기관련 (전기팀)", sub: "동력 및 전등 고장", tel: "*1-5672" },
+            { label: "유도등 오작동 (통합관제)", sub: "24시간 상시 접수", tel: "2258-5555" }
         ],
         "승강기": [
-            { label: "승강기 주간 고장 (반송통제)", sub: "주간 즉시 고장 접수창구", tel: "*1-5616" },
-            { label: "승강기 야간 고장 (FMLG)", sub: "야간 및 공휴일 당직 전파", tel: "1899-7144" },
-            { label: "⚠️ 인명 갇힘 발생 수칙", sub: "①탑승자명 ②소속 ③연락처 필히 기록할 것", tel: "" }
+            { label: "주간 고장 (반송통제)", sub: "주간 즉시 고장 접수창구", tel: "*1-5616" },
+            { label: "야간 고장 (FMLG)", sub: "야간 및 공휴일 당직 전파", tel: "1899-7144" }
         ],
         "문창문": [
-            { label: "일반문 고장 (성의회관)", sub: "출입문 영선 보수 관리", tel: "8300" },
-            { label: "자동문 오류 (통합관제)", sub: "센서 오작동 및 상시 개방", tel: "2258-5555" },
-            { label: "카드문 개폐오류 (통신팀)", sub: "SECOM 단말 및 출입 권한", tel: "*1-5712" },
-            { label: "임상 강사실 (병원별관)", sub: "병원별관 행정실 직통", tel: "*1-1115" },
-            { label: "장애인화장실 비상벨 (통합관제)", sub: "화장실 내 알람 수신 제어", tel: "2258-5555" },
-            { label: "배연창 고장 (통신팀)", sub: "화재 배연 제어 연동 수리", tel: "*1-5712" }
+            { label: "일반문 (성의회관)", sub: "성의회관 12, 13층 담당자 부재시 (장인아 010-5210-7034)", tel: "8300" },
+            { label: "자동문 (통합관제)", sub: "센서 오작동 및 상시 개방", tel: "2258-5555" },
+            { label: "카드문 (통신팀)", sub: "SECOM 단말 및 권한 오류", tel: "*1-5712" },
+            { label: "임상 강사실 (병원별관)", sub: "별관 내부 강사실 문 제어", tel: "*1-1115" },
+            { label: "장애인화장실 (통합관제)", sub: "화장실 내부 비상호출 등", tel: "2258-5555" },
+            { label: "배연창 (통신팀)", sub: "환기 및 배연 시스템 오류", tel: "*1-5712" }
         ],
         "냉난방": [
-            { label: "중앙 공조기 (통합관제)", sub: "중앙 제어 공급 스케줄 조정", tel: "2258-5555" },
-            { label: "개별 냉방기 (설비팀)", sub: "EHP 및 천장형 개별 에어컨 고장", tel: "*1-5624" }
+            { label: "중앙 공조기 (통합관제)", sub: "중앙 제어 및 스케줄 조정", tel: "2258-5555" },
+            { label: "개별 냉방기 (설비팀)", sub: "EHP 및 천장형 개별 에어컨", tel: "*1-5624" }
         ],
-        "정전": [
-            { label: "전체 기자재 제보 (설비/전기)", sub: "냉동고, 인큐베이터, 저온실 부재 시 아래 비상연락망 가동", tel: "" },
-            { label: "비상 당직원 (장인아)", sub: "성의회관 12, 13층 담당자 부재시 긴급 통화", hp: "010-5210-7034" }
+        "교육/기자재": [
+            { label: "총무팀 상담전화", sub: "시신기증 전담 안내 라인", tel: "2258-7135" },
+            { label: "주상건 차장", sub: "시신기증 업무 담당자", tel: "010-9496-6483" },
+            { label: "손미연 선임", sub: "시신기증 업무 담당자", tel: "010-9283-5195" },
+            { label: "참사랑묘역 (용인공원묘원 內)", sub: "경기도 용인시 처인구 모현읍 오산로 154-62 (오산리 306-2) 천주교 서울대교구", tel: "031-334-0807" }
         ],
-        "화재": [
-            { label: "화재 신고 접수 (통합관제)", sub: "종합 비상 화재 수신기 모니터링실", tel: "2258-5555" },
-            { label: "서초소방서 긴급신고", sub: "119 소방 유관기관 직접 핫라인", tel: "532-0119" }
-        ],
-        "시신기증": [
-            { label: "참사랑묘역 (용인공원묘원 內)", sub: "경기도 용인시 모현읍 오산로 154-62 (오산리 306-2)", tel: "031-334-0807" },
-            { label: "총무팀 상담전화", sub: "시신기증 업무 전담 안내", tel: "02-2258-7135" },
-            { label: "주상건 차장", sub: "업무 총괄 관리자", hp: "010-9496-6483" },
-            { label: "손미연 선임", sub: "시신기증 실무 담당자", hp: "010-9283-5195" }
+        "기타": [
+            { label: "인터넷 / CCTV고장 (통신팀)", sub: "네트워크 및 보안 카메라 장애", tel: "*1-5712" },
+            { label: "변기막힘 (설비팀)", sub: "배관 보수 및 막힘 해결", tel: "*1-5624" },
+            { label: "병원별관 의자파손 / 천장텍스 (성의회관)", sub: "시설 영선 및 내외장 보수", tel: "8300" }
         ]
     };
 
     window.onload = function() { fetchSheetData(); };
 
-    // 구글 스프레드시트 실시간 데이터 패치 함수
     async function fetchSheetData() {
         try {
             const response = await fetch(SHEET_CSV_URL);
@@ -214,19 +265,13 @@
             allData = lines.slice(1).map(line => {
                 const cells = splitCSV(line);
                 return {
-                    cat: cells[0] || "",     // 구분 (예: 보안/안내01, 시설01)
-                    dept: cells[1] || "",    // 부서명
-                    name: cells[2] || "",    // 담당자
-                    tel: cells[3] || "",     // 전화번호
-                    hp: cells[4] || "",      // 휴대폰
-                    work: cells[5] || "",    // 비고(업무)
-                    keyword: cells[6] || ""  // 키워드
+                    cat: cells[0] || "", dept: cells[1] || "", name: cells[2] || "",
+                    tel: cells[3] || "", hp: cells[4] || "", work: cells[5] || "", keyword: cells[6] || ""
                 };
             });
             renderList();
         } catch (err) {
-            console.error("데이터 로드 오류:", err);
-            alert("시트 데이터를 동기화하지 못했습니다. 주소 혹은 원격 파일 공개 상태를 점검바랍니다.");
+            console.error("데이터 로드 실패", err);
         }
     }
 
@@ -243,7 +288,6 @@
         return result.map(v => v.replace(/^"|"$/g, '').trim());
     }
 
-    // 핵심 버그 수정: 선택한 탭과 시트의 넘버링 구분값 매칭 및 정렬
     function renderList() {
         const query = document.getElementById('search-input').value.toLowerCase().trim();
         const deptOnly = document.getElementById('dept-only').checked;
@@ -254,19 +298,12 @@
 
         let filtered = allData.filter(item => {
             const rawCat = item.cat.trim();
-            
-            // 🚨비상 조건 정의: 시트 내 상황실이거나, 비상/긴급 키워드 소유 항목들
             const isEmergencyItem = rawCat.startsWith("보안/안내01") || item.dept.includes("상황실") || item.keyword.includes("비상") || item.keyword.includes("긴급");
             
             let isTabMatched = false;
-            if (currentTab === "전체") {
-                isTabMatched = true;
-            } else if (currentTab === "🚨비상") {
-                isTabMatched = isEmergencyItem;
-            } else {
-                // 핵심수정: 시트의 '보안/안내01'이 '보안'으로 시작하는지 부분 매칭 트리거 작동
-                isTabMatched = rawCat.startsWith(currentTab);
-            }
+            if (currentTab === "전체") isTabMatched = true;
+            else if (currentTab === "🚨비상") isTabMatched = isEmergencyItem;
+            else isTabMatched = rawCat.startsWith(currentTab);
 
             if (!isTabMatched) return false;
             if (!query) return true;
@@ -277,15 +314,12 @@
             const key = item.keyword.toLowerCase();
 
             if (dept.includes(query)) return true;
-            if (deptOnly) return false; // 부서명 체크인 경우 타 필드 제외
+            if (deptOnly) return false;
 
             return name.includes(query) || work.includes(query) || key.includes(query);
         });
 
-        // 정렬 우선순위 로직 적용: 시트 내에 명시된 구분 항목 넘버 순서대로 자동 오름차순 배치
-        filtered.sort((a, b) => {
-            return a.cat.localeCompare(b.cat, undefined, {numeric: true, sensitivity: 'base'});
-        });
+        filtered.sort((a, b) => a.cat.localeCompare(b.cat, undefined, {numeric: true, sensitivity: 'base'}));
 
         if(filtered.length === 0) {
             container.innerHTML = `<div style="text-align:center; padding:40px 0; color:#94a3b8; font-size:14px;">조회 가능한 내역이 없습니다.</div>`;
@@ -295,31 +329,21 @@
         filtered.forEach(r => {
             let displayName = r.name ? `${r.dept} (${r.name})` : r.dept;
             let finalNum = r.tel || r.hp || "";
-            
-            // 다이렉트 전화를 뺄 수 있는 정밀 정제 번호 가공 프로세스
             let callUrl = "";
             let cleanT = r.tel.replace(/[^0-9*]/g, "");
             if(cleanT) {
-                if(cleanT.startsWith("3147") || cleanT.startsWith("2258") || cleanT.startsWith("2023") || cleanT.startsWith("1899") || cleanT.startsWith("8263")) {
-                    callUrl = "02" + cleanT;
-                } else if(cleanT.startsWith("*1")) {
-                    callUrl = "022258" + cleanT.replace("*1", "");
-                } else if(cleanT.length === 4) {
-                    callUrl = "023147" + cleanT;
-                } else {
-                    callUrl = cleanT.startsWith("0") ? cleanT : "02" + cleanT;
-                }
+                if(cleanT.startsWith("3147") || cleanT.startsWith("2258") || cleanT.startsWith("2023") || cleanT.startsWith("1899") || cleanT.startsWith("8263") || cleanT.startsWith("8261") || cleanT.startsWith("8262")) callUrl = "02" + cleanT;
+                else if(cleanT.startsWith("*1")) callUrl = "022258" + cleanT.replace("*1", "");
+                else if(cleanT.length === 4) callUrl = "023147" + cleanT;
+                else callUrl = cleanT.startsWith("0") ? cleanT : "02" + cleanT;
             }
 
             const tBtn = r.tel ? `<a href="tel:${callUrl}" class="btn-icon">T</a>` : `<div class="btn-placeholder"></div>`;
             const mBtn = r.hp ? `<a href="tel:${r.hp.replace(/[^0-9]/g, "")}" class="btn-icon btn-m">M</a>` : `<div class="btn-placeholder"></div>`;
-
-            // 상황실 및 비상 우선 항목 시각 하이라이트 분기
             const isEmStyle = r.cat.startsWith("보안/안내01") || r.dept.includes("상황실");
-            const itemClass = isEmStyle ? "phone-item emergency-highlight" : "phone-item";
 
             container.insertAdjacentHTML('beforeend', `
-                <div class="${itemClass}">
+                <div class="${isEmStyle ? "phone-item emergency-highlight" : "phone-item"}">
                     <div class="info-area">
                         <div class="top-row">
                             <div class="name-area">${displayName}</div>
@@ -339,85 +363,66 @@
     }
     
     function clearSearch() { document.getElementById('search-input').value = ""; renderList(); }
-    document.getElementById('search-input').addEventListener('input', function() { renderList(); });
+    document.getElementById('search-input').addEventListener('input', renderList);
 
-    // 상황별 조치 모달 핸들러
+    function openReportModal() { document.getElementById('report-modal').style.display = 'flex'; switchReportTab('normal'); }
+    function switchReportTab(type) {
+        document.querySelectorAll('.sub-tab').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.report-flow-container').forEach(el => el.classList.remove('active'));
+        if(type === 'normal') {
+            document.getElementById('sub-tab-normal').classList.add('active');
+            document.getElementById('flow-normal').classList.add('active');
+        } else {
+            document.getElementById('sub-tab-emergency').classList.add('active');
+            document.getElementById('flow-emergency').classList.add('active');
+        }
+    }
+
+    function openEssentialModal() { document.getElementById('essential-modal').style.display = 'flex'; showCardDetail('전체'); }
+    function showCardDetail(key) {
+        document.querySelectorAll('.report-card').forEach(c => c.classList.remove('active'));
+        document.getElementById('card-detail-target').innerText = essentialDetails[key];
+    }
+
     function openActionModal(key) {
         const modal = document.getElementById('action-modal');
         const titleEl = document.getElementById('action-modal-title');
         const listEl = document.getElementById('action-modal-list');
         
-        let titleMap = { '누수':'💧 누수 관련 연락처', '전기':'⚡ 전기/유도등 고장', '승강기':'🛗 승강기 고장시 조치', '문창문':'🚪 문/창문/출입 제어', '냉난방':'❄️ 공조/개별 냉난방', '정전':'🔌 정전/기자재 비상연락', '화재':'🔥 화재 사고 접수', '시신기증':'🕊️ 시신기증 업무 담당' };
-        titleEl.innerText = titleMap[key] || key;
-        titleEl.className = (key === '화재' || key === '시신기증') ? "guide-title em" : "guide-title";
-
+        titleEl.innerText = `${key} 관련 비상연락망`;
         listEl.innerHTML = "";
-        const contacts = actionContacts[key] || [];
         
-        contacts.forEach(c => {
+        (actionContacts[key] || []).forEach(c => {
             let targetNum = c.tel || c.hp || "";
             let url = "";
-            if(c.tel) {
-                let clean = c.tel.replace("*1-","").replace("-","");
-                url = (c.tel.startsWith("3147") || c.tel.startsWith("031") || c.tel.startsWith("1899") || c.tel.startsWith("532") || c.tel.startsWith("2258")) ? (clean.startsWith("0") || clean.startsWith("1") ? clean : "02" + clean) : "022258" + clean;
-            } else if(c.hp) {
-                url = c.hp.replace(/[^0-9]/g,"");
+            if(targetNum) {
+                let clean = targetNum.replace(/[^0-9*]/g, "");
+                if (clean.startsWith("010")) {
+                    url = clean;
+                } else if(clean.startsWith("3147") || clean.startsWith("031") || clean.startsWith("1899") || clean.startsWith("2258") || clean.startsWith("8261") || clean.startsWith("8262") || clean.startsWith("8263")) {
+                    url = clean.startsWith("0") ? clean : "02" + clean;
+                } else if(clean.startsWith("*1")) {
+                    url = "022258" + clean.replace("*1", "");
+                } else if(clean.length === 4) {
+                    url = "023147" + clean;
+                } else {
+                    url = "02" + clean;
+                }
             }
-            let btn = targetNum ? `<a href="tel:${url}" class="btn-icon ${c.hp ? 'btn-m' : ''}" style="width:36px; height:36px; font-size:14px;">📞</a>` : `<div style="width:36px;"></div>`;
-
             listEl.insertAdjacentHTML('beforeend', `
                 <div class="pop-contact-item">
                     <div class="pop-contact-info">
                         <span class="pop-label">${c.label}</span>
-                        <span class="pop-sub">${c.sub}</span>
-                        ${targetNum ? `<span class="pop-num">${targetNum}</span>` : ''}
+                        <span class="pop-sub" style="word-break:keep-all; max-width:320px;">${c.sub}</span>
+                        <span class="pop-num">${targetNum}</span>
                     </div>
-                    ${btn}
+                    ${targetNum ? `<a href="tel:${url}" class="btn-icon" style="width:36px; height:36px; font-size:14px;">📞</a>` : ''}
                 </div>`);
         });
         modal.style.display = 'flex';
     }
-    function closeActionModal() { document.getElementById('action-modal').style.display = 'none'; }
 
-    // 상단 팝업용 핸들러
-    function openGuide(type) {
-        const modal = document.getElementById('guide-modal');
-        const content = document.getElementById('guide-modal-content');
-        if (type === 'report') {
-            content.innerHTML = `
-                <div class="guide-title">🔵 정상 보고 체계</div>
-                <div class="flow-step">① 근무조장(반장)</div><div class="flow-arrow">▼</div>
-                <div class="flow-step">② 보안 부소장</div><div class="flow-arrow">▼</div>
-                <div class="flow-step">③ 보안 소장</div><div class="flow-arrow">▼</div>
-                <div class="flow-step">④ 총무팀 담당</div><div class="flow-arrow">▼</div>
-                <div class="flow-step">⑤ 총무팀 UM</div><div class="flow-arrow">▼</div>
-                <div class="flow-step">⑥ 총무팀장</div>
-                <div class="guide-title em" style="margin-top:15px;">🟠 비상 보고 체계 (속보 상황)</div>
-                <div class="flow-step em">① 근무조장(반장)</div><div class="flow-arrow">▼</div>
-                <div class="flow-step em">② 총무팀담당 / UM</div><div class="flow-arrow">▼</div>
-                <div class="flow-step em">③ 총무팀장</div>`;
-        } else if (type === 'essential') {
-            content.innerHTML = `
-                <div class="guide-title em">🚨 필수 보고 내용 (9대 사건)</div>
-                <table class="guide-table">
-                    <thead><tr><th style="width:15%">No</th><th style="width:30%">사건명</th><th>보고 내용 내역</th></tr></thead>
-                    <tbody>
-                        <tr><td>1</td><td><b>인명사고사</b></td><td>의산연 화학품 폭발사고, 교통 등</td></tr>
-                        <tr><td>2</td><td><b>화재사고</b></td><td>119 소방서 실시간 출동 상황</td></tr>
-                        <tr><td>3</td><td><b>도난사고</b></td><td>CCTV 확인 요청 (서식 확인서 승인 후)</td></tr>
-                        <tr><td>4</td><td><b>누수사고</b></td><td>장마 · 태풍 등으로 인한 시설 침수 예방</td></tr>
-                        <tr><td>5</td><td><b>공사관계</b></td><td>개별 이사 · 장비 반출입 · 중계기 설치 등</td></tr>
-                        <tr><td>6</td><td><b>야간집회</b></td><td>17:00 이후 10명 이상의 단체 원내 집회 건</td></tr>
-                        <tr><td>7</td><td><b>군경 출동</b></td><td>군부대, 검찰, 경찰(순찰차) 원내 진입 현황</td></tr>
-                        <tr><td>8</td><td><b>주민항의</b></td><td>대관 불만 및 민원사항 (시신기증 등)</td></tr>
-                        <tr><td>9</td><td><b>VIP 방문</b></td><td>총장, 법인신부, 장관, 국회의원 원내 내방</td></tr>
-                    </tbody>
-                </table>`;
-        }
-        modal.style.display = 'flex';
-    }
-    function closeGuide() { document.getElementById('guide-modal').style.display = 'none'; }
-    function loginAdmin() { const pw = localStorage.getItem("adminPw") || "1234"; if(prompt("접속 암호:") === pw) alert("관리자 권한 획득"); }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 </script>
 </body>
 </html>
