@@ -10,13 +10,17 @@
         body { background-color: #f8fafc; margin: 0; padding: 0; color: #1e293b; -webkit-tap-highlight-color: transparent; padding-bottom: 180px; }
         .container { max-width: 600px; margin: 0 auto; background: white; min-height: 100vh; padding: 12px; position: relative; }
         
-        /* 헤더 버튼 스타일 추가 */
-        .app-title { font-weight: 900; color: #1e3a8a; font-size: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
-        .header-links { display: flex; gap: 8px; align-items: center; }
-        .header-links button { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 800; color: #334155; cursor: pointer; }
-        .header-links button.btn-emergency-link { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
+        /* [수정 반영] 세 번째 이미지 기준 상단 헤더 및 버튼 배치 */
+        .header-container { margin-bottom: 15px; padding: 0 4px; }
+        .app-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .app-title { font-weight: 900; color: #1e3a8a; font-size: 20px; margin: 0; }
+        
+        .header-links-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 5px; }
+        .header-links-row button { width: 100%; padding: 12px 0; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; font-weight: 800; text-align: center; cursor: pointer; }
+        .btn-report-link { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+        .btn-essential-link { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
 
-        /* 검색 및 탭 (기존 원본 유지) */
+        /* 검색 및 탭 (기존 원본 100% 유지) */
         .search-area { background: #f1f5f9; padding: 12px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
         .search-container { position: relative; width: 100%; margin-bottom: 8px; }
         .search-box { width: 100%; padding: 12px 40px 12px 14px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 16px; outline: none; }
@@ -64,13 +68,13 @@
         .btn-placeholder { width: 28px; height: 28px; flex-shrink: 0; }
         .work-text { font-size: 12px; color: #64748b; font-weight: 500; margin-top: 4px; }
 
-        /* 하단 고정 상황별 조치 버튼 바 추가 */
+        /* 하단 고정 상황별 조치 버튼 바 */
         .bottom-action-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #ffffff; padding: 10px 12px 14px 12px; border-top: 1px solid #cbd5e1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-width: 600px; margin: 0 auto; z-index: 90; box-shadow: 0 -4px 12px rgba(0,0,0,0.08); }
         .action-quick-btn { padding: 12px 0; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; font-weight: 800; color: #334155; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
         .action-quick-btn:active { background: #e2e8f0; }
         .action-quick-btn.em-btn { background: #fff5f5; border-color: #fca5a5; color: #dc2626; }
 
-        /* 모달 시스템 추가 */
+        /* 모달 시스템 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
         .modal-content { background: white; padding: 20px; border-radius: 12px; width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         
@@ -115,11 +119,15 @@
 <body>
 
 <div class="container">
-    <div class="app-title">
-        <span>성의교정 주요 전화 <button onclick="loginAdmin()" style="border:none; background:none; color:#eee; font-size:10px;">Admin</button></span>
-        <div class="header-links">
-            <button class="btn-emergency-link" onclick="openReportModal()">보고체계</button>
-            <button onclick="openEssentialModal()">필수보고</button>
+    <!-- [수정 반영] 상단 폰트 및 가로 분할 버튼 레이아웃 구조화 -->
+    <div class="header-container">
+        <div class="app-title-row">
+            <h2 class="app-title">성의교정 주요 전화</h2>
+            <button onclick="loginAdmin()" style="border:none; background:none; color:#ddd; font-size:11px; font-weight:700; cursor:pointer;">Admin</button>
+        </div>
+        <div class="header-links-row">
+            <button class="btn-report-link" onclick="openReportModal()">📋 상시 보고체계 확인</button>
+            <button class="btn-essential-link" onclick="openEssentialModal()">🚨 필수보고 (9대사건)</button>
         </div>
     </div>
 
@@ -147,7 +155,7 @@
         </div>
         <div id="list-container"></div>
 
-        <!-- 하단 고정 상황별 조치 버튼 바 추가 -->
+        <!-- 하단 고정 상황별 조치 버튼 바 -->
         <div class="bottom-action-bar">
             <div class="action-quick-btn" onclick="openActionModal('누수')">💧 누수</div>
             <div class="action-quick-btn" onclick="openActionModal('전기')">⚡ 전기</div>
@@ -183,7 +191,7 @@
     </div>
 </div>
 
-<!-- 모달 레이아웃 연동 영역 -->
+<!-- 모달 시스템 -->
 <div id="report-modal" class="modal">
     <div class="modal-content">
         <div class="report-sub-tabs">
@@ -252,7 +260,6 @@
     const tabPriority = { "보안": 1, "시설": 2, "미화": 3, "총무": 4, "지원": 5, "기타": 6 };
     const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQpOX8Ll6no4uXd5jnK0umTY3U_eKZXcDK2z_f2EsxSQDuOqk4YGzNkULJn_WgjTFBUseCbl6smBh0Z/pub?gid=1424582869&single=true&output=csv";
 
-    // 상황별/필수보고 텍스트 매칭 고정 정보
     const essentialDetails = {
         1: "1. 인명사고사: 의산연 화학품 폭발사고, 교통 등 인명피해 일체",
         2: "2. 화재사고: 119 소방서 실시간 출동 상황 및 원내 화재 징후",
@@ -380,7 +387,6 @@
         return result;
     }
 
-    // [수정금지] 원본 검색 및 정렬 Logic 그대로 유지
     function renderList() {
         const query = document.getElementById('search-input').value.toLowerCase().trim();
         const deptOnly = document.getElementById('dept-only').checked;
@@ -406,7 +412,6 @@
             return deptOnly ? dCho : (nCho || wCho || kCho);
         });
 
-        // [수정금지] 원본 정렬 기준 100% 동일 유지
         filtered.sort((a, b) => {
             const getRank = c => { for(let k in tabPriority) { if(c.includes(k)) return tabPriority[k]; } return 99; };
             const rA = getRank(a.cat), rB = getRank(b.cat);
@@ -448,7 +453,6 @@
         });
     }
 
-    // 모달 제어용 신규 함수 추가
     function openReportModal() { document.getElementById('report-modal').style.display = 'flex'; switchReportTab('normal'); }
     function switchReportTab(type) {
         document.querySelectorAll('.sub-tab').forEach(el => el.classList.remove('active'));
@@ -518,7 +522,6 @@
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-    // 관리자 관련 원본 함수 유지
     function loginAdmin() {
         const savedPw = localStorage.getItem("adminPw") || "1234";
         if (prompt("비밀번호") === savedPw) {
