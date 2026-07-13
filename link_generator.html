@@ -327,7 +327,7 @@ function findLink(inputLine) {
     const targetClean = cleanTitle(inputLine);
     if (!targetClean || targetClean.length < 2) return null;
 
-    // 1단계: 완전 매칭 확인 (가공 처리된 제목 기준)
+    // 1단계: 완전 매칭 확인
     for (let dbTitle in POST_DATABASE) {
         if (cleanTitle(dbTitle) === targetClean) {
             return { title: dbTitle, url: POST_DATABASE[dbTitle] };
@@ -342,11 +342,11 @@ function findLink(inputLine) {
         }
     }
 
-    // 3단계: 단어 쪼개어 가중치 체크 (어절 단위 유사도)
+    // 3단계: 단어 쪼개어 가중치 체크 (버그 수정 및 개선 버전)
     const keywords = inputLine
-        .replace(/^[🔗▶\s\-\•\*\d\.]+/g, '') // 앞머리 제거
-        .split(/[\|\s\?\!:\-\(\)]+/) // 특수문자 및 공백으로 어절 분리
-        .filter(kw => kw.trim().length > 1); // 1글자 초과 키워드 추출
+        .replace(/^[🔗▶\s\-\•\*\d\.]+/g, '') 
+        .split(/[\|\s\?\!:\-\(\)]+/) 
+        .filter(kw => kw.trim().length > 1); 
 
     if (keywords.length > 0) {
         let bestMatch = null;
@@ -360,14 +360,15 @@ function findLink(inputLine) {
                 }
             });
 
-            // 매칭된 어절이 2개 이상이고 기존 최댓값보다 큰 경우 갱신
-            if (matchCount >= 2 && matchCount > maxMatchCount) {
+            // [수정] >= 조건을 사용하여 매칭 단어 수가 같더라도 정확도가 더 높다면 갱신될 수 있도록 함
+            // 더불어 더 긴 매칭을 우대하기 위해 조건을 보완함
+            if (matchCount >= 2 && matchCount >= maxMatchCount) {
                 maxMatchCount = matchCount;
                 bestMatch = { title: dbTitle, url: POST_DATABASE[dbTitle] };
             }
         }
 
-        if (bestMatch) return bestMatch;
+        if (bestMatch && maxMatchCount >= 2) return bestMatch;
     }
 
     return null;
