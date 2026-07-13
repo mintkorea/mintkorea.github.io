@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>가톨릭대학교 의과대학 - 시신기증 접수 매뉴얼</title>
+    <style>
+        :root {
+            --primary-color: #1a365d;
+            --secondary-color: #2b6cb0;
+            --accent-color: #e53e3e;
+            --bg-color: #f7fafc;
+            --card-bg: #ffffff;
+            --text-color: #2d3748;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        nav {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        nav a {
+            color: var(--secondary-color);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            background: #edf2f7;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        nav a:hover {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        section {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            scroll-margin-top: 20px;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            border-left: 5px solid var(--secondary-color);
+            padding-left: 12px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            font-size: 18px;
+            margin-top: 25px;
+            margin-bottom: 12px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 20px;
+        }
+
+        .urgent-box {
+            background-color: #fff5f5;
+            border: 1px solid #feb2b2;
+            border-left: 5px solid var(--accent-color);
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .urgent-title {
+            color: var(--accent-color);
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #edf2f7;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        ul, ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .contact-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .contact-list li {
+            padding: 12px;
+            background: #f1f5f9;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 4px;
+            color: white;
+            margin-right: 5px;
+        }
+        .badge-primary { background-color: var(--primary-color); }
+        .badge-accent { background-color: var(--accent-color); }
+
+        .faq-item {
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+        .faq-q {
+            font-weight: bold;
+            color: var(--secondary-color);
+            margin-bottom: 8px;
+        }
+        .faq-a {
+            padding-left: 15px;
+            color: #4a5568;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>시신기증 접수 및 관리 매뉴얼</h1>
+        <p>가톨릭대학교 의과대학 총무팀 및 안내실 업무 프로세스</p>
+    </header>
+
+    <nav>
+        <a href="#section1">1. 필수 숙지 및 불가사유</a>
+        <a href="#section2">2. 야간/주말 응대요령</a>
+        <a href="#section3">3. 접수 후 후속조치</a>
+        <a href="#section4">4. 기증/인계 절차</a>
+        <a href="#section5">5. FAQ (자주 묻는 질문)</a>
+        <a href="#section6">6. 업무 연락처 안내</a>
+    </nav>
+
+    <!-- 세션 1: 필수 숙지 사항 -->
+    <section id="section1">
+        <h2>1. 필수 숙지 사항 및 기증 불가 사유</h2>
+        <div class="urgent-box">
+            <div class="urgent-title">⚠️ 중요 원칙 (필히 숙지)</div>
+            <ul>
+                <li><strong>사전 등록 필수:</strong> 생전에 시신기증 등록을 완료하신 분들만 유고 시 절차 진행이 가능합니다. ('육성 녹음', '목격자 증언' 등 서류가 없는 상태로는 접수 불가)</li>
+                <li><strong>고인 관계 및 유가족 동의 확인:</strong> 전화 주신 분과 고인과의 관계 확인이 필수적이며, 직계존비속 또는 친족(방계혈족)들과 직접 전화 통화하는 것을 원칙으로 합니다.</li>
+                <li><strong>무연고자의 경우:</strong> 연고자가 전혀 없는 특이 케이스 발생 시 즉시 <strong>조장에게 연락</strong>하여 보고하십시오.</li>
+            </ul>
+        </div>
+
+        <h3>🚨 시신기증이 불가능한 사유</h3>
+        <div class="grid">
+            <div class="card" style="border-top: 4px solid var(--accent-color);">
+                <strong>[의학적/상황적 불가]</strong>
+                <ul style="margin-top: 10px;">
+                    <li>사고사 (자살, 교통사고 등 강력계 사건 연루 건)</li>
+                    <li>전염성 질환 보유자 (에이즈, 성병, 1급 전염병 등)</li>
+                    <li>욕창이 지극히 심한 상태일 때</li>
+                </ul>
+            </div>
+            <div class="card" style="border-top: 4px solid var(--accent-color);">
+                <strong>[행정적/의사적 불가]</strong>
+                <ul style="margin-top: 10px;">
+                    <li>유가족이 반대하는 경우</li>
+                    <li>생전에 시신기증 서류 사전 등록이 안 된 경우</li>
+                    <li>사망 시 유가족(인계자)이 나타나지 않는 경우</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- 세션 2: 야간 및 주말 응대 요령 -->
+    <section id="section2">
+        <h2>2. 야간 및 주말 전화응대 요령 (의산연 안내실)</h2>
+        
+        <h3>📞 전화 수신 시 기본 체크리스트</h3>
+        <ul>
+            <li><strong>평일 착신해제 확인:</strong> 평일 09:30 이후에도 2258-7135번이 착신해제되지 않아 의산연(3147-8200)으로 전화가 수신되는 경우가 발생하면 즉시 <strong>성의회관(8300)</strong>으로 연락하여 조치할 것.</li>
+            <li><strong>수신 경로 확인:</strong> 평일 전화 수신 시 기증자가 2258-7135로 걸었는지, 3147-8200으로 걸었는지 인입 경로를 반드시 확인해야 합니다.</li>
+        </ul>
+
+        <h3>💬 야간/주말 스크립트 가이드</h3>
+        <div class="card" style="background-color: #f1f5f9; font-style: italic;">
+            "가톨릭의과대학(의산연) 안내실 [본인이름]입니다. 지금은 담당자께서 퇴근하셔서 자세한 상담은 저희가 해드릴 수 없으며, 평일 오전 09시 30분 이후에 전화(2258-7135)를 다시 해주시기 바랍니다."
+        </div>
+
+        <h3>📝 접수 및 정보 기록 요령</h3>
+        <ol>
+            <li><strong>장례 여부 확인:</strong> "빈소를 마련하실 건지요? (장례절차를 치르실 건지요?)" 질문 후 파악 (즉시모심 및 3일장 모두 가능)</li>
+            <li><strong>접수증 작성 항목:</strong> 고인 성함, 주민등록번호, 사망일시, 고인과의 관계, 사망원인, 모시러 갈 장소(병원/장례식장명), 연락처를 누락 없이 기록합니다.</li>
+            <li><strong>긴급 통화 처리 기준:</strong> 비교적 여유가 있는 3일장이라도 유족이 담당자와 긴급 통화를 원할 경우 접수증 비고란에 <strong>'긴급통화요망'</strong> 기재. 재촉 전화가 계속 올 경우 새벽이라도 담당자에게 연락해야 하나, 가급적 완곡히 표현하여 주간(평일 업무시간)으로 유도합니다.</li>
+        </ul>
+
+        <div class="urgent-box" style="margin-top: 15px;">
+            <div class="urgent-title">❌ 담당자 개인 연락처 유출 절대 금지</div>
+            <p style="margin: 0;">기증 담당 실무자의 개인 휴대폰 번호는 유족 분들에게 <strong>절대 알려주지 마십시오.</strong> (담당자가 직접 원하거나 허용한 특별한 경우에만 안내 가능)</p>
+        </div>
+    </section>
+
+    <!-- 세션 3: 접수 후 후속 조치 -->
+    <section id="section3">
+        <h2>3. 접수 후 후속 조치 (보안팀 및 조장 업무)</h2>
+        <div class="card">
+            <ol>
+                <li><strong>실무 책임자 전송:</strong> 접수 완료 즉시 시신기증접수증을 선명하게 캡처하여 <strong>업무 대행 실무자(주상건 차장 등)</strong>에게 무조건 전달합니다. (즉시모심, 3일장 형태 불문 필수 선행)</li>
+                <li><strong>즉시 모심 건 특이사항:</strong> 유족이 장례식 없이 바로 모시기를 원할(즉시모심) 경우에는 서류 전달과 동시에 <strong>담당 실무자에게 필히 직접 전화 통화</strong>를 시도해야 합니다.</li>
+                <li><strong>조장 공유 프로세스:</strong> 조장들은 확인 후 차후 조장 단톡방(부소장·반장) 공유는 물론, 총무팀 실무자와 연결된 <strong>'성의교정 보안팀 단톡방'</strong>에 접수증 캡처본을 업로드합니다.
+                    <br><span style="color: var(--secondary-color); font-weight: bold;">(메시지 예시: "시신기증 담당자 주상건 차장에게 전달하였습니다.")</span>
+                </li>
+            </ol>
+        </div>
+    </section>
+
+    <!-- 세션 4: 기증 및 인계 절차 -->
+    <section id="section4">
+        <h2>4. 시신기증 승낙 및 시신인계 절차</h2>
+        
+        <h3>[1] 생전 시신기증 등록 단계</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 25%;">단계</th>
+                    <th>주요 내용 및 제출 구비서류</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>1. 상담 및 발송</strong></td>
+                    <td>전화 상담(2258-7135) 시행 후 자택으로 시신기증 동의서서류 및 반송용 봉투 우편 발송</td>
+                </tr>
+                <tr>
+                    <td><strong>2. 동의서 작성</strong></td>
+                    <td>안내책자를 참고하여 반드시 <strong>기증 본인과 가족의 자필 서명</strong>으로 작성</td>
+                </tr>
+                <tr>
+                    <td><strong>3. 서류 접수</strong></td>
+                    <td>
+                        ① 본인 주민등록등본 1부<br>
+                        ② 가족관계증명서 또는 제적등본 1부 (본인-가족 간 관계 증명용)<br>
+                        ③ 개인정보 수집·이용 동의서 1부
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>4. 등록증 발급</strong></td>
+                    <td>의과대학 총무팀 서류 심사 후 2~4주 내에 자택으로 발급 (등록 후 언제든 취소 가능)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>[2] 사후 시신인계 및 장례 단계</h3>
+        <ol>
+            <li><strong>사망진단서 발급:</strong> 병원 혹은 자택 사망 시 경찰을 통해 사망진단서(사체검안서)를 최우선 발급받습니다.
+                <br><small style="color: var(--accent-color);">* 주의: 사체검안서가 확정되지 않은 자택 사망 건은 응급 차량을 선배차할 수 없음을 완곡히 설명하십시오. (관할 경찰서 신고 필수 안내)</small>
+            </li>
+            <li><strong>사망 통보:</strong> 타인이 아닌 <strong>반드시 유가족이</strong> 등록증 후면 번호로 통보해야 최종 기증 절차가 개시됩니다.</li>
+            <li><strong>장례 진행 방식:</strong> 3일장은 유가족(상주) 부담 하에 안치실이 있는 장례식장에서 치러야 하며, <strong>발인 시점에 맞추어</strong> 대학 의과대학으로 고인을 모시게 됩니다. 상담 시 장례식장과 정확한 발인 시간을 접수받으십시오.
+                <br><small>* 기증 시 관, 수의, 염습은 필수가 아니나 유가족 희망 시 종교행사(미사, 예배)를 진행해도 무방합니다.</small>
+            </li>
+            <li><strong>최종 시신인계 시 필수 서류:</strong>
+                <ul>
+                    <li>사망진단서(사체검안서) 1부</li>
+                    <li>시신기증자 주민등록등본 2부 (※ 반드시 사망일 이후 발행분만 효력 인정)</li>
+                    <li>유가족 대표 신분증 (주민등록증 또는 운전면허증) 1부</li>
+                    <li>시신표본승낙서 1부 (최종 인도 전 유족 동의 필수)</li>
+                </ul>
+            </li>
+            <li><strong>연구 종료 후 (유골 인도):</strong> 의학 교육 및 연구(약 2~3년 소요)가 종료되면 예의를 갖춰 입관·화장 후 유족에게 통보 및 인도합니다. 유족이 직접 모시기 어려운 경우 용인 <strong>'참사랑묘역'에 최대 20년간 안장</strong>이 가능합니다. (※ 입관/화장/안장 시 유가족은 초청하지 않음)</li>
+        </ol>
+    </section>
+
+    <!-- 세션 5: FAQ -->
+    <section id="section5">
+        <h2>5. 자주 묻는 질문 (FAQ)</h2>
+        
+        <div class="faq-item">
+            <div class="faq-q">Q1. 타 지역(지방)에 거주하고 있어도 기증을 할 수 있나요?</div>
+            <div class="faq-a">A. 현재 가톨릭대학교 의과대학의 경우 <strong>서울, 인천, 경기, 대전, 충청, 강원 지역</strong>까지 기증 및 시신 이송 접수가 가능합니다.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">Q2. 자녀가 없는 미혼이거나 단독 가구인 경우는 어떻게 하나요?</div>
+            <div class="faq-a">A. 자녀가 없음을 증명할 수 있는 '본인 가족관계증명서(상세용) 1부'와 함께, 본인보다 나이가 어린 혈연관계의 가족(형제, 자매 등)의 동의 서류 및 '형제 관계증명서 상세용 1부'가 첨부되어야 기증 등록이 승인됩니다.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">Q3. 종교나 나이에 대한 자격 제한 조건이 존재합니까?</div>
+            <div class="faq-a">A. 천주교 신자가 아니어도 상관없으며, <strong>나이와 종교에 따른 제한은 전혀 없습니다.</strong> 숭고한 뜻을 가진 누구나 참사랑을 실천하실 수 있습니다.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">Q4. 관이나 수의를 준비해야 하나요? 부대 장례 비용은 어떻게 되나요?</div>
+            <div class="faq-a">A. 대학 측 연구 프로세스상 최종 인계 시 관이나 수의는 별도로 소요되지 않습니다. 다만 인계 전 진행하는 빈소 설치, 안치실 이용 등 <strong>모든 일반 장례 절차 비용은 유가족이 전액 부담</strong>하셔야 합니다. 상세한 장례 물품 및 절차 조율은 주간에 담당 실무자와 심층 상담하도록 친절하게 안내하십시오.</div>
+        </div>
+    </section>
+
+    <!-- 세션 6: 연락처 정보 -->
+    <section id="section6">
+        <h2>6. 시신기증 및 유관 부서 연락처 정보</h2>
+        
+        <div class="grid">
+            <div>
+                <h3>📞 시신기증 업무 담당자 (최신본)</h3>
+                <ul class="contact-list">
+                    <li>
+                        <span class="badge badge-primary">총무팀 대표</span> 
+                        <strong>상담전화: 02-2258-7135</strong><br>
+                        <small>(평일 운영시간: 09:30 ~ 16:30)</small>
+                    </li>
+                    <li>
+                        <span class="badge badge-primary">실무 책임</span> 
+                        <strong>주상건 차장: 010-9496-6483</strong>
+                    </li>
+                    <li>
+                        <span class="badge badge-primary">실무 담당</span> 
+                        <strong>손미연 선임: 010-9283-5195</strong>
+                    </li>
+                </ul>
+                <p style="font-size: 13px; color: var(--accent-color); padding-left: 5px;">
+                    ※ 전임자(박성순 부장, 김보라 선임)에서 변경되었으므로 구 버전 서류와 혼동하지 않도록 주의 바랍니다.
+                </p>
+            </div>
+
+            <div>
+                <h3>재단 및 유관 기관 연락처</h3>
+                <ul class="contact-list">
+                    <li>
+                        <span class="badge badge-primary">장기기증</span>
+                        <strong>한마음한몸운동본부: 02-2258-1160 / 02-3789-3488</strong><br>
+                        <small>서울시 중구 명동길 80 가톨릭회관 413호</small>
+                    </li>
+                    <li>
+                        <span class="badge badge-primary">안장 묘역</span>
+                        <strong>참사랑묘역 (용인공원묘원 內): 031-334-0807</strong><br>
+                        <small>경기도 용인시 처인구 모현읍 오산로 154-62 (오산리 306-2)</small>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>🏥 가톨릭대학교 산하 주요 부속병원 장례식장 연락처</h3>
+        <table style="font-size: 14px;">
+            <tr style="background:#edf2f7;">
+                <td><strong>서울성모병원:</strong> 02-2258-5940</td>
+                <td><strong>여의도성모병원:</strong> 02-3779-1526</td>
+                <td><strong>은평성모병원:</strong> 02-2030-4444</td>
+            </tr>
+            <tr>
+                <td><strong>의정부성모병원:</strong> 031-820-3468</td>
+                <td><strong>부천성모병원:</strong> 032-340-7300</td>
+                <td><strong>성빈센트병원:</strong> 031-249-7114</td>
+            </tr>
+        </table>
+    </section>
+</div>
+
+</body>
+</html>
