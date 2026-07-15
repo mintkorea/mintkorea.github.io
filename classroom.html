@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>성의교정 강의실 개방 & 당직 지원 확인 시스템</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #0f172a;
+            font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+            letter-spacing: -0.025em;
+            color: #f1f5f9;
+            font-size: 16px;
+        }
+        .classroom-badge {
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 6px 14px;
+            display: inline-flex;
+            align-items: center;
+            background-color: #1e293b;
+            font-weight: 800;
+            font-size: 1.05rem;
+            margin: 2px;
+            color: #f8fafc;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .section-card {
+            background-color: #1e293b;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid #334155;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); z-index: 100; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
+        .day-sat { color: #60a5fa !important; }
+        .day-sun { color: #f87171 !important; }
+        .pulse-rose { animation: pulse-rose 2s infinite; }
+        @keyframes pulse-rose {
+            0% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(244, 63, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
+        }
+        .floating-nav {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 32px);
+            max-width: 500px;
+            background: #1e293b;
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            border: 1px solid #475569;
+            display: flex;
+            z-index: 50;
+            padding: 6px;
+        }
+        .nav-item {
+            flex: 1;
+            padding: 14px 0;
+            text-align: center;
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #94a3b8;
+            border-right: 1px solid #334155;
+            background: transparent;
+            border-top: none; border-left: none; border-bottom: none;
+            cursor: pointer;
+        }
+        .nav-item:last-child { border-right: none; }
+        .nav-item:active { background-color: #334155; color: #38bdf8; }
+        .date-header {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 24px;
+            padding: 24px 16px;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .admin-table { width: 100%; border-collapse: collapse; font-size: 13px; color: #e2e8f0; }
+        .admin-table th, .admin-table td { border: 1px solid #334155; padding: 10px; text-align: left; }
+        .admin-table th { background: #1e293b; font-weight: 800; }
+        .admin-table input, .admin-table textarea { width: 100%; border: none; background: transparent; outline: none; padding: 4px; font-size: 13px; color: #f1f5f9; }
+    </style>
+</head>
+<body class="pb-32">
+
+    <main class="max-w-2xl mx-auto px-4 pt-6">
+        
+        <!-- 상단 헤더 -->
+        <div class="date-header shadow-lg relative">
+            <h2 class="text-xl font-black text-amber-400 tracking-tight mb-3">🏢 성의교정 당일 개방 및 당직 확인</h2>
+            <div class="flex flex-col items-center gap-3">
+                <div class="flex items-center gap-3">
+                    <span id="display-date" class="text-2xl font-black italic tracking-tighter">로딩 중...</span>
+                    <span id="shift-badge" class="text-white text-xs px-3 py-1 rounded-full font-black shadow-sm">근무 확인 중</span>
+                </div>
+                <button id="admin-menu-btn" class="text-[11px] font-bold text-slate-400 border border-slate-700 px-4 py-1.5 rounded-full hover:bg-slate-800 transition-all mt-1">
+                    ⚙️ 원본 데이터 편집 (관리자)
+                </button>
+            </div>
+        </div>
+
+        <!-- 상태 요약 바 -->
+        <div id="status-bar" class="bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border border-slate-800 flex justify-between items-center text-sm mb-6 shadow-md">
+            <div class="flex flex-col items-start gap-1">
+                <div class="flex gap-4">
+                    <span class="flex items-center gap-1.5 font-bold text-slate-300"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> 당일 당직 확인 <b id="special-count" class="text-rose-400">0</b></span>
+                    <span class="flex items-center gap-1.5 font-bold text-slate-300"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> 상시 개방 지침 <b id="regular-count" class="text-blue-400">0</b></span>
+                </div>
+                <span id="view-status" class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">오늘 기준</span>
+            </div>
+            <button id="view-toggle-btn" class="text-sky-400 font-black border-b-2 border-sky-950 pb-0.5 hover:text-sky-300 transition-all">전체조회 모드 전환</button>
+        </div>
+
+        <!-- 1. 당일 의학교육지원팀 당직 구역 -->
+        <section id="special-section" class="hidden">
+            <div class="flex items-center justify-between mb-3 px-1">
+                <h2 class="text-xs font-black text-rose-400 flex items-center gap-2 uppercase tracking-wider">
+                    <span class="w-1.5 h-4 bg-rose-500 rounded-full"></span> TODAY'S DUTY STAFF (의학교육지원)
+                </h2>
+            </div>
+            <div id="special-content-area" class="grid gap-3"></div>
+        </section>
+
+        <!-- 2. 상시 강의실 개방 지침 구역 -->
+        <section class="mt-6">
+            <div class="flex items-center justify-between mb-3 px-1">
+                <h2 class="text-xs font-black text-slate-400 flex items-center gap-2 uppercase tracking-wider">
+                    <span class="w-1.5 h-4 bg-slate-500 rounded-full"></span> MASTER SCHEDULE
+                </h2>
+            </div>
+            <div id="regular-content-area" class="grid gap-4"></div>
+        </section>
+
+    </main>
+
+    <!-- 하단 부유형 네비게이션 바 -->
+    <nav class="floating-nav">
+        <button class="nav-item" onclick="changeDate(-1)">◀ 이전 날짜</button>
+        <button class="nav-item" onclick="resetToToday()">오늘</button>
+        <button class="nav-item" onclick="changeDate(1)">다음 날짜 ▶</button>
+        <button class="nav-item text-sky-400" onclick="window.scrollTo({top:0, behavior:'smooth'})">맨 위로</button>
+    </nav>
+
+    <!-- 관리자 수정 모달 -->
+    <div id="admin-modal" class="modal">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950 rounded-t-2xl">
+                <h3 class="font-bold text-slate-200 text-base">데이터 수동 관리 데이터셋</h3>
+                <button id="close-modal-btn" class="text-slate-400 text-2xl font-bold hover:text-slate-200">✕</button>
+            </div>
+            
+            <div class="p-4 overflow-y-auto space-y-8">
+                <!-- 상시 개방 편집 -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-xs font-black text-sky-400">1. 상시 개방 지침 (Master Schedule)</label>
+                        <button onclick="addMasterRow()" class="text-xs bg-sky-950 text-sky-400 px-3 py-1.5 rounded-lg border border-sky-900 font-bold hover:bg-sky-900 transition-all">+ 추가</button>
+                    </div>
+                    <div class="overflow-x-auto border border-slate-800 rounded-xl">
+                        <table class="admin-table" id="master-table">
+                            <thead>
+                                <tr>
+                                    <th width="18%">건물</th>
+                                    <th width="22%">호실</th>
+                                    <th width="15%">요일</th>
+                                    <th width="20%">시간</th>
+                                    <th>비고</th>
+                                    <th width="40px"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="master-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 당직 정보 편집 -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-xs font-black text-rose-400">2. 의학교육지원팀 당직 정보 스케줄러</label>
+                        <button onclick="addSpecialRow()" class="text-xs bg-rose-950 text-rose-400 px-3 py-1.5 rounded-lg border border-rose-900 font-bold hover:bg-rose-900 transition-all">+ 추가</button>
+                    </div>
+                    <div class="overflow-x-auto border border-slate-800 rounded-xl">
+                        <table class="admin-table" id="special-table">
+                            <thead>
+                                <tr>
+                                    <th width="12%">날짜</th>
+                                    <th width="20%">구분/담당자</th>
+                                    <th width="20%">지원 장소</th>
+                                    <th width="18%">운영 시간</th>
+                                    <th>특이 사항</th>
+                                    <th width="40px"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="special-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-800 bg-slate-950 rounded-b-2xl flex gap-3">
+                <button id="import-gas-btn" onclick="fetchFromGAS()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 py-4 rounded-xl font-bold text-sm shadow-md transition-all">☁️ 구글 시트 데이터 동기화</button>
+                <button id="save-all-btn" class="flex-1 bg-sky-500 hover:bg-sky-400 text-slate-950 py-4 rounded-xl font-black text-sm shadow-md transition-all">💾 변경사항 로컬 적용</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 초기 템플릿 데이터
+        var defaultMasterData = [
+            { building: "서울성모별관", rooms: "1201, 1202, 1203, 1204, 1205, 1206", days: "월화수목금토일", time: "평일: 오전 개방/오후 폐쇄 | 주말: 대관 확인 후 개방", notes: "※ 1201호 비밀번호: 4141 -> 열림\n평시 월~금 개방 대상" },
+            { building: "성의회관", rooms: "421, 422", days: "월화수목금토일", time: "오전 개방 / 원칙적 오후 폐쇄", notes: "학생 요청 시 무리한 퇴실 독촉 금지\n의예과 1학년 (~6/26)" },
+            { building: "성의회관", rooms: "521, 522", days: "월화수목금토일", time: "오전 개방 / 원칙적 오후 폐쇄", notes: "의예과 2,3학년 (522호 ~8/7, 521호 ~8/21)" },
+            { building: "성의회관", rooms: "801 (스타트센터)", days: "월화수목금토일", time: "09:00 ~ 21:00 (5/30 ~ 11/6)", notes: "평일: START센터 직원 개방 / 야간 21:00 폐쇄만 지원\n주말: 학생 요청 시 해당 시간 동안만 개방" }
+        ];
+
+        var defaultSpecialData = [
+            { date: "7/16", cat: "의학지원팀 한정욱", loc: "마리아홀", time: "09:00 ~ 종료시", note: "종동문회 행사 당직 개방 지원 예시" }
+        ];
+
+        var state = { 
+            currentDate: new Date(), 
+            isFullView: false, 
+            specialList: [],
+            masterList: []
+        };
+        
+        var dayNames = ["일", "월", "화", "수", "목", "금", "토"];
+
+        // 마감 기한 파싱 및 만료 체크 (~6/26 포맷 체크 전용)
+        function isExpiredMaster(notesStr) {
+            if (!notesStr) return false;
+            var match = notesStr.match(/~(\d+)\/(\d+)/);
+            if (!match) return false;
+            
+            var m = parseInt(match[1], 10) - 1;
+            var d = parseInt(match[2], 10);
+            var currentYear = new Date().getFullYear();
+            
+            var expireDate = new Date(currentYear, m, d, 23, 59, 59);
+            var todayZero = new Date();
+            todayZero.setHours(0,0,0,0);
+            
+            return expireDate < todayZero;
+        }
+
+        // 3일 주기 C조 순환 근무 배정 로직 (2025.01.01 = C조 고정)
+        function getShiftInfo(targetDate) {
+            var base = new Date(2025, 0, 1);
+            var coreDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+            var diff = Math.floor((coreDate.getTime() - base.getTime()) / (1000 * 60 * 60 * 24));
+            var idx = diff % 3;
+            if (idx < 0) idx += 3;
+            
+            var shifts = [
+                { name: "C조", color: "#3B82F6" },
+                { name: "A조", color: "#F59E0B" },
+                { name: "B조", color: "#EF4444" }
+            ];
+            return shifts[idx];
+        }
+
+        function changeDate(days) {
+            state.currentDate.setDate(state.currentDate.getDate() + days);
+            state.isFullView = false;
+            renderUI();
+        }
+
+        function resetToToday() {
+            state.currentDate = new Date();
+            state.isFullView = false;
+            renderUI();
+        }
+
+        function renderUI() {
+            var now = state.currentDate;
+            var y = now.getFullYear();
+            var m = String(now.getMonth() + 1).padStart(2, "0");
+            var d = String(now.getDate()).padStart(2, "0");
+            var dayIdx = now.getDay();
+            var dayName = dayNames[dayIdx];
+
+            var dateEl = document.getElementById("display-date");
+            if (dateEl) {
+                dateEl.innerText = y + "." + m + "." + d + ".(" + dayName + ")";
+                if(dayIdx === 0) { dateEl.className = "text-2xl font-black italic tracking-tighter day-sun"; }
+                else if(dayIdx === 6) { dateEl.className = "text-2xl font-black italic tracking-tighter day-sat"; }
+                else { dateEl.className = "text-2xl font-black italic tracking-tighter text-slate-200"; }
+            }
+
+            var shift = getShiftInfo(now);
+            var badge = document.getElementById("shift-badge");
+            if (badge) {
+                badge.innerText = "보안 : " + shift.name;
+                badge.style.backgroundColor = shift.color;
+            }
+
+            var filterDate = (now.getMonth() + 1) + "/" + now.getDate();
+            var viewStatusEl = document.getElementById("view-status");
+            if (viewStatusEl) {
+                viewStatusEl.innerText = state.isFullView ? "전체 스케줄 확인 중" : "당일 당직 매칭 현황";
+            }
+
+            // [핵심 필터] 전체 조회 모드가 아니라면 화면 조회중인 "M/D" 날짜 데이터만 정확히 노출 (지나간 과거 자동 제외)
+            var specials = state.specialList.filter(function(s) {
+                if (state.isFullView) return true;
+                return s.date === filterDate;
+            });
+            
+            document.getElementById("special-count").innerText = specials.length;
+            var specialArea = document.getElementById("special-content-area");
+            
+            if(specials.length > 0) {
+                document.getElementById("special-section").classList.remove("hidden");
+                specialArea.innerHTML = specials.map(function(s) {
+                    return '<div class="section-card border-l-[6px] p-5 bg-slate-900 pulse-rose border-l-rose-500">' +
+                           '<div class="flex justify-between items-center mb-2">' +
+                           '<span class="text-xs font-black text-rose-400 bg-rose-950/50 px-2 py-1 rounded border border-rose-900">당직자 매칭 확인 (' + (s.date || '') + ')</span>' +
+                           '<span class="text-xs font-bold text-slate-400">' + (s.cat || '') + '</span>' +
+                           '</div>' +
+                           '<div class="text-lg font-black text-slate-100 mb-1">🏢 지원 장소 : ' + (s.loc || '') + '</div>' +
+                           '<div class="text-sm font-black text-amber-400 mb-3">🕒 운영 시간 : ' + (s.time || '') + '</div>' +
+                           '<p class="text-[13px] text-slate-300 bg-slate-950 p-3 rounded-xl border border-slate-800 leading-relaxed font-bold whitespace-pre-line">' + (s.note || '') + '</p>' +
+                           '</div>';
+                }).join('');
+            } else { 
+                document.getElementById("special-section").classList.add("hidden"); 
+            }
+
+            var regularArea = document.getElementById("regular-content-area");
+            regularArea.innerHTML = "";
+            
+            var bMap = state.masterList.map(function(m) { return m.building; });
+            var buildings = bMap.filter(function(item, pos) { return bMap.indexOf(item) == pos; });
+            var regCount = 0;
+
+            buildings.forEach(function(bName) {
+                // 상시 지침 또한 요일이 부합하며 비고 마감 기한이 초과하지 않은 건만 스캔
+                var items = state.masterList.filter(function(m) {
+                    var matchBuilding = m.building === bName;
+                    var matchDay = m.days && m.days.indexOf(dayName) > -1;
+                    var isExpired = isExpiredMaster(m.notes);
+                    
+                    if (state.isFullView) return matchBuilding;
+                    return matchBuilding && matchDay && !isExpired;
+                });
+
+                if(items.length > 0) {
+                    regCount += items.length;
+                    var card = document.createElement("div");
+                    card.className = "section-card";
+                    card.innerHTML = '<div class="bg-slate-800 text-slate-200 px-4 py-3 text-xs font-black border-b border-slate-700">🏫 ' + bName + '</div>' +
+                        '<div class="p-5 space-y-5 divide-y divide-slate-800">' +
+                            items.map(function(i, idx) { 
+                                var badgeHtml = i.rooms ? i.rooms.split(",").map(function(r) { return '<span class="classroom-badge">' + r.trim() + '</span>'; }).join("") : "";
+                                var noteHtml = i.notes ? i.notes.split("\n").map(function(n) { return '<p class="text-[13px] text-slate-300 font-bold flex items-start gap-2"><span class="text-sky-500 mt-1">●</span> ' + n + '</p>'; }).join("") : "";
+                                return '<div class="' + (idx > 0 ? 'pt-5' : '') + '">' +
+                                       '<div class="flex flex-wrap gap-2 mb-3">' + badgeHtml + '</div>' +
+                                       '<div class="text-xs font-black text-sky-400 bg-sky-950/50 inline-flex items-center gap-1.5 px-3 py-1 rounded-full mb-3 border border-sky-900/50">🕒 ' + (i.time || '') + '</div>' +
+                                       '<div class="space-y-1.5 pl-1">' + noteHtml + '</div>' +
+                                       '</div>';
+                            }).join('') +
+                        '</div>';
+                    regularArea.appendChild(card);
+                }
+            });
+            document.getElementById("regular-count").innerText = regCount;
+        }
+
+        function addMasterRow(data) {
+            var d = data || { building: "", rooms: "", days: "", time: "", notes: "" };
+            var tbody = document.getElementById("master-table-body");
+            var tr = document.createElement("tr");
+            tr.innerHTML = '<td><input type="text" value="' + (d.building || '') + '" class="master-building"></td>' +
+                '<td><input type="text" value="' + (d.rooms || '') + '" class="master-rooms"></td>' +
+                '<td><input type="text" value="' + (d.days || '') + '" class="master-days"></td>' +
+                '<td><input type="text" value="' + (d.time || '') + '" class="master-time"></td>' +
+                '<td><textarea class="master-notes" rows="1">' + (d.notes || '') + '</textarea></td>' +
+                '<td class="text-center"><button onclick="this.parentElement.parentElement.remove()" class="text-rose-500 font-bold text-lg">✕</button></td>';
+            tbody.appendChild(tr);
+        }
+
+        function addSpecialRow(data) {
+            var d = data || { date: "", cat: "", loc: "", time: "", note: "" };
+            var tbody = document.getElementById("special-table-body");
+            var tr = document.createElement("tr");
+            tr.innerHTML = '<td><input type="text" value="' + (d.date || '') + '" class="special-date" placeholder="예: 7/16"></td>' +
+                '<td><input type="text" value="' + (d.cat || '') + '" class="special-cat"></td>' +
+                '<td><input type="text" value="' + (d.loc || '') + '" class="special-loc"></td>' +
+                '<td><input type="text" value="' + (d.time || '') + '" class="special-time"></td>' +
+                '<td><textarea class="special-note" rows="1">' + (d.note || '') + '</textarea></td>' +
+                '<td class="text-center"><button onclick="this.parentElement.parentElement.remove()" class="text-rose-500 font-bold text-lg">✕</button></td>';
+            tbody.appendChild(tr);
+        }
+
+        document.getElementById("admin-menu-btn").onclick = function() {
+            var mBody = document.getElementById("master-table-body");
+            var sBody = document.getElementById("special-table-body");
+            mBody.innerHTML = ""; sBody.innerHTML = "";
+            state.masterList.forEach(function(m) { addMasterRow(m); });
+            state.specialList.forEach(function(s) { addSpecialRow(s); });
+            document.getElementById("admin-modal").style.display = "flex";
+        };
+
+        document.getElementById("close-modal-btn").onclick = function() { document.getElementById("admin-modal").style.display = "none"; };
+
+        document.getElementById("save-all-btn").onclick = function() {
+            var mRows = document.querySelectorAll("#master-table-body tr");
+            state.masterList = Array.from(mRows).map(function(row) {
+                return {
+                    building: row.querySelector(".master-building").value,
+                    rooms: row.querySelector(".master-rooms").value,
+                    days: row.querySelector(".master-days").value,
+                    time: row.querySelector(".master-time").value,
+                    notes: row.querySelector(".master-notes").value
+                };
+            });
+
+            var sRows = document.querySelectorAll("#special-table-body tr");
+            state.specialList = Array.from(sRows).map(function(row) {
+                return {
+                    date: row.querySelector(".special-date").value,
+                    cat: row.querySelector(".special-cat").value,
+                    loc: row.querySelector(".special-loc").value,
+                    time: row.querySelector(".special-time").value,
+                    note: row.querySelector(".special-note").value
+                };
+            });
+
+            localStorage.setItem("v12_master", JSON.stringify(state.masterList));
+            localStorage.setItem("v12_special", JSON.stringify(state.specialList));
+            document.getElementById("admin-modal").style.display = "none";
+            renderUI();
+        };
+
+        function fetchFromGAS() {
+            var webAppUrl = "https://script.google.com/macros/s/AKfycbxk_PTZ9uOBfFUAp8qSiaHj7RS6WZydsLTsHGHsYK5xm5iju8pTq7hi7ID5WUr4ew726A/exec";
+            var btn = document.getElementById("import-gas-btn");
+            btn.innerText = "⏳ 데이터 동기화 갱신 중...";
+            
+            fetch(webAppUrl)
+                .then(function(res) {
+                    if (!res.ok) throw new Error("네트워크 오류");
+                    return res.json();
+                })
+                .then(function(data) {
+                    if (data.gdData && Array.isArray(data.gdData)) {
+                        state.masterList = data.gdData;
+                        localStorage.setItem("v12_master", JSON.stringify(data.gdData));
+                    }
+                    if (data.opData && Array.isArray(data.opData)) {
+                        state.specialList = data.opData;
+                        localStorage.setItem("v12_special", JSON.stringify(data.opData));
+                    }
+                    
+                    alert("✅ 당직 관리 데이터가 최신 동기화되었습니다!");
+                    btn.innerText = "☁️ 구글 시트 데이터 동기화";
+                    
+                    var mBody = document.getElementById("master-table-body");
+                    var sBody = document.getElementById("special-table-body");
+                    mBody.innerHTML = ""; sBody.innerHTML = "";
+                    state.masterList.forEach(function(m) { addMasterRow(m); });
+                    state.specialList.forEach(function(s) { addSpecialRow(s); });
+                    renderUI();
+                })
+                .catch(function(err) {
+                    alert("❌ 오류: 구글 시트 웹앱 배포 설정 권한이 '모든 사람(Anyone)'으로 되어있는지 확인하십시오.");
+                    btn.innerText = "☁️ 구글 시트 데이터 동기화";
+                });
+        }
+
+        document.getElementById("view-toggle-btn").onclick = function() {
+            state.isFullView = !state.isFullView;
+            renderUI();
+        };
+
+        window.onload = function() {
+            var sm = localStorage.getItem("v12_master");
+            var ss = localStorage.getItem("v12_special");
+            state.masterList = sm ? JSON.parse(sm) : defaultMasterData;
+            state.specialList = ss ? JSON.parse(ss) : defaultSpecialData;
+            renderUI();
+        };
+
+        window.onclick = function(e) { if(e.target.id === "admin-modal") e.target.style.display = "none"; };
+    </script>
+</body>
+</html>
