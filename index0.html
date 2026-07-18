@@ -82,17 +82,21 @@
     <div class="page">
         <!-- 상단 헤더 -->
         <!-- 상단 헤더 수정 -->
+<!-- 상단 헤더 내 배치 수정 -->
 <div class="brand-header">
     <div class="flex justify-between items-center">
         <div>
             <h1 class="text-2xl font-black tracking-tighter">성의교정 통합조회</h1>
-            <!-- 드롭박스 추가 -->
-            <select id="siteSelector" onchange="changeSite(this.value)" 
-                    class="mt-2 bg-white/20 text-white font-bold text-sm px-2 py-1 rounded-lg border-none focus:ring-0">
-                <option value="sungeui">성의회관</option>
-                <option value="omnibus">옴니버스</option>
-            </select>
-            <div id="datePickerTrigger" class="custom-date-trigger ml-2">날짜 선택</div>
+            <div class="flex items-center gap-2 mt-2">
+                <!-- 날짜 선택기가 먼저 오도록 수정 -->
+                <div id="datePickerTrigger" class="custom-date-trigger">날짜 선택</div>
+                <!-- 드롭박스 -->
+                <select id="siteSelector" onchange="changeSite(this.value)" 
+                        class="bg-white/20 text-white font-bold text-sm px-2 py-1 rounded-lg border-none focus:ring-0">
+                    <option value="sungeui">성의회관</option>
+                    <option value="omnibus">옴니버스</option>
+                </select>
+            </div>
         </div>
         <div id="shift-badge" onclick="navigateTo('team.html')" class="px-4 py-2 rounded-xl font-black text-[13px] shadow-sm cursor-pointer active:scale-95 transition-transform">--조 근무</div>
     </div>
@@ -344,37 +348,54 @@
             updateDutyUI(); updateEvents(currentDate); updateMeal(currentDate);
         }
 
-// 근무지 변경 함수
+// 1. 근무지 변경 및 저장
 function changeSite(site) {
     localStorage.setItem('userSite', site);
-    document.getElementById('siteSelector').value = site;
     document.getElementById('siteModal').style.display = 'none';
-    
-    // 옴니버스 선택 시 근무편성 영역을 명단으로 변경하는 로직 예시
-    renderCustomUI(site);
-    updateDisplay();
+    updateDisplay(); // 저장 후 화면 갱신
 }
 
-// 옴니버스 명단 데이터
-const omnibusMembers = `
-    <div class="p-4 text-[0.85rem] font-bold text-slate-700">
-        <div class="mb-2">반장: 오제준</div>
-        <div class="mb-2 text-orange-600">A조: 손병휘(조장), 김전식, 권순호</div>
-        <div class="mb-2 text-red-600">B조: 황일범(조장), 이상길, 허용</div>
-        <div class="text-blue-600">C조: 피재영(조장), 남형민, 강경훈</div>
-    </div>
-`;
+// 2. 통합 갱신 함수 (근무지별 UI 분기)
+function updateDisplay() {
+    const site = localStorage.getItem('userSite') || 'sungeui';
+    document.getElementById('siteSelector').value = site;
+    
+    // 날짜 표시
+    const days = ['일','월','화','수','목','금','토'];
+    document.getElementById('datePickerTrigger').innerText = `${currentDate.getFullYear()}.${currentDate.getMonth()+1}.${currentDate.getDate()} (${days[currentDate.getDay()]})`;
 
-function renderCustomUI(site) {
+    // 근무 편성 영역 분기
     const dutyContainer = document.getElementById('duty-preview-container');
     if (site === 'omnibus') {
-        dutyContainer.innerHTML = omnibusMembers;
+        dutyContainer.innerHTML = `
+            <div class="p-4 text-[0.85rem] font-bold text-slate-700">
+                <div class="mb-1">반장: 오제준</div>
+                <div class="mb-1 text-orange-600">A조: 손병휘(조장), 김전식, 권순호</div>
+                <div class="mb-1 text-red-600">B조: 황일범(조장), 이상길, 허용</div>
+                <div class="text-blue-600">C조: 피재영(조장), 남형민, 강경훈</div>
+            </div>`;
         document.getElementById('shift-badge').innerText = "옴니버스";
     } else {
-        // 기존 성의회관 로직 실행
-        updateDutyUI();
+        updateDutyUI(); // 기존 성의회관 로직
     }
+
+    // 행사 및 식단 업데이트
+    updateEvents(currentDate); 
+    updateMeal(currentDate);
 }
+
+// 3. 로딩 시 초기화
+window.onload = () => {
+    // ... flatpickr 설정 ...
+    
+    // 모달 체크
+    const savedSite = localStorage.getItem('userSite');
+    if (!savedSite) {
+        document.getElementById('siteModal').style.display = 'flex';
+    }
+    
+    loadFirebaseData(); // 내부에서 updateDisplay() 호출
+};
 
 // 로딩 시 체크
 window.onload = () => {
