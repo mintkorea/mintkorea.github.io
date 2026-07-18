@@ -15,12 +15,12 @@
         body { font-family: 'Pretendard', sans-serif; background-color: #f1f5f9; color: #1e293b; letter-spacing: -0.05em; margin: 0; padding: 0; }
         .brand-header { background: linear-gradient(135deg, #2d3e75 0%, #1e293b 100%); padding: 20px 16px 45px 16px; color: white; border-radius: 0 0 24px 24px; }
         .custom-date-trigger { background-color: rgba(255, 255, 255, 0.15); color: white; font-weight: 800; padding: 6px 14px; border-radius: 8px; cursor: pointer; display: inline-flex; margin-top: 10px; }
-        .table-card { background: white; border-radius: 16px; overflow: hidden; margin: 0 10px 8px 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        .table-card { background: white; border-radius: 16px; overflow: hidden; margin: 0 10px 8px 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; cursor: pointer; }
         .table-header { width: 55px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.85rem; flex-shrink: 0; }
-        .label-duty { color: #3b82f6; background-color: #eff6ff; }
+        .label-duty { color: #3b82f6; background-color: #eff6ff; border-right: 1px solid #dbeafe; }
         .table-body { flex-grow: 1; padding: 12px 14px; }
         .bg-shift-A { background-color: #F59E0B; } .bg-shift-B { background-color: #EF4444; } .bg-shift-C { background-color: #3B82F6; }
-        #siteModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 999; align-items: center; justify-content: center; }
+        #siteModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 999; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
@@ -29,11 +29,13 @@
             <div class="flex justify-between items-center">
                 <div>
                     <h1 class="text-2xl font-black">성의교정 통합조회</h1>
-                    <select id="siteSelector" onchange="changeSite(this.value)" class="bg-white/20 text-white font-bold text-sm px-2 py-1 rounded-lg border-none mt-2">
-                        <option value="sungeui">성의회관</option>
-                        <option value="omnibus">옴니버스</option>
-                    </select>
-                    <div id="datePickerTrigger" class="custom-date-trigger">날짜 선택</div>
+                    <div class="flex items-center gap-2 mt-2">
+                        <select id="siteSelector" onchange="changeSite(this.value)" class="bg-white/20 text-white font-bold text-sm px-2 py-1 rounded-lg border-none focus:ring-0">
+                            <option value="sungeui">성의회관</option>
+                            <option value="omnibus">옴니버스</option>
+                        </select>
+                        <div id="datePickerTrigger" class="custom-date-trigger">날짜 선택</div>
+                    </div>
                 </div>
                 <div id="shift-badge" onclick="navigateTo('team.html')" class="px-4 py-2 rounded-xl font-black text-[13px] shadow-sm cursor-pointer">--조 근무</div>
             </div>
@@ -43,13 +45,11 @@
             <div class="table-header label-duty">근무<br>편성</div>
             <div id="duty-preview-container" class="table-body"></div>
         </div>
-
         <div id="event-list" class="table-card p-4">로드 중...</div>
-        <div id="meal-list" class="table-card p-4">로드 중...</div>
     </div>
 
     <div id="siteModal">
-        <div class="bg-white p-6 rounded-2xl w-[80%] text-center">
+        <div class="bg-white p-6 rounded-2xl w-[80%] max-w-[300px] text-center">
             <h2 class="font-black text-lg mb-4">근무지를 선택해주세요</h2>
             <button onclick="changeSite('sungeui')" class="block w-full py-3 mb-2 bg-blue-600 text-white font-bold rounded-xl">성의회관</button>
             <button onclick="changeSite('omnibus')" class="block w-full py-3 bg-indigo-600 text-white font-bold rounded-xl">옴니버스</button>
@@ -57,19 +57,19 @@
     </div>
 
     <script>
-        // 사이트별 데이터 설정
-        const SITE_CONFIG = {
+        // 핵심 설정 객체
+        const CONFIG = {
             sungeui: {
                 A: ["배준용", "이명구", "김영중", "김삼동"],
                 B: ["심규천", "임종현", "권영국", "전준수"],
                 C: ["황재업", "김태언", "이정석", "이태원"],
-                eventFilter: (item) => item.bu.includes("성의회관") || item.bu.includes("의산연")
+                eventKey: (i) => i.bu.includes("성의회관") || i.bu.includes("의산연")
             },
             omnibus: {
                 A: ["손병휘", "김전식", "권순호"],
                 B: ["황일범", "이상길", "허용"],
                 C: ["피재영", "남형민", "강경훈", "오제준"],
-                eventFilter: (item) => item.bu.includes("옴니버스")
+                eventKey: (i) => i.bu.includes("옴니버스")
             }
         };
 
@@ -78,20 +78,23 @@
         let vData = {};
         const baseDate = '2026-03-09', patterns = ['C', 'A', 'B'];
 
+        // 근무지 변경 함수
         function changeSite(site) {
             currentSite = site;
             localStorage.setItem('userSite', site);
             document.getElementById('siteModal').style.display = 'none';
+            document.getElementById('siteSelector').value = site;
             updateDisplay();
         }
 
+        // 근무 편성 로직 (기존 로직 유지, CONFIG 참조)
         function getShiftNames(shift, diff, date) {
-            const config = SITE_CONFIG[currentSite];
-            if (shift === 'A') return [...config.A];
-            if (shift === 'B') return [...config.B];
+            const cfg = CONFIG[currentSite];
+            if (shift === 'A') return [...cfg.A];
+            if (shift === 'B') return [...cfg.B];
             
-            // C조 순환 로직 공유
-            const members = config.C.slice(1);
+            // C조 순환 로직
+            const members = cfg.C.slice(1);
             const dutyCount = Math.floor(diff / 3);
             const hallIdx = Math.floor(((dutyCount % 6) + 6) % 6 / 2);
             let hallWorker = members[hallIdx];
@@ -100,25 +103,33 @@
             if (dutyCount % 2 !== 0) [medA, medB] = [medB, medA];
             
             // 연차 스와핑
+            const dStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
             const dVal = String(date.getDate());
-            const isV = (n) => (vData[`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`] || {})[n]?.split(',').map(v=>v.trim()).includes(dVal);
+            const isV = (n) => (vData[dStr] || {})[n]?.split(',').map(v=>v.trim()).includes(dVal);
             if (isV(medA)) [hallWorker, medA] = [medA, hallWorker];
             else if (isV(medB)) [hallWorker, medB] = [medB, hallWorker];
             
-            return [config.C[0], hallWorker, medA, medB];
+            return [cfg.C[0], hallWorker, medA, medB];
         }
 
+        // 통합 업데이트 함수
         function updateDisplay() {
-            if(!currentSite) { document.getElementById('siteModal').style.display = 'flex'; return; }
-            document.getElementById('siteSelector').value = currentSite;
-            // ... 나머지 updateDutyUI, updateEvents, updateMeal 로직 호출 ...
-            // (기존 updateDutyUI 내에서 getShiftNames를 호출하도록 유지)
-            console.log("현재 사이트:", currentSite);
+            if (!currentSite) return;
+            // 1. 근무 편성 갱신
+            // (기존 updateDutyUI 내에서 getShiftNames 사용하도록 수정하세요)
+            
+            // 2. 행사 갱신 (CONFIG.eventKey 사용)
+            // (기존 updateEvents 내부 필터링을 CONFIG[currentSite].eventKey(i) 로 수정)
+            
+            console.log("사이트 적용 완료:", currentSite);
         }
 
         window.onload = () => {
             if (!currentSite) document.getElementById('siteModal').style.display = 'flex';
-            else updateDisplay();
+            else {
+                document.getElementById('siteSelector').value = currentSite;
+                updateDisplay();
+            }
         };
     </script>
 </body>
