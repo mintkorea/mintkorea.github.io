@@ -89,25 +89,34 @@
             return [cfg.C[0], hallWorker, others[0], others[1]];
         }
 
-        function updateDisplay() {
-            if (!currentSite) return;
-            
-            // 1. 헤더 업데이트
-            const d = currentDate;
-            document.getElementById('datePickerTrigger').innerText = `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`;
-            
-            // 2. 각 영역 렌더링 (에러 방지용 try-catch)
-            try { 
-                // 기존 updateDutyUI 로직에 CONFIG[currentSite]를 적용하세요
-                document.getElementById('duty-preview-container').innerHTML = "근무 정보 로드됨"; 
-            } catch(e) {}
-            
-            try { 
-                const rawEvents = JSON.parse(localStorage.getItem('events_data'))?.content || [];
-                const filtered = rawEvents.filter(CONFIG[currentSite].eventFilter);
-                document.getElementById('event-list').innerHTML = filtered.length > 0 ? "행사 있음" : "행사 없음";
-            } catch(e) {}
-        }
+        // [1] 데이터 렌더링 함수 수정
+function updateDisplay() {
+    if (!currentSite) return;
+    
+    // UI 업데이트: 여기서 기존의 원본 렌더링 함수들을 호출해야 합니다.
+    // "근무 정보 로드됨" 같은 임시 텍스트는 지우고 아래 함수를 부르세요.
+    updateDutyUI(); 
+    updateEvents(currentDate);
+    updateMeal(currentDate);
+    
+    console.log("업데이트 완료: ", currentSite);
+}
+
+// [2] updateEvents 함수 (필터링 로직 수정)
+function updateEvents(date) {
+    const container = document.getElementById('event-list');
+    const rawData = JSON.parse(localStorage.getItem('events_data'))?.content || [];
+    
+    // CONFIG의 eventFilter를 사용하여 필터링
+    const filtered = rawData.filter(item => CONFIG[currentSite].eventFilter(item));
+    
+    // 여기서 HTML을 다시 그려줍니다.
+    container.innerHTML = filtered.map(item => `
+        <div class="p-2 border-b">
+            <strong>${item.event}</strong> - ${item.time}
+        </div>
+    `).join('');
+}
 
         window.onload = () => {
             if (!currentSite) document.getElementById('siteModal').style.display = 'flex';
