@@ -93,13 +93,17 @@
 function updateDisplay() {
     if (!currentSite) return;
     
-    // UI 업데이트: 여기서 기존의 원본 렌더링 함수들을 호출해야 합니다.
-    // "근무 정보 로드됨" 같은 임시 텍스트는 지우고 아래 함수를 부르세요.
-    updateDutyUI(); 
-    updateEvents(currentDate);
-    updateMeal(currentDate);
-    
-    console.log("업데이트 완료: ", currentSite);
+    // updateDutyUI가 실제로 존재하는지 확인하고 실행
+    if (typeof updateDutyUI === 'function') {
+        updateDutyUI(); 
+    } else {
+        console.warn("updateDutyUI 함수를 찾을 수 없습니다. 원본 코드를 확인하세요.");
+    }
+
+    // updateEvents가 있다면 실행
+    if (typeof updateEvents === 'function') {
+        updateEvents(currentDate);
+    }
 }
 
 // [2] updateEvents 함수 (필터링 로직 수정)
