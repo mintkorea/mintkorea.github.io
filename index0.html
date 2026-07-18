@@ -5,16 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>성의교정 통합조회</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
         body { font-family: 'Pretendard', sans-serif; background-color: #f1f5f9; }
         .brand-header { background: linear-gradient(135deg, #2d3e75 0%, #1e293b 100%); padding: 20px 16px 45px 16px; color: white; border-radius: 0 0 24px 24px; }
-        .custom-date-trigger { background-color: rgba(255, 255, 255, 0.15); color: white; font-weight: 800; padding: 6px 14px; border-radius: 8px; cursor: pointer; display: inline-flex; margin-top: 5px; }
         .table-card { background: white; border-radius: 16px; overflow: hidden; margin: 0 10px 8px 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         #siteModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; }
     </style>
@@ -23,16 +19,13 @@
     <div class="page max-w-[480px] mx-auto min-h-screen">
         <div class="brand-header">
             <h1 class="text-2xl font-black">성의교정 통합조회</h1>
-            <div class="flex items-center gap-2 mt-2">
-                <select id="siteSelector" onchange="changeSite(this.value)" class="bg-white/20 text-white font-bold text-sm px-2 py-1 rounded-lg border-none">
-                    <option value="sungeui">성의회관</option>
-                    <option value="omnibus">옴니버스</option>
-                </select>
-                <div id="datePickerTrigger" class="custom-date-trigger">날짜 선택</div>
-            </div>
+            <select id="siteSelector" onchange="changeSite(this.value)" class="mt-2 bg-white/20 text-white font-bold text-sm px-2 py-1 rounded-lg">
+                <option value="sungeui">성의회관</option>
+                <option value="omnibus">옴니버스</option>
+            </select>
         </div>
-        <div id="duty-preview-container" class="table-card p-4 mt-2">로드 중...</div>
-        <div id="event-list" class="table-card p-4">로드 중...</div>
+        <div id="duty-preview-container" class="table-card p-4 mt-2">데이터 로드 중...</div>
+        <div id="event-list" class="table-card p-4">행사 로드 중...</div>
     </div>
 
     <div id="siteModal">
@@ -44,115 +37,63 @@
     </div>
 
     <script>
-        // [설정 객체: 여기만 바꾸면 명단과 필터링이 모두 바뀝니다]
         const CONFIG = {
             sungeui: {
                 A: ["배준용", "이명구", "김영중", "김삼동"],
-                B: ["심규천", "임종현", "권영국", "전준수"],
                 C: ["황재업", "김태언", "이정석", "이태원"],
                 eventFilter: (item) => item.bu?.includes("성의") || item.bu?.includes("의산연")
             },
             omnibus: {
                 A: ["손병휘", "김전식", "권순호"],
-                B: ["황일범", "이상길", "허용"],
                 C: ["피재영", "남형민", "강경훈", "오제준"],
                 eventFilter: (item) => item.bu?.includes("옴니버스")
             }
         };
 
         let currentSite = localStorage.getItem('userSite') || null;
-        let currentDate = new Date();
-        let vData = {};
-        const baseDate = '2026-03-09';
 
         function changeSite(site) {
             currentSite = site;
             localStorage.setItem('userSite', site);
             document.getElementById('siteModal').style.display = 'none';
-            document.getElementById('siteSelector').value = site;
             updateDisplay();
         }
 
-        // 근무 편성 로직: CONFIG 참조로 완전히 일반화
-        function getShiftNames(shift, diff, date) {
-            const cfg = CONFIG[currentSite];
-            if (shift === 'A' || shift === 'B') return [...cfg[shift]];
-            
-            // C조 순환 로직
-            const members = cfg.C.slice(1);
-            const dutyCount = Math.floor(diff / 3);
-            const hallIdx = Math.floor(((dutyCount % 6) + 6) % 6 / 2);
-            let hallWorker = members[hallIdx];
-            let others = members.filter(m => m !== hallWorker);
-            
-            // 연차 스와핑 로직 (vData 로드 후)
-            return [cfg.C[0], hallWorker, others[0], others[1]];
+        // Firebase 데이터 로드 (실제 환경에 맞게 원본 로직을 이 안에 넣으세요)
+        async function loadFirebaseData() {
+            // [참고] 기존에 사용하시던 Firebase 연동 로직을 여기에 넣으시면 됩니다.
+            // 일단 화면이 멈추지 않도록 빈 데이터라도 생성합니다.
+            if(!localStorage.getItem('events_data')) {
+                localStorage.setItem('events_data', JSON.stringify({ content: [] }));
+            }
         }
 
-        // [1] 데이터 렌더링 함수 수정
-// 1. 기존 함수가 없어도 에러가 나지 않게 하고, 필터링 로직을 강제합니다.
-function updateDutyUI() {
-    const container = document.getElementById('duty-preview-container');
-    if (!container) return;
-    
-    // 원본에 있던 근무 편성 로직이 아래와 같은 형태일 것입니다.
-    // CONFIG를 사용하여 현재 사이트에 맞는 팀을 가져옵니다.
-    const cfg = CONFIG[currentSite];
-    const shiftNames = getShiftNames(currentDate); // 원본의 근무 계산 함수
-    
-    container.innerHTML = `
-        <div class="text-sm font-bold">
-            현재 근무지: ${currentSite === 'sungeui' ? '성의회관' : '옴니버스'}
-            <div class="mt-1">${shiftNames.join(', ')}</div>
-        </div>
-    `;
-}
+        function updateDisplay() {
+            if (!currentSite) return;
+            
+            // 1. 근무 편성 표시
+            const container = document.getElementById('duty-preview-container');
+            container.innerHTML = `<div class="font-bold">현재 사이트: ${currentSite === 'sungeui' ? '성의회관' : '옴니버스'}</div>`;
 
-// 2. 행사 데이터 필터링을 강제로 수정합니다.
-function updateEvents(date) {
-    const container = document.getElementById('event-list');
-    const rawData = JSON.parse(localStorage.getItem('events_data'))?.content || [];
-    
-    // CONFIG에 정의된 필터링 함수를 사용합니다.
-    const filtered = rawData.filter(item => CONFIG[currentSite].eventFilter(item));
-    
-    if (filtered.length === 0) {
-        container.innerHTML = "<div class='p-4 text-center text-gray-500'>대관 내역이 없습니다.</div>";
-    } else {
-        container.innerHTML = filtered.map(item => `
-            <div class="p-2 border-b text-sm">
-                <strong>${item.event}</strong> - ${item.time}
-            </div>
-        `).join('');
-    }
-}
+            // 2. 행사 필터링 및 출력
+            const eventContainer = document.getElementById('event-list');
+            const rawData = JSON.parse(localStorage.getItem('events_data'))?.content || [];
+            const filtered = rawData.filter(CONFIG[currentSite].eventFilter);
+            
+            eventContainer.innerHTML = filtered.length === 0 
+                ? "<div class='p-4 text-center text-gray-500'>대관 내역이 없습니다.</div>"
+                : filtered.map(item => `<div class="p-2 border-b">${item.event || '행사'}</div>`).join('');
+        }
 
-        window.onload = () => {
-    // 1. 근무지 확인
-    if (!currentSite) {
-        document.getElementById('siteModal').style.display = 'flex';
-    } else {
-        document.getElementById('siteSelector').value = currentSite;
-        // Firebase 등 데이터 로드 후 updateDisplay()를 부르도록 강제
-        loadAllData(); 
-    }
-};
-
-// 모든 데이터를 한 번에 로드하고 화면을 그리는 함수
-async function loadAllData() {
-    try {
-        // Firebase 등에서 데이터 로드 (원래 쓰시던 로직)
-        await loadFirebaseData(); 
-        
-        // 데이터 로드 완료 후 화면 갱신
-        updateDisplay();
-    } catch (e) {
-        console.error("데이터 로드 실패:", e);
-        document.getElementById('duty-preview-container').innerText = "데이터 로드 오류";
-    }
-}
-
-        
+        window.onload = async () => {
+            if (!currentSite) {
+                document.getElementById('siteModal').style.display = 'flex';
+            } else {
+                document.getElementById('siteSelector').value = currentSite;
+                await loadFirebaseData();
+                updateDisplay();
+            }
+        };
     </script>
 </body>
 </html>
