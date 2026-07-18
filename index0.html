@@ -127,6 +127,32 @@ function updateEvents(date) {
     }
 }
 
+        window.onload = () => {
+    // 1. 근무지 확인
+    if (!currentSite) {
+        document.getElementById('siteModal').style.display = 'flex';
+    } else {
+        document.getElementById('siteSelector').value = currentSite;
+        // Firebase 등 데이터 로드 후 updateDisplay()를 부르도록 강제
+        loadAllData(); 
+    }
+};
+
+// 모든 데이터를 한 번에 로드하고 화면을 그리는 함수
+async function loadAllData() {
+    try {
+        // Firebase 등에서 데이터 로드 (원래 쓰시던 로직)
+        await loadFirebaseData(); 
+        
+        // 데이터 로드 완료 후 화면 갱신
+        updateDisplay();
+    } catch (e) {
+        console.error("데이터 로드 실패:", e);
+        document.getElementById('duty-preview-container').innerText = "데이터 로드 오류";
+    }
+}
+
+        
     </script>
 </body>
 </html>
