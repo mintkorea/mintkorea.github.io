@@ -2,25 +2,25 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>AI 블로그 자동 생성기</title>
+    <title>FREE AI 블로그 자동 생성기</title>
     <style>
         body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #333; line-height: 1.6; }
         input, textarea, button { width: 100%; padding: 10px; margin-bottom: 15px; box-sizing: border-box; }
-        button { background-color: #3498db; color: white; border: none; cursor: pointer; font-size: 16px; border-radius: 4px; }
-        button:hover { background-color: #2980b9; }
+        button { background-color: #27ae60; color: white; border: none; cursor: pointer; font-size: 16px; border-radius: 4px; font-weight: bold; }
+        button:hover { background-color: #219150; }
         .result-box { background: #f9f9f9; padding: 20px; border: 1px solid #ddd; border-radius: 4px; margin-top: 20px; }
         img { max-width: 100%; height: auto; display: block; margin: 20px auto; border-radius: 8px; }
-        #status { font-weight: bold; margin: 10px 0; color: #e67e22; }
+        #status { font-weight: bold; margin: 10px 0; color: #27ae60; }
     </style>
 </head>
 <body>
 
-    <h2>🤖 AI 블로그 게시글 & 인포그래픽 생성기</h2>
+    <h2>🌿 100% 무료 AI 블로그 게시글 & 인포그래픽 생성기</h2>
 
     <label>키워드 및 주제</label>
     <input type="text" id="topic" placeholder="예: 2026 가성비 노트북 추천">
 
-    <button onclick="generateBlog()">🚀 글 및 인포그래픽 생성하기</button>
+    <button onclick="generateBlog()">🚀 무료 글 및 인포그래픽 생성하기</button>
 
     <div id="status"></div>
     
@@ -31,7 +31,7 @@
     <div id="preview" class="result-box">배포 전 미리보기 화면입니다.</div>
 
     <script>
-        // 🚨 여기에 구글 앱스 스크립트(GAS) 배포 URL을 넣어주세요!
+        // 🚨 배포된 구글 앱스 스크립트(GAS) Web App URL을 입력하세요.
         const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxQcHeIHsZyZ8eT8Ng7YMFAwmdyHD7grLZ00xB4BtWMI4iMVsLP4jPn_yigS07wxHul/exec";
 
         async function generateBlog() {
@@ -43,14 +43,13 @@
                 return;
             }
 
-            statusDiv.innerText = "⏳ 구글 서버에서 글과 인포그래픽을 동시에 생성하고 있습니다... (약 10~20초 소요)";
+            statusDiv.innerText = "⏳ Gemini & Pollinations AI로 생성 중입니다... (약 5~10초 소요)";
             
             try {
-                // GAS 중계 서버 호출
                 const response = await fetch(GAS_WEB_APP_URL, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'text/plain;charset=utf-8' // GAS POST 처리용
+                        'Content-Type': 'text/plain;charset=utf-8'
                     },
                     body: JSON.stringify({ topic: topic })
                 });
@@ -61,10 +60,9 @@
                     throw new Error(data.error);
                 }
 
-                // 성공 결과 화면 출력
                 document.getElementById('htmlOutput').value = data.result;
                 document.getElementById('preview').innerHTML = data.result;
-                statusDiv.innerText = "✨ 모든 작업이 성공적으로 끝났습니다!";
+                statusDiv.innerText = "✨ 생성 완료! (비용 0원)";
 
             } catch (error) {
                 console.error(error);
