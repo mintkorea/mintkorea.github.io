@@ -2,56 +2,73 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>안전한 AI 블로그 생성기</title>
+    <title>AI 블로그 자동 생성기</title>
     <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
-        input, button { width: 100%; padding: 12px; margin: 10px 0; box-sizing: border-box; }
-        button { background: #2ecc71; color: white; border: none; font-size: 16px; cursor: pointer; }
-        #output { background: #f4f4f4; padding: 15px; border-radius: 5px; min-height: 100px; white-space: pre-wrap; margin-top: 20px;}
+        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #333; line-height: 1.6; }
+        input, textarea, button { width: 100%; padding: 10px; margin-bottom: 15px; box-sizing: border-box; }
+        button { background-color: #3498db; color: white; border: none; cursor: pointer; font-size: 16px; border-radius: 4px; }
+        button:hover { background-color: #2980b9; }
+        .result-box { background: #f9f9f9; padding: 20px; border: 1px solid #ddd; border-radius: 4px; margin-top: 20px; }
+        img { max-width: 100%; height: auto; display: block; margin: 20px auto; border-radius: 8px; }
+        #status { font-weight: bold; margin: 10px 0; color: #e67e22; }
     </style>
 </head>
 <body>
 
-    <h2>📝 블로그 글 자동화 시스템 (보안 강화형)</h2>
-    <input type="text" id="topicInput" placeholder="작성할 블로그 주제를 입력하세요">
-    <button onclick="requestAiParagraph()">🚀 구글 GAS 서버를 통해 글 생성</button>
+    <h2>🤖 AI 블로그 게시글 & 인포그래픽 생성기</h2>
+
+    <label>키워드 및 주제</label>
+    <input type="text" id="topic" placeholder="예: 2026 가성비 노트북 추천">
+
+    <button onclick="generateBlog()">🚀 글 및 인포그래픽 생성하기</button>
 
     <div id="status"></div>
-    <div id="output">결과가 여기에 표시됩니다.</div>
+    
+    <h3>📋 최종 변환된 HTML 소스 코드</h3>
+    <textarea id="htmlOutput" rows="10" placeholder="생성된 HTML 코드가 여기에 표시됩니다."></textarea>
+
+    <h3>👁️ 블로그 미리보기</h3>
+    <div id="preview" class="result-box">배포 전 미리보기 화면입니다.</div>
 
     <script>
-        // 1단계에서 복사한 본인의 구글 GAS 웹 앱 URL을 여기에 넣습니다.
+        // 🚨 여기에 구글 앱스 스크립트(GAS) 배포 URL을 넣어주세요!
         const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxQcHeIHsZyZ8eT8Ng7YMFAwmdyHD7grLZ00xB4BtWMI4iMVsLP4jPn_yigS07wxHul/exec";
 
-        async function requestAiParagraph() {
-            const topic = document.getElementById('topicInput').value;
-            const status = document.getElementById('status');
-            const output = document.getElementById('output');
+        async function generateBlog() {
+            const topic = document.getElementById('topic').value.trim();
+            const statusDiv = document.getElementById('status');
             
-            if(!topic) return alert("주제를 입력해 주세요.");
-            
-            status.innerText = "⏳ 구글 중계 서버(GAS)가 OpenAI와 통신 중입니다...";
-            output.innerText = "";
+            if (!topic) {
+                alert("주제를 입력해 주세요.");
+                return;
+            }
 
+            statusDiv.innerText = "⏳ 구글 서버에서 글과 인포그래픽을 동시에 생성하고 있습니다... (약 10~20초 소요)";
+            
             try {
-                // OpenAI가 아닌, 내가 만든 안전한 구글 API 주소로 요청을 보냅니다.
+                // GAS 중계 서버 호출
                 const response = await fetch(GAS_WEB_APP_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' }, // CORS 이슈 방지를 위해 text/plain 권장
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8' // GAS POST 처리용
+                    },
                     body: JSON.stringify({ topic: topic })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.error) {
-                    output.innerText = "서버 에러: " + data.error;
-                } else {
-                    status.innerText = "✅ 대성공!";
-                    output.innerText = data.result;
+                    throw new Error(data.error);
                 }
+
+                // 성공 결과 화면 출력
+                document.getElementById('htmlOutput').value = data.result;
+                document.getElementById('preview').innerHTML = data.result;
+                statusDiv.innerText = "✨ 모든 작업이 성공적으로 끝났습니다!";
+
             } catch (error) {
                 console.error(error);
-                status.innerText = "❌ 통신 실패. GAS 배포 설정 및 URL을 확인하세요.";
+                statusDiv.innerText = `❌ 오류 발생: ${error.message}`;
             }
         }
     </script>
