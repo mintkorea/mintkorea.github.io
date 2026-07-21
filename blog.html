@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>안전한 AI 블로그 생성기</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        input, button { width: 100%; padding: 12px; margin: 10px 0; box-sizing: border-box; }
+        button { background: #2ecc71; color: white; border: none; font-size: 16px; cursor: pointer; }
+        #output { background: #f4f4f4; padding: 15px; border-radius: 5px; min-height: 100px; white-space: pre-wrap; margin-top: 20px;}
+    </style>
+</head>
+<body>
+
+    <h2>📝 블로그 글 자동화 시스템 (보안 강화형)</h2>
+    <input type="text" id="topicInput" placeholder="작성할 블로그 주제를 입력하세요">
+    <button onclick="requestAiParagraph()">🚀 구글 GAS 서버를 통해 글 생성</button>
+
+    <div id="status"></div>
+    <div id="output">결과가 여기에 표시됩니다.</div>
+
+    <script>
+        // 1단계에서 복사한 본인의 구글 GAS 웹 앱 URL을 여기에 넣습니다.
+        const GAS_WEB_APP_URL = "여기에_복사한_GAS_웹앱_URL을_넣으세요";
+
+        async function requestAiParagraph() {
+            const topic = document.getElementById('topicInput').value;
+            const status = document.getElementById('status');
+            const output = document.getElementById('output');
+            
+            if(!topic) return alert("주제를 입력해 주세요.");
+            
+            status.innerText = "⏳ 구글 중계 서버(GAS)가 OpenAI와 통신 중입니다...";
+            output.innerText = "";
+
+            try {
+                // OpenAI가 아닌, 내가 만든 안전한 구글 API 주소로 요청을 보냅니다.
+                const response = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' }, // CORS 이슈 방지를 위해 text/plain 권장
+                    body: JSON.stringify({ topic: topic })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    output.innerText = "서버 에러: " + data.error;
+                } else {
+                    status.innerText = "✅ 대성공!";
+                    output.innerText = data.result;
+                }
+            } catch (error) {
+                console.error(error);
+                status.innerText = "❌ 통신 실패. GAS 배포 설정 및 URL을 확인하세요.";
+            }
+        }
+    </script>
+</body>
+</html>
