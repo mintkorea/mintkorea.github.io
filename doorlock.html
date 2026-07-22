@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -8,7 +8,7 @@
   <style>
     html, body { background:#f4f7f9; font-size:14px; margin:0; padding:0; overflow-x:hidden; width:100%; position:relative; }
     .nav-top { background:#1a237e; height:50px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; color:#fff; position:sticky; top:0; z-index:1000; width:100%; box-sizing:border-box; }
-    
+
     .search-box { background:#fff; padding:8px 12px; border-bottom:1px solid #ddd; width:100%; box-sizing:border-box; position:relative; }
     .search-input { border:1px solid #ccc !important; border-radius:20px !important; height:36px !important; margin:0 !important; padding:0 40px 0 15px !important; width:100% !important; box-sizing:border-box !important; font-size:14px !important; }
     .search-clear { position:absolute; right:22px; top:50%; transform:translateY(-50%); color:#999; cursor:pointer; display:none; }
@@ -20,7 +20,6 @@
     .item-card { background:#fff; margin:8px 12px; padding:15px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
     .pw-view-btn { color:#f57c00; font-weight:bold; padding:8px 14px; border:1px solid #f57c00; border-radius:4px; font-size:12px; }
 
-    /* 모달 스타일 커스텀 */
     #detailModal { max-height: 85%; width: 90%; border-radius: 12px; }
     .modal-content h4 { font-size: 1.5rem; color: #1a237e; font-weight: bold; margin-bottom: 20px; }
     .detail-row { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
@@ -30,17 +29,48 @@
 
     #topBtn { position:fixed; bottom:25px; right:20px; width:45px; height:45px; background:#1a237e; color:white; border-radius:50%; display:none; justify-content:center; align-items:center; box-shadow:0 4px 10px rgba(0,0,0,0.3); z-index:9999; cursor:pointer; border:none; }
     #loader { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); display:none; flex-direction:column; justify-content:center; align-items:center; z-index:10001; }
+
+    /* PIN 게이트 화면 */
+    #pinGate {
+      position:fixed; inset:0; background:#1a237e; z-index:20000;
+      display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; box-sizing:border-box;
+    }
+    #pinGate .pin-box { background:#fff; border-radius:16px; padding:28px 24px; width:100%; max-width:340px; box-shadow:0 8px 24px rgba(0,0,0,0.3); }
+    #pinGate h2 { font-size:1.3rem; color:#1a237e; font-weight:900; margin:0 0 6px 0; }
+    #pinGate p { font-size:0.85rem; color:#666; margin:0 0 18px 0; line-height:1.4; }
+    #pinGate input[type=password] {
+      border:2px solid #ddd !important; border-radius:10px !important; height:48px !important; text-align:center;
+      font-size:1.3rem !important; letter-spacing:8px; margin:0 0 12px 0 !important; box-sizing:border-box; width:100%;
+    }
+    #pinGate button.pin-submit {
+      width:100%; height:44px; border:none; border-radius:10px; background:#1a237e; color:#fff; font-weight:900; font-size:1rem; cursor:pointer;
+    }
+    #pinGate .pin-error { color:#e53935; font-size:0.8rem; font-weight:700; margin-top:10px; min-height:18px; }
+    #pinGate .pin-online-msg { color:#f57c00; font-size:0.78rem; font-weight:700; margin-top:12px; line-height:1.4; }
   </style>
 </head>
 <body>
-  <div id="loader"><div class="preloader-wrapper active small"><div class="spinner-layer spinner-blue-only"><div class="circle"></div></div></div><p>데이터 동기화 중...</p></div>
+  <div id="loader"><div class="preloader-wrapper active small"><div class="spinner-layer spinner-blue-only"><div class="circle"></div></div></div><p id="loaderMsg">동기화 중...</p></div>
+
+  <!-- PIN 게이트: 앱 진입/동기화 시 PIN으로 잠금 -->
+  <div id="pinGate">
+    <div class="pin-box">
+      <h2 id="pinTitle">PIN 입력</h2>
+      <p id="pinDesc">저장된 비밀번호를 보려면 PIN을 입력하세요.</p>
+      <input type="password" id="pinInput" inputmode="numeric" pattern="[0-9]*" placeholder="••••" maxlength="8" autocomplete="off">
+      <input type="password" id="pinInputConfirm" inputmode="numeric" pattern="[0-9]*" placeholder="PIN 확인" maxlength="8" autocomplete="off" style="display:none;">
+      <button class="pin-submit" onclick="handlePinSubmit()">확인</button>
+      <div class="pin-error" id="pinError"></div>
+      <div class="pin-online-msg" id="pinOnlineMsg" style="display:none;">⚠️ 최초 설정 및 동기화는 온라인 상태여야 합니다.</div>
+    </div>
+  </div>
 
   <button id="topBtn" onclick="scrollToTop()"><i class="material-icons">arrow_upward</i></button>
 
   <header>
     <div class="nav-top">
       <div style="font-weight:bold;">시설/PW 매니저</div>
-      <a class="white-text" onclick="fetchOnlineCSV()" style="cursor:pointer; font-size:11px; border:1px solid #fff; padding:3px 10px; border-radius:4px;">동기화</a>
+      <a class="white-text" onclick="requestSync()" style="cursor:pointer; font-size:11px; border:1px solid #fff; padding:3px 10px; border-radius:4px;">동기화</a>
     </div>
     <div class="search-box">
       <input type="text" id="searchInput" class="search-input" placeholder="호실, 명칭 등으로 검색..." onkeyup="handleSearchInput()">
@@ -71,21 +101,237 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script>
     const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS255vYTiF4PMATcWslwSjGudgp9hdqeoM1qwxIlp8sNDxoZtHo9kG7faW6LofdGz6cgvjG5lJ_oNI1/pub?gid=0&single=true&output=csv";
-    const BUILDINGS = ["성의회관", "의산연", "의산연별관", "병원별관"]; 
-    let allItems = [], curBld = '전체', currentTargetPw = "";
+    const BUILDINGS = ["성의회관", "의산연", "의산연별관", "병원별관"];
+
+    const LS_SALT = 'DOORLOCK_SALT_V2';
+    const LS_DB = 'DOORLOCK_ENC_DB_V2';
+
+    let allItems = [];          // 메모리 상 복호화된 목록 (localStorage에는 저장 안 함)
+    let curBld = '전체';
+    let currentTargetPw = "";
+    let sessionKey = null;      // 이번 세션 동안만 메모리에 보관되는 AES 키 (새로고침하면 사라짐)
+    let pendingMode = null;     // 'setup' | 'unlock'
 
     document.addEventListener('DOMContentLoaded', () => {
       M.Modal.init(document.querySelectorAll('.modal'));
       renderBTabs();
-      loadLocalData();
+      initGate();
     });
 
     window.onscroll = function() {
       const btn = document.getElementById("topBtn");
       btn.style.display = (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) ? "flex" : "none";
     };
-
     function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+    // ===================== PIN 게이트 =====================
+
+    function initGate() {
+      const salt = localStorage.getItem(LS_SALT);
+      const pinInput = document.getElementById('pinInput');
+      const pinConfirm = document.getElementById('pinInputConfirm');
+
+      if (!salt) {
+        // 최초 사용: PIN 설정 + 온라인 동기화 필요
+        pendingMode = 'setup';
+        document.getElementById('pinTitle').innerText = 'PIN 설정 (최초 1회)';
+        document.getElementById('pinDesc').innerText = '앞으로 사용할 PIN을 정하세요. 이 PIN으로 비밀번호가 암호화되어 저장됩니다.';
+        pinConfirm.style.display = 'block';
+        pinConfirm.placeholder = 'PIN 다시 입력';
+        document.getElementById('pinOnlineMsg').style.display = 'block';
+      } else {
+        pendingMode = 'unlock';
+        document.getElementById('pinTitle').innerText = 'PIN 입력';
+        document.getElementById('pinDesc').innerText = '저장된 비밀번호를 보려면 PIN을 입력하세요.';
+        pinConfirm.style.display = 'none';
+        document.getElementById('pinOnlineMsg').style.display = 'none';
+      }
+      pinInput.value = '';
+      pinInput.focus();
+    }
+
+    async function handlePinSubmit() {
+      const pin = document.getElementById('pinInput').value.trim();
+      const errEl = document.getElementById('pinError');
+      errEl.innerText = '';
+
+      if (!pin || pin.length < 4) {
+        errEl.innerText = 'PIN은 4자리 이상 입력해주세요.';
+        return;
+      }
+
+      if (pendingMode === 'setup') {
+        const confirmPin = document.getElementById('pinInputConfirm').value.trim();
+        if (pin !== confirmPin) {
+          errEl.innerText = 'PIN이 서로 다릅니다. 다시 입력해주세요.';
+          return;
+        }
+        if (!navigator.onLine) {
+          errEl.innerText = '최초 설정은 온라인 상태에서만 가능합니다.';
+          return;
+        }
+        try {
+          document.getElementById('loaderMsg').innerText = '최초 동기화 중...';
+          document.getElementById('loader').style.display = 'flex';
+          const salt = generateSalt();
+          localStorage.setItem(LS_SALT, salt);
+          const key = await deriveKey(pin, salt);
+          sessionKey = key;
+          await syncAndEncrypt(key);
+          document.getElementById('loader').style.display = 'none';
+          closeGate();
+        } catch (e) {
+          document.getElementById('loader').style.display = 'none';
+          localStorage.removeItem(LS_SALT); // 실패 시 롤백
+          errEl.innerText = '동기화에 실패했습니다. 인터넷 연결을 확인해주세요.';
+        }
+        return;
+      }
+
+      // unlock 모드: 캐시된 암호문을 이 PIN으로 복호화 시도
+      const salt = localStorage.getItem(LS_SALT);
+      const rawDb = localStorage.getItem(LS_DB);
+
+      try {
+        const key = await deriveKey(pin, salt);
+        if (!rawDb) {
+          // 캐시가 없으면(최초 PIN 설정만 되고 동기화 전 종료된 경우 등) 온라인 동기화 필요
+          if (!navigator.onLine) {
+            errEl.innerText = '저장된 데이터가 없습니다. 온라인 상태에서 동기화가 필요합니다.';
+            return;
+          }
+          document.getElementById('loaderMsg').innerText = '동기화 중...';
+          document.getElementById('loader').style.display = 'flex';
+          sessionKey = key;
+          await syncAndEncrypt(key);
+          document.getElementById('loader').style.display = 'none';
+          closeGate();
+          return;
+        }
+
+        const decrypted = await decryptDb(JSON.parse(rawDb), key);
+        allItems = decrypted;
+        sessionKey = key;
+        closeGate();
+      } catch (e) {
+        errEl.innerText = 'PIN이 올바르지 않습니다.';
+      }
+    }
+
+    function closeGate() {
+      document.getElementById('pinGate').style.display = 'none';
+      filterData();
+    }
+
+    // ===================== 암호화/복호화 유틸 (Web Crypto API) =====================
+
+    function generateSalt() {
+      const arr = crypto.getRandomValues(new Uint8Array(16));
+      return bufToHex(arr);
+    }
+
+    async function deriveKey(pin, saltHex) {
+      const enc = new TextEncoder();
+      const saltBytes = hexToBuf(saltHex);
+      const baseKey = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveKey']);
+      return crypto.subtle.deriveKey(
+        { name: 'PBKDF2', salt: saltBytes, iterations: 200000, hash: 'SHA-256' },
+        baseKey,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+      );
+    }
+
+    async function encryptText(key, plaintext) {
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const enc = new TextEncoder();
+      const cipherBuf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plaintext));
+      return bufToB64(iv) + ':' + bufToB64(new Uint8Array(cipherBuf));
+    }
+
+    async function decryptText(key, payload) {
+      const [ivB64, cipherB64] = payload.split(':');
+      const iv = b64ToBuf(ivB64);
+      const cipherBuf = b64ToBuf(cipherB64);
+      const plainBuf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, cipherBuf);
+      return new TextDecoder().decode(plainBuf);
+    }
+
+    function bufToHex(buf) { return Array.from(buf).map(b => b.toString(16).padStart(2, '0')).join(''); }
+    function hexToBuf(hex) { const arr = new Uint8Array(hex.length / 2); for (let i = 0; i < arr.length; i++) arr[i] = parseInt(hex.substr(i * 2, 2), 16); return arr; }
+    function bufToB64(buf) { return btoa(String.fromCharCode(...buf)); }
+    function b64ToBuf(b64) { return new Uint8Array(atob(b64).split('').map(c => c.charCodeAt(0))); }
+
+    // ===================== 동기화 (온라인 필요) =====================
+
+    // 앱 사용 중 '동기화' 버튼: 이미 unlock된 세션의 키를 재사용
+    async function requestSync() {
+      if (!sessionKey) {
+        alert('먼저 PIN으로 잠금을 해제해주세요.');
+        return;
+      }
+      if (!navigator.onLine) {
+        alert('인터넷 연결을 확인하세요. 동기화는 온라인 상태에서만 가능합니다.');
+        return;
+      }
+      try {
+        document.getElementById('loaderMsg').innerText = '동기화 중...';
+        document.getElementById('loader').style.display = 'flex';
+        await syncAndEncrypt(sessionKey);
+        document.getElementById('loader').style.display = 'none';
+        filterData();
+        alert(allItems.length + '건 업데이트 완료! (PIN으로 암호화되어 저장됨)');
+      } catch (e) {
+        document.getElementById('loader').style.display = 'none';
+        alert('통신 에러가 발생했습니다.');
+      }
+    }
+
+    // CSV를 받아와서 즉시 AES 암호화 후 localStorage에 저장, 메모리(allItems)는 평문 유지
+    async function syncAndEncrypt(key) {
+      const response = await fetch(CSV_URL + "&t=" + new Date().getTime());
+      const csvText = await response.text();
+      const plainItems = csvToJSON(csvText);
+
+      const encDb = [];
+      for (const item of plainItems) {
+        const encPwd = await encryptText(key, item.pwd || '');
+        encDb.push({ bld: item.bld, floor: item.floor, room: item.room, name: item.name, note: item.note, encPwd });
+      }
+      localStorage.setItem(LS_DB, JSON.stringify(encDb));
+      allItems = plainItems; // 메모리에는 평문 유지 (localStorage에는 저장 안 함)
+    }
+
+    async function decryptDb(encDb, key) {
+      const result = [];
+      for (const item of encDb) {
+        const pwd = await decryptText(key, item.encPwd); // 하나라도 PIN이 틀리면 여기서 예외 발생
+        result.push({ bld: item.bld, floor: item.floor, room: item.room, name: item.name, note: item.note, pwd });
+      }
+      return result;
+    }
+
+    function csvToJSON(csv) {
+      const lines = csv.split(/\r?\n/);
+      const result = [];
+      for (let i = 1; i < lines.length; i++) {
+        const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+        if (row.length >= 5) {
+          result.push({
+            bld: row[0]?.replace(/"/g, '').trim(),
+            floor: row[1]?.replace(/"/g, '').trim(),
+            room: row[2]?.replace(/"/g, '').trim(),
+            name: row[3]?.replace(/"/g, '').trim(),
+            pwd: row[4]?.replace(/"/g, '').trim(),
+            note: row[5]?.replace(/"/g, '').trim() || "-"
+          });
+        }
+      }
+      return result;
+    }
+
+    // ===================== 목록 / 검색 / 모달 (전부 로컬, 오프라인 동작) =====================
 
     function handleSearchInput() {
       const input = document.getElementById('searchInput');
@@ -101,66 +347,14 @@
       input.focus();
     }
 
-    function loadLocalData() {
-      const saved = localStorage.getItem('OFFLINE_DB');
-      if (saved) { allItems = JSON.parse(saved); filterData(); }
-    }
-
-    async function fetchOnlineCSV() {
-      if (!navigator.onLine) return alert("인터넷 연결을 확인하세요.");
-      document.getElementById('loader').style.display = 'flex';
-      try {
-        const response = await fetch(CSV_URL + "&t=" + new Date().getTime());
-        const csvText = await response.text();
-        const json = csvToJSON(csvText);
-        if (json.length > 0) {
-          localStorage.setItem('OFFLINE_DB', JSON.stringify(json));
-          allItems = json;
-          filterData();
-          alert(json.length + "건 업데이트 완료!");
-        }
-      } catch (e) { alert("통신 에러가 발생했습니다."); }
-      finally { document.getElementById('loader').style.display = 'none'; }
-    }
-
-    function csvToJSON(csv) {
-      const lines = csv.split(/\r?\n/);
-      const result = [];
-      for (let i = 1; i < lines.length; i++) {
-        const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-        if (row.length >= 5) {
-          let rawPwd = row[4]?.replace(/"/g, '').trim();
-          let finalPwd = rawPwd;
-          if (rawPwd && !rawPwd.startsWith("ENC_")) {
-            finalPwd = "ENC_" + btoa(unescape(encodeURIComponent(rawPwd)));
-          }
-          result.push({
-            bld: row[0]?.replace(/"/g, '').trim(),
-            floor: row[1]?.replace(/"/g, '').trim(),
-            room: row[2]?.replace(/"/g, '').trim(),
-            name: row[3]?.replace(/"/g, '').trim(),
-            pwd: finalPwd,
-            note: row[5]?.replace(/"/g, '').trim() || "-" // 비고 항목(row[5]) 추가[cite: 1]
-          });
-        }
-      }
-      return result;
-    }
-
-    function decrypt(enc) {
-      if (!enc || !enc.startsWith("ENC_")) return enc;
-      try { return decodeURIComponent(escape(atob(enc.replace("ENC_", "")))); } 
-      catch (e) { return "오류"; }
-    }
-
     function openDetail(idx) {
-      const item = allItems.find((_, i) => i === idx);
+      const item = allItems[idx];
       if (!item) return;
       document.getElementById('m_location').innerText = `${item.bld} ${item.floor} ${item.room}`;
       document.getElementById('m_name').innerText = item.name;
       document.getElementById('m_note').innerText = item.note;
       document.getElementById('m_pwd').innerText = "****";
-      currentTargetPw = decrypt(item.pwd);
+      currentTargetPw = item.pwd; // 이미 메모리 상 평문 (세션 중에만 유지)
       M.Modal.getInstance(document.getElementById('detailModal')).open();
     }
 
@@ -171,22 +365,22 @@
 
     function filterData() {
       const q = document.getElementById('searchInput').value.toLowerCase();
-      const area = document.getElementById('listArea'); 
+      const area = document.getElementById('listArea');
       area.innerHTML = '';
       allItems.forEach((item, index) => {
         let matchBld = (curBld === '전체') ? true : (item.bld === curBld);
         let matchText = Object.values(item).some(v => String(v).toLowerCase().includes(q));
-        
+
         if (matchBld && matchText) {
           const card = document.createElement('div');
           card.className = 'item-card';
-          card.onclick = () => openDetail(index); // 카드 클릭 시 모달 열기[cite: 1]
+          card.onclick = () => openDetail(index);
           card.innerHTML = `
             <div style="flex:1">
               <b style="color:#1a237e; font-size:1.1rem;">${item.bld} ${item.floor} ${item.room}</b><br>
               <span style="color:#666">${item.name}</span>
             </div>
-            <div class="pw-view-btn" onclick="event.stopPropagation(); alert('비밀번호: ' + decrypt('${item.pwd}'))">보기</div>
+            <div class="pw-view-btn" onclick="event.stopPropagation(); openDetail(${index})">보기</div>
           `;
           area.appendChild(card);
         }
