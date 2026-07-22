@@ -105,8 +105,8 @@
                     <div class="flex items-center gap-2 mt-2">
                         <div id="datePickerTrigger" class="custom-date-trigger" style="margin-top:0;">날짜 선택</div>
                         <select id="viewSelect" onchange="setViewMode(this.value)" class="view-select">
-                            <option value="hall">🏢 회관</option>
-                            <option value="omni">🏬 옴니버스</option>
+                            <option value="hall">회관</option>
+                            <option value="omni">옴니</option>
                         </select>
                     </div>
                 </div>
@@ -271,12 +271,12 @@
             window.location.href = `${url}?date=${dateStr}&view=${v}&shift=${s}`;
         }
 
-        // 오늘행사 카드 클릭 시: 옴니버스 모드면 대관현황 조회의 기본 필터를 옴니버스/의과대학/간호대학으로 지정
+        // 오늘행사 카드 클릭 시: 옴니버스 모드면 대관현황 조회의 기본 선택 건물을 옴니버스 파크/의과대학/간호대학으로 지정
         function navigateEvents() {
             const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(currentDate.getDate()).padStart(2,'0')}`;
             if (viewMode === 'omni') {
-                const dept = encodeURIComponent('의과대학,간호대학');
-                window.location.href = `rentalm.html?date=${dateStr}&bu=${encodeURIComponent('옴니버스')}&dept=${dept}`;
+                const buParam = encodeURIComponent('옴니버스 파크,의과대학,간호대학');
+                window.location.href = `rentalm.html?date=${dateStr}&bu=${buParam}`;
             } else {
                 window.location.href = `rentalm.html?date=${dateStr}`;
             }
