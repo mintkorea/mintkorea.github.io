@@ -101,22 +101,20 @@
         <!-- 상단 헤더 -->
         <div id="brandHeader" class="brand-header">
             <div class="flex justify-between items-center">
-                <div>
-                    <h1 id="pageTitle" class="text-2xl font-black tracking-tighter">성의교정 통합조회</h1>
-                    <div class="flex items-center gap-2 mt-2">
-                        <div id="datePickerTrigger" class="custom-date-trigger" style="margin-top:0;">날짜 선택</div>
-                        <div class="view-toggle" id="viewToggle">
-                            <div id="toggleHall" class="toggle-option active" onclick="setViewMode('hall')">회관</div>
-                            <div id="toggleOmni" class="toggle-option" onclick="setViewMode('omni')">옴니</div>
-                        </div>
+                <h1 id="pageTitle" class="text-2xl font-black tracking-tighter">성의교정 통합조회</h1>
+                <div id="shift-badge" onclick="navigateTo('team.html', 'hall')" class="px-4 py-2 rounded-xl font-black text-[13px] shadow-sm cursor-pointer active:scale-95 transition-transform">--조 근무</div>
+            </div>
+            <div class="flex justify-between items-center mt-3">
+                <div class="flex items-center gap-2">
+                    <div id="datePickerTrigger" class="custom-date-trigger" style="margin-top:0;">날짜 선택</div>
+                    <div class="view-toggle" id="viewToggle">
+                        <div id="toggleHall" class="toggle-option active" onclick="setViewMode('hall')">회관</div>
+                        <div id="toggleOmni" class="toggle-option" onclick="setViewMode('omni')">옴니</div>
                     </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button id="sitemapBtn" class="p-2 bg-white/10 hover:bg-white/20 active:scale-95 transition-all rounded-xl border border-white/10 flex items-center justify-center shadow-sm">
-                        <span class="text-xl">🧭</span>
-                    </button>
-                    <div id="shift-badge" onclick="navigateTo('team.html', 'hall')" class="px-4 py-2 rounded-xl font-black text-[13px] shadow-sm cursor-pointer active:scale-95 transition-transform">--조 근무</div>
-                </div>
+                <button id="sitemapBtn" class="p-2 bg-white/10 hover:bg-white/20 active:scale-95 transition-all rounded-xl border border-white/10 flex items-center justify-center shadow-sm">
+                    <span class="text-xl">🧭</span>
+                </button>
             </div>
         </div>
 
@@ -486,7 +484,7 @@
 
         function updateDisplay() {
             const days = ['일','월','화','수','목','금','토'];
-            document.getElementById('datePickerTrigger').innerText = `${currentDate.getFullYear()}.${currentDate.getMonth()+1}.${currentDate.getDate()} (${days[currentDate.getDay()]})`;
+            document.getElementById('datePickerTrigger').innerText = `${currentDate.getMonth()+1}/${currentDate.getDate()}(${days[currentDate.getDay()]})`;
             updateDutyUI(); updateEvents(currentDate); updateMeal(currentDate);
         }
 
