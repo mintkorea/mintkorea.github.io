@@ -36,15 +36,16 @@
             margin-top: 10px; border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* 회관 / 옴니버스 전환 드롭다운 */
-        .view-select {
-            background-color: rgba(255, 255, 255, 0.15);
-            color: white; font-size: 14px; font-weight: 800; padding: 6px 10px;
-            border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.15);
-            appearance: none; -webkit-appearance: none;
-            cursor: pointer;
+        /* 회관 / 옴니 전환 토글 */
+        .view-toggle {
+            display: flex; background: rgba(255, 255, 255, 0.15); border-radius: 8px;
+            padding: 2px; border: 1px solid rgba(255, 255, 255, 0.15);
         }
-        .view-select option { color: #1e293b; }
+        .toggle-option {
+            padding: 5px 12px; font-size: 13px; font-weight: 800; color: rgba(255,255,255,0.7);
+            border-radius: 6px; cursor: pointer; transition: all 0.15s ease; white-space: nowrap;
+        }
+        .toggle-option.active { background: white; color: #1e293b; }
 
         .table-card { 
             background: white; border-radius: 16px; overflow: hidden; display: flex; 
@@ -104,10 +105,10 @@
                     <h1 id="pageTitle" class="text-2xl font-black tracking-tighter">성의교정 통합조회</h1>
                     <div class="flex items-center gap-2 mt-2">
                         <div id="datePickerTrigger" class="custom-date-trigger" style="margin-top:0;">날짜 선택</div>
-                        <select id="viewSelect" onchange="setViewMode(this.value)" class="view-select">
-                            <option value="hall">회관</option>
-                            <option value="omni">옴니</option>
-                        </select>
+                        <div class="view-toggle" id="viewToggle">
+                            <div id="toggleHall" class="toggle-option active" onclick="setViewMode('hall')">회관</div>
+                            <div id="toggleOmni" class="toggle-option" onclick="setViewMode('omni')">옴니</div>
+                        </div>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -352,7 +353,8 @@
             viewMode = mode;
             localStorage.setItem('viewMode', mode);
 
-            document.getElementById('viewSelect').value = mode;
+            document.getElementById('toggleHall').classList.toggle('active', mode === 'hall');
+            document.getElementById('toggleOmni').classList.toggle('active', mode === 'omni');
             document.getElementById('brandHeader').classList.toggle('mode-omni', mode === 'omni');
             document.getElementById('dutyHeader').classList.toggle('mode-omni', mode === 'omni');
             document.getElementById('pageTitle').innerText = mode === 'omni' ? '옴니버스 통합조회' : '성의교정 통합조회';
@@ -490,7 +492,8 @@
 
         window.onload = () => {
             // 저장된/URL 지정된 모드로 드롭다운 초기 상태 반영
-            document.getElementById('viewSelect').value = viewMode;
+            document.getElementById('toggleHall').classList.toggle('active', viewMode === 'hall');
+            document.getElementById('toggleOmni').classList.toggle('active', viewMode === 'omni');
             document.getElementById('brandHeader').classList.toggle('mode-omni', viewMode === 'omni');
             document.getElementById('dutyHeader').classList.toggle('mode-omni', viewMode === 'omni');
             document.getElementById('pageTitle').innerText = viewMode === 'omni' ? '옴니버스 통합조회' : '성의교정 통합조회';
