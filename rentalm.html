@@ -120,6 +120,16 @@
             }
         }
 
+        // [기능 추가] URL의 ?bu= 파라미터로 기본 선택 건물을 지정 (예: ?bu=옴니버스 파크,의과대학,간호대학)
+        function initBuildingsFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const buParam = params.get('bu');
+            if (!buParam) return;
+            const requested = buParam.split(',').map(s => s.trim()).filter(Boolean);
+            const matched = requested.filter(b => BUILDINGS.includes(b));
+            if (matched.length > 0) selectedBu = matched;
+        }
+
         async function initApp() {
             const backup = localStorage.getItem("rental_db_cache");
             if (backup) {
@@ -273,6 +283,7 @@
 
         window.onload = () => {
             initDateFromURL(); 
+            initBuildingsFromURL();
             fp = flatpickr("#datePicker", { locale: "ko", dateFormat: "Y.m.d (D)", defaultDate: currentDate, disableMobile: "true", onChange: (sd) => { if(sd.length > 0) { currentDate = sd[0]; updateDisplay(); } } });
             
             const container = document.getElementById('buContainer');
