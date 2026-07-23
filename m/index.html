@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>성의교정 통합조회</title>
+    <!-- 라이브러리 CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    
+    <!-- 분리된 커스텀 CSS -->
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <div class="page">
+        <!-- 상단 헤더 -->
+        <div id="brandHeader" class="brand-header">
+            <div class="flex justify-between items-center">
+                <h1 id="pageTitle" class="text-2xl font-black tracking-tighter">성의교정 통합조회</h1>
+                <div id="shift-badge" onclick="navigateTo('team.html', 'hall')" class="px-4 py-2 rounded-xl font-black text-[13px] shadow-sm cursor-pointer active:scale-95 transition-transform">--조 근무</div>
+            </div>
+            <div class="flex justify-between items-center mt-3">
+                <div class="flex items-center gap-2">
+                    <div id="datePickerTrigger" class="custom-date-trigger" style="margin-top:0;">날짜 선택</div>
+                    <div class="view-toggle" id="viewToggle">
+                        <div id="toggleHall" class="toggle-option active" onclick="setViewMode('hall')">회관</div>
+                        <div id="toggleOmni" class="toggle-option" onclick="setViewMode('omni')">옴니</div>
+                    </div>
+                </div>
+                <button id="sitemapBtn" class="p-2 bg-white/10 hover:bg-white/20 active:scale-95 transition-all rounded-xl border border-white/10 flex items-center justify-center shadow-sm">
+                    <span class="text-xl">🧭</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 퀵 버튼 -->
+        <div class="px-3 -mt-8 relative z-10">
+            <div class="grid grid-cols-3 gap-3">
+                <div onclick="location.href='calendar.html'" class="quick-btn cursor-pointer">
+                    <img src="https://img.icons8.com/fluency/48/calendar.png" width="24">
+                    <span class="text-[0.9rem] font-extrabold text-slate-600">근무달력</span>
+                </div>
+                <div onclick="location.href='yellowpage.html'" class="quick-btn cursor-pointer">
+                    <img src="https://img.icons8.com/fluency/48/phone.png" width="24">
+                    <span class="text-[0.9rem] font-extrabold text-slate-600">주요전화</span>
+                </div>
+                <div onclick="location.href='search.html'" class="quick-btn cursor-pointer">
+                    <img src="https://img.icons8.com/fluency/48/hospital.png" width="24">
+                    <span class="text-[0.9rem] font-extrabold text-slate-600">시설안내</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 근무 편성 카드 -->
+        <div onclick="openDutyModal()" class="table-card mt-2">
+            <div id="dutyHeader" class="table-header label-duty">근무<br>편성</div>
+            <div id="duty-preview-container" class="table-body"></div>
+        </div>
+
+        <!-- 오늘 행사 카드 (대관시스템 연동) -->
+        <div onclick="navigateEvents()" class="table-card">
+            <div class="table-header label-event">오늘<br>행사</div>
+            <div id="event-list" class="table-body"><div class="text-slate-300 text-xs">로드 중...</div></div>
+        </div>
+
+        <!-- 오늘 식단 카드 -->
+        <div onclick="navigateTo('meal.html')" class="table-card">
+            <div class="table-header label-meal">오늘<br>식단</div>
+            <div class="table-body">
+                <div class="meal-row"><span class="meal-type">중식</span><span id="lunch-menu" class="meal-menu">--</span></div>
+                <div class="meal-row"><span class="meal-type text-blue-400">야식</span><span id="night-menu" class="meal-menu text-blue-600 font-black">--</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 근무 일정 모달 -->
+    <div id="dutyModal" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 id="modalTitle" class="font-black text-slate-700">2주간 근무 일정</h3>
+                <button onclick="closeModal()" class="text-slate-400 text-2xl">&times;</button>
+            </div>
+            <div id="modalList" class="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- 사이트맵 & 매뉴얼 모달 (JS에서 동적 생성을 통해 코드 축소) -->
+    <div id="sitemapModal" style="display: none;" class="fixed inset-0 bg-black/60 z-[110] items-center justify-center p-[20px]">
+        <div class="modal-content mx-4 w-full max-w-[420px] bg-white rounded-[24px] overflow-hidden shadow-xl">
+            <div class="p-[16px] px-5 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-lg">🧭</span>
+                    <h2 class="text-[16px] font-black text-slate-800 tracking-tight">전체 메뉴 및 매뉴얼</h2>
+                </div>
+                <button id="closeSitemapBtn" class="text-2xl font-bold text-slate-400 hover:text-slate-600 leading-none">&times;</button>
+            </div>
+            <!-- js/manual-data.js 에서 카테고리 및 매뉴얼 리스트가 동적으로 채워집니다 -->
+            <div id="sitemapContent" class="p-5 max-h-[70vh] overflow-y-auto space-y-3"></div>
+        </div>
+    </div>
+
+    <!-- 분리된 JS 모듈들 -->
+    <script src="js/config.js"></script>
+    <script src="js/manual-data.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
