@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>[테스트] 의산연 대관시설 행사 관리</title>
+
+<!-- 폰트 불러오기 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/woff2/PretendardVariable.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jetbrains-mono@1.0.6/css/jetbrains-mono.css">
+
+<style>
+:root {
+  --paper: #EEF0F2;
+  --card: #FFFFFF;
+  --ink: #14213D;
+  --muted: #6B7280;
+  --line: #DBDFE4;
+  --urgent: #C1440E;
+  --urgent-bg: #FDECE4;
+  --active: #0F6A5D;
+  --active-bg: #E4F0EE;
+  --info: #3D5A80;
+  --info-bg: #E9EEF4;
+  --radius: 14px;
+  --fs: 1;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--paper); color: var(--ink);
+  min-height: 100vh; display: flex; justify-content: center;
+}
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* 앱 기본 틀 */
+.app {
+  width: 100%; max-width: 460px; min-height: 100vh;
+  background: var(--paper); display: flex; flex-direction: column;
+  position: relative; box-shadow: 0 0 40px rgba(20,33,61,0.08);
+}
+
+/* 상단 헤더 */
+.topbar { padding: 18px 20px 14px; background: var(--ink); color: #fff; position: sticky; top: 0; z-index: 20; }
+.topbar-inner { padding-right: 84px; }
+.font-ctrl {
+  position: absolute; top: 16px; right: 16px; display: flex; align-items: center; gap: 5px;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 11px; padding: 4px;
+}
+.font-ctrl button {
+  width: 30px; height: 30px; border-radius: 8px; background: rgba(255,255,255,0.14); border: none;
+  color: #fff; font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.font-ctrl .level { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #C3CEDD; min-width: 30px; text-align: center; }
+.topbar .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: calc(11px * var(--fs)); letter-spacing: 0.12em; color: #9FB0C9; text-transform: uppercase; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+.topbar .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: #4ADE80; box-shadow: 0 0 0 3px rgba(74,222,128,0.25); }
+.topbar h1 { font-size: calc(19px * var(--fs)); font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+.topbar .sub { font-size: calc(12.5px * var(--fs)); color: #C3CEDD; margin-top: 3px; }
+.back-row { display: none; align-items: center; gap: 8px; margin-top: 10px; cursor: pointer; width: fit-content; }
+.back-row.show { display: flex; }
+.back-row svg { width: 16px; height: 16px; stroke: #C3CEDD; }
+.back-row span { font-size: calc(13px * var(--fs)); color: #C3CEDD; }
+
+/* 본문 메인 */
+main { flex: 1; padding: 16px 16px 90px; overflow-y: auto; }
+.screen { display: none; }
+.screen.active { display: block; animation: fade .25s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+.home-lead { font-size: calc(13px * var(--fs)); color: var(--muted); margin: 2px 4px 16px; line-height: 1.5; }
+.card-nav { display: flex; align-items: center; gap: 14px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; cursor: pointer; }
+.card-nav:active { transform: scale(0.98); }
+.card-nav.urgent { background: var(--urgent-bg); border-color: #F0C4AE; }
+.card-icon { width: 44px; height: 44px; border-radius: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--active-bg); }
+.card-nav.urgent .card-icon { background: #F6D5C4; }
+.card-icon svg { width: 22px; height: 22px; stroke: var(--active); }
+.card-nav.urgent .card-icon svg { stroke: var(--urgent); }
+.card-body { flex: 1; min-width: 0; }
+.card-body .t { font-size: calc(15.5px * var(--fs)); font-weight: 700; margin-bottom: 2px; }
+.card-nav.urgent .card-body .t { color: var(--urgent); }
+.card-body .d { font-size: calc(12.5px * var(--fs)); color: var(--muted); line-height: 1.4; }
+.card-nav .chev { width: 18px; height: 18px; stroke: var(--muted); flex-shrink: 0; }
+
+.sec-title { font-size: calc(13px * var(--fs)); font-weight: 700; color: var(--muted); letter-spacing: 0.02em; margin: 22px 4px 10px; text-transform: uppercase; }
+.sec-title:first-child { margin-top: 2px; }
+
+.search-box { position: relative; margin-bottom: 16px; }
+.search-box svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; stroke: var(--muted); }
+.search-box input { width: 100%; padding: 12px 14px 12px 38px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); font-size: calc(14px * var(--fs)); font-family: 'Pretendard', sans-serif; color: var(--ink); }
+
+/* 타임라인 스타일 */
+.rail { position: relative; padding-left: 26px; }
+.rail::before { content: ''; position: absolute; left: 9px; top: 8px; bottom: 8px; width: 2px; background: var(--line); }
+.stage { position: relative; margin-bottom: 10px; }
+.stage-node { position: absolute; left: -26px; top: 16px; width: 20px; height: 20px; border-radius: 50%; background: var(--card); border: 2px solid var(--line); display: flex; align-items: center; justify-content: center; z-index: 2; }
+.stage.on .stage-node { border-color: var(--active); background: var(--active); box-shadow: 0 0 0 4px var(--active-bg); }
+.stage.on .stage-node::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #fff; }
+.stage-head { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.stage.on .stage-head { border-color: #BFE0DA; }
+.stage-head .label { font-family: 'JetBrains Mono', monospace; font-size: calc(10.5px * var(--fs)); color: var(--active); letter-spacing: 0.08em; margin-bottom: 3px; display: block; }
+.stage-head .name { font-size: calc(15px * var(--fs)); font-weight: 700; }
+.stage-head .chev { width: 16px; height: 16px; stroke: var(--muted); transition: transform .2s ease; flex-shrink: 0; }
+.stage.open .stage-head .chev { transform: rotate(180deg); }
+.stage-panel { max-height: 0; overflow: hidden; transition: max-height .25s ease; background: var(--card); border-radius: 0 0 var(--radius) var(--radius); border: 1px solid var(--line); border-top: none; margin-top: -1px; }
+.stage.open .stage-panel { max-height: 900px; }
+.stage-panel-inner { padding: 6px 16px 14px; }
+
+.chk { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-top: 1px dashed var(--line); font-size: calc(13.5px * var(--fs)); line-height: 1.5; }
+.chk:first-child { border-top: none; }
+.chk input { margin-top: 3px; width: 17px; height: 17px; accent-color: var(--active); flex-shrink: 0; }
+.chk label { flex: 1; }
+.chk.done label { color: var(--muted); text-decoration: line-through; }
+.chk .jump { display: inline-block; margin-top: 4px; font-size: calc(12px * var(--fs)); color: var(--info); font-weight: 600; cursor: pointer; }
+.chk .note { display: block; margin-top: 3px; font-size: calc(12px * var(--fs)); color: var(--muted); }
+.copy-btn { margin-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: calc(11px * var(--fs)); background: var(--info-bg); color: var(--info); border: none; border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+.copy-btn.copied { background: var(--active-bg); color: var(--active); }
+
+/* 카드 및 비품 그리드 */
+.problem-card, .contact-card, .supply-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 15px 16px; margin-bottom: 10px; }
+.problem-card .q { font-size: calc(14.5px * var(--fs)); font-weight: 700; margin-bottom: 6px; }
+.problem-card .a { font-size: calc(13px * var(--fs)); color: var(--muted); line-height: 1.55; margin-bottom: 10px; }
+.tel-row { display: flex; align-items: center; justify-content: space-between; background: var(--urgent-bg); border-radius: 10px; padding: 10px 12px; text-decoration: none; margin-bottom: 6px; }
+.tel-row .who { font-size: calc(13px * var(--fs)); color: var(--ink); font-weight: 600; }
+.tel-row .num { font-family: 'JetBrains Mono', monospace; font-size: calc(13px * var(--fs)); color: var(--urgent); font-weight: 700; }
+.tel-row svg { width: 15px; height: 15px; stroke: var(--urgent); margin-right: 6px; }
+.tel-row .left { display: flex; align-items: center; }
+
+.supply-card .h { display: flex; align-items: center; gap: 8px; font-size: calc(14.5px * var(--fs)); font-weight: 700; margin-bottom: 10px; }
+.supply-card .h svg { width: 17px; height: 17px; stroke: var(--active); }
+.qty-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 4px; }
+.qty-box { background: var(--paper); border-radius: 9px; padding: 10px 8px; text-align: center; }
+.qty-box .n { font-family: 'JetBrains Mono', monospace; font-size: calc(19px * var(--fs)); font-weight: 700; color: var(--active); }
+.qty-box .l { font-size: calc(11px * var(--fs)); color: var(--muted); margin-top: 2px; }
+.supply-card .desc { font-size: calc(12.5px * var(--fs)); color: var(--muted); line-height: 1.6; margin-top: 8px; }
+.tag { display: inline-block; font-size: calc(10.5px * var(--fs)); font-family: 'JetBrains Mono', monospace; padding: 2px 7px; border-radius: 5px; background: var(--info-bg); color: var(--info); margin-right: 4px; }
+.flag { background: var(--urgent-bg); color: var(--urgent); }
+ul.plain { margin: 6px 0 0; padding-left: 18px; font-size: calc(12.5px * var(--fs)); color: var(--muted); line-height: 1.7; }
+
+.contact-card .org { font-size: calc(12px * var(--fs)); font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+.contact-line { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-top: 1px dashed var(--line); text-decoration: none; color: var(--ink); }
+.contact-line:first-of-type { border-top: none; }
+.contact-line .name { font-size: calc(14px * var(--fs)); font-weight: 600; }
+.contact-line .num { font-family: 'JetBrains Mono', monospace; font-size: calc(13px * var(--fs)); color: var(--active); font-weight: 700; }
+
+/* 하단 탭바 */
+nav.tabbar { position: sticky; bottom: 0; display: flex; background: #fff; border-top: 1px solid var(--line); padding: 8px 6px calc(8px + env(safe-area-inset-bottom)); z-index: 30; }
+.tab-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; padding: 6px 0; cursor: pointer; color: var(--muted); }
+.tab-btn svg { width: 20px; height: 20px; stroke: var(--muted); }
+.tab-btn span { font-size: calc(10.5px * var(--fs)); font-weight: 600; }
+.tab-btn.active { color: var(--active); }
+.tab-btn.active svg { stroke: var(--active); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 상단 헤더 -->
+  <div class="topbar">
+    <div class="font-ctrl" role="group" aria-label="글자 크기 조절">
+      <button id="fsMinus" onclick="setFontScale(fsIndex-1)">-</button>
+      <span class="level" id="fsLevel">100%</span>
+      <button id="fsPlus" onclick="setFontScale(fsIndex+1)">+</button>
+    </div>
+    <div class="topbar-inner">
+      <div class="eyebrow"><span class="dot"></span>의산연 · 대관시설 운영</div>
+      <h1 id="pageTitle">대관시설 행사 관리</h1>
+      <div class="sub" id="pageSub">가톨릭대학교 의학교육지원팀 · 현장 매뉴얼</div>
+      <div class="back-row" id="backRow" onclick="showScreen('home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        <span>홈으로</span>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <!-- HOME -->
+    <section class="screen active" id="screen-home">
+      <p class="home-lead">지금 필요한 항목을 눌러 바로 이동하세요.</p>
+
+      <div class="card-nav urgent" onclick="showScreen('urgent')">
+        <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        <div class="card-body">
+          <div class="t">민원 · 장애 발생</div>
+          <div class="d">강의실 변경, 냉난방, 와이파이 등 — 바로 연락처로</div>
+        </div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+
+      <div class="card-nav" onclick="showScreen('timeline')">
+        <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+        <div class="card-body">
+          <div class="t">행사 타임라인</div>
+          <div class="d">D-1 준비부터 종료 보고까지, 순서대로</div>
+        </div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+
+      <div class="card-nav" onclick="showScreen('supplies')">
+        <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></div>
+        <div class="card-body">
+          <div class="t">물품 · 시설 정보</div>
+          <div class="d">책상·의자·마이크 수량, 대여 절차, 보관 위치</div>
+        </div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+
+      <div class="card-nav" onclick="showScreen('contacts')">
+        <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg></div>
+        <div class="card-body">
+          <div class="t">전체 연락처</div>
+          <div class="d">의학교육지원팀 · 총무팀 · 설비팀 한눈에</div>
+        </div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </section>
+
+    <!-- URGENT -->
+    <section class="screen" id="screen-urgent">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" id="urgentSearch" placeholder="예: 와이파이, 냉난방, 강의실 변경" oninput="filterList('urgentSearch','problem-card')">
+      </div>
+
+      <div class="sec-title">강의실 · 대관 문의</div>
+      <div class="problem-card">
+        <div class="q">강의실 변경이 필요할 때</div>
+        <div class="a">대관 담당(총무팀)에게 바로 연락합니다.</div>
+        <a class="tel-row" href="tel:010-3324-1187">
+          <span class="left"><span class="who">총무팀 · 주종호 (대관 담당)</span></span>
+          <span class="num">010-3324-1187</span>
+        </a>
+      </div>
+
+      <div class="problem-card">
+        <div class="q">마리아홀 행사 · 조정실 근무 확인</div>
+        <div class="a">마리아홀 행사가 있는 경우에만 근무자가 출근합니다. 주말에는 당직자 구내번호로 연락합니다.</div>
+        <a class="tel-row" href="tel:010-8681-7196">
+          <span class="left"><span class="who">한정욱 (내선 3147-8261)</span></span>
+          <span class="num">010-8681-7196</span>
+        </a>
+        <a class="tel-row" href="tel:010-7301-0762">
+          <span class="left"><span class="who">김태남 (내선 8262)</span></span>
+          <span class="num">010-7301-0762</span>
+        </a>
+      </div>
+
+      <div class="sec-title">설비 · 시스템 문의</div>
+      <div class="problem-card">
+        <div class="q">냉난방 장애</div>
+        <div class="a">중앙공조기 문제는 통합관제, 개별 냉난방 문제는 설비팀으로 연락합니다.</div>
+        <a class="tel-row" href="tel:2258-5555">
+          <span class="left"><span class="who">중앙공조기 (통합관제)</span></span>
+          <span class="num">2258-5555</span>
+        </a>
+        <a class="tel-row" href="tel:*1-5624">
+          <span class="left"><span class="who">개별 냉난방 (설비팀)</span></span>
+          <span class="num">*1-5624</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- TIMELINE -->
+    <section class="screen" id="screen-timeline">
+      <p class="home-lead">단계를 눌러 펼치고 체크하며 진행하세요.</p>
+
+      <div class="rail" id="railStages">
+        <div class="stage" data-stage="0">
+          <div class="stage-node"></div>
+          <div class="stage-head" onclick="toggleStage(0)">
+            <div><span class="label">D-1 · 명일 예정</span><span class="name">부스 배치 사전 확인</span></div>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+          <div class="stage-panel"><div class="stage-panel-inner">
+            <div class="chk"><input type="checkbox" id="c00"><label for="c00">부스 설치 도면(배치도) 확인 및 촬영<span class="note">작업자가 휴대폰에 이미지를 가지고 있는 경우가 많습니다.</span></label></div>
+            <div class="chk"><input type="checkbox" id="c01"><label for="c01">확인한 내용 카톡으로 보고</label></div>
+            <button class="copy-btn" onclick="copyText(this,'[부스 배치 확인] 도면 확인 완료, 사진 첨부합니다.')">📋 보고 문구 복사</button>
+          </div></div>
+        </div>
+
+        <div class="stage on open" data-stage="1">
+          <div class="stage-node"></div>
+          <div class="stage-head" onclick="toggleStage(1)">
+            <div><span class="label">D-DAY · 시작</span><span class="name">강의 스케쥴 · 설치 확인</span></div>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+          <div class="stage-panel"><div class="stage-panel-inner">
+            <div class="chk"><input type="checkbox" id="c10"><label for="c10">강의 스케쥴 확인 후 시작 보고 (1회)</label></div>
+            <div class="chk"><input type="checkbox" id="c11"><label for="c11">부스·접수데스크·포스터·배너 설치 확인<span class="jump" onclick="jumpTo('supplies','sup-booth')">→ 부스 수량 산정 기준 보기</span></label></div>
+            <div class="chk"><input type="checkbox" id="c12"><label for="c12">전원 공급 위치 협조 안내<span class="jump" onclick="jumpTo('supplies','sup-power')">→ 전원 공급 위치 보기</span></label></div>
+            <button class="copy-btn" onclick="copyText(this,'[행사 시작] 스케쥴 확인 완료. 부스 설치 확인했습니다.')">📋 보고 문구 복사</button>
+          </div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SUPPLIES -->
+    <section class="screen" id="screen-supplies">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" id="supplySearch" placeholder="예: 마이크, 책상, 포스터 스탠드" oninput="filterList('supplySearch','supply-card')">
+      </div>
+
+      <div class="sec-title">비품 수량</div>
+      <div class="supply-card">
+        <div class="h">책상 · 의자</div>
+        <div class="qty-grid">
+          <div class="qty-box"><div class="n">4</div><div class="l">대강당 · 책상</div></div>
+          <div class="qty-box"><div class="n">4</div><div class="l">대강당 · 의자</div></div>
+          <div class="qty-box"><div class="n">2</div><div class="l">로비 · 책상</div></div>
+        </div>
+        <div class="desc"><span class="tag flag">변경</span>1002호는 구 1003호와 병합되며 책상·의자 <b>비치 없음</b>.</div>
+      </div>
+
+      <div class="supply-card" id="sup-booth">
+        <div class="h">부스 수량 산정 기준</div>
+        <ul class="plain">
+          <li>기본 부스 크기를 기준으로 산정</li>
+          <li>커피 부스는 <b>로스팅 머신이 설치된 경우만</b> 수량으로 산정</li>
+        </ul>
+      </div>
+
+      <div class="supply-card" id="sup-power">
+        <div class="h">전원 공급 위치</div>
+        <ul class="plain">
+          <li>가톨릭대학교기술지주(주) 후면 벽부 콘센트</li>
+          <li>1008호 출입문 옆 벽부 콘센트</li>
+          <li>중앙 E/V 옆 멀티탭</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- CONTACTS -->
+    <section class="screen" id="screen-contacts">
+      <div class="sec-title">의학교육지원팀</div>
+      <div class="contact-card">
+        <div class="org">마리아홀 행사 · 대관시설 운영</div>
+        <a class="contact-line" href="tel:010-8681-7196"><span class="name">한정욱 (내선 8261)</span><span class="num">010-8681-7196</span></a>
+        <a class="contact-line" href="tel:010-7301-0762"><span class="name">김태남 (내선 8262)</span><span class="num">010-7301-0762</span></a>
+      </div>
+
+      <div class="sec-title">총무팀</div>
+      <div class="contact-card">
+        <div class="org">강의실 변경 · 대관 담당</div>
+        <a class="contact-line" href="tel:010-3324-1187"><span class="name">주종호</span><span class="num">010-3324-1187</span></a>
+      </div>
+    </section>
+  </main>
+
+  <!-- 하단 탭바 -->
+  <nav class="tabbar">
+    <button class="tab-btn active" data-tab="home" onclick="showScreen('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></svg>
+      <span>홈</span>
+    </button>
+    <button class="tab-btn" data-tab="timeline" onclick="showScreen('timeline')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      <span>타임라인</span>
+    </button>
+    <button class="tab-btn" data-tab="supplies" onclick="showScreen('supplies')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/></svg>
+      <span>물품</span>
+    </button>
+    <button class="tab-btn" data-tab="contacts" onclick="showScreen('contacts')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+      <span>연락처</span>
+    </button>
+  </nav>
+
+</div>
+
+<script>
+let fsIndex = 1;
+const fsScales = [0.9, 1.0, 1.1, 1.2];
+const fsLabels = ['90%', '100%', '110%', '120%'];
+
+function setFontScale(idx) {
+  if (idx < 0 || idx >= fsScales.length) return;
+  fsIndex = idx;
+  document.documentElement.style.setProperty('--fs', fsScales[idx]);
+  document.getElementById('fsLevel').innerText = fsLabels[idx];
+}
+
+function showScreen(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById('screen-' + screenId);
+  if (target) target.classList.add('active');
+
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-tab') === screenId);
+  });
+
+  const backRow = document.getElementById('backRow');
+  if (backRow) {
+    if (screenId === 'home') backRow.classList.remove('show');
+    else backRow.classList.add('show');
+  }
+  window.scrollTo(0, 0);
+}
+
+function toggleStage(idx) {
+  const stages = document.querySelectorAll('.stage');
+  if (stages[idx]) stages[idx].classList.toggle('open');
+}
+
+function jumpTo(screenId, elementId) {
+  showScreen(screenId);
+  setTimeout(() => {
+    const el = document.getElementById(elementId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 100);
+}
+
+function copyText(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const original = btn.innerText;
+    btn.innerText = '✓ 복사완료!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.innerText = original;
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+function filterList(inputId, cardClass) {
+  const query = document.getElementById(inputId).value.toLowerCase();
+  document.querySelectorAll('.' + cardClass).forEach(card => {
+    const text = card.innerText.toLowerCase();
+    card.style.display = text.includes(query) ? 'block' : 'none';
+  });
+}
+
+// 체크박스 클릭 시 스타일 취소선 처리
+document.addEventListener('change', function(e) {
+  if (e.target.matches('.chk input[type="checkbox"]')) {
+    const parent = e.target.closest('.chk');
+    if (parent) parent.classList.toggle('done', e.target.checked);
+  }
+});
+</script>
+</body>
+</html>
