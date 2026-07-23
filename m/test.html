@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>[테스트] 의산연 대관시설 행사 관리</title>
+<title>[풀버전 테스트] 의산연 대관시설 행사 관리</title>
 
-<!-- 폰트 불러오기 -->
+<!-- Pretendard & JetBrains Mono 폰트 -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/woff2/PretendardVariable.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jetbrains-mono@1.0.6/css/jetbrains-mono.css">
 
@@ -35,14 +35,12 @@ body {
 }
 .mono { font-family: 'JetBrains Mono', monospace; }
 
-/* 앱 기본 틀 */
 .app {
   width: 100%; max-width: 460px; min-height: 100vh;
   background: var(--paper); display: flex; flex-direction: column;
   position: relative; box-shadow: 0 0 40px rgba(20,33,61,0.08);
 }
 
-/* 상단 헤더 */
 .topbar { padding: 18px 20px 14px; background: var(--ink); color: #fff; position: sticky; top: 0; z-index: 20; }
 .topbar-inner { padding-right: 84px; }
 .font-ctrl {
@@ -63,7 +61,6 @@ body {
 .back-row svg { width: 16px; height: 16px; stroke: #C3CEDD; }
 .back-row span { font-size: calc(13px * var(--fs)); color: #C3CEDD; }
 
-/* 본문 메인 */
 main { flex: 1; padding: 16px 16px 90px; overflow-y: auto; }
 .screen { display: none; }
 .screen.active { display: block; animation: fade .25s ease; }
@@ -104,7 +101,7 @@ main { flex: 1; padding: 16px 16px 90px; overflow-y: auto; }
 .stage-head .chev { width: 16px; height: 16px; stroke: var(--muted); transition: transform .2s ease; flex-shrink: 0; }
 .stage.open .stage-head .chev { transform: rotate(180deg); }
 .stage-panel { max-height: 0; overflow: hidden; transition: max-height .25s ease; background: var(--card); border-radius: 0 0 var(--radius) var(--radius); border: 1px solid var(--line); border-top: none; margin-top: -1px; }
-.stage.open .stage-panel { max-height: 900px; }
+.stage.open .stage-panel { max-height: 1200px; }
 .stage-panel-inner { padding: 6px 16px 14px; }
 
 .chk { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-top: 1px dashed var(--line); font-size: calc(13.5px * var(--fs)); line-height: 1.5; }
@@ -124,11 +121,8 @@ main { flex: 1; padding: 16px 16px 90px; overflow-y: auto; }
 .tel-row { display: flex; align-items: center; justify-content: space-between; background: var(--urgent-bg); border-radius: 10px; padding: 10px 12px; text-decoration: none; margin-bottom: 6px; }
 .tel-row .who { font-size: calc(13px * var(--fs)); color: var(--ink); font-weight: 600; }
 .tel-row .num { font-family: 'JetBrains Mono', monospace; font-size: calc(13px * var(--fs)); color: var(--urgent); font-weight: 700; }
-.tel-row svg { width: 15px; height: 15px; stroke: var(--urgent); margin-right: 6px; }
-.tel-row .left { display: flex; align-items: center; }
 
 .supply-card .h { display: flex; align-items: center; gap: 8px; font-size: calc(14.5px * var(--fs)); font-weight: 700; margin-bottom: 10px; }
-.supply-card .h svg { width: 17px; height: 17px; stroke: var(--active); }
 .qty-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 4px; }
 .qty-box { background: var(--paper); border-radius: 9px; padding: 10px 8px; text-align: center; }
 .qty-box .n { font-family: 'JetBrains Mono', monospace; font-size: calc(19px * var(--fs)); font-weight: 700; color: var(--active); }
@@ -144,7 +138,6 @@ ul.plain { margin: 6px 0 0; padding-left: 18px; font-size: calc(12.5px * var(--f
 .contact-line .name { font-size: calc(14px * var(--fs)); font-weight: 600; }
 .contact-line .num { font-family: 'JetBrains Mono', monospace; font-size: calc(13px * var(--fs)); color: var(--active); font-weight: 700; }
 
-/* 하단 탭바 */
 nav.tabbar { position: sticky; bottom: 0; display: flex; background: #fff; border-top: 1px solid var(--line); padding: 8px 6px calc(8px + env(safe-area-inset-bottom)); z-index: 30; }
 .tab-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; padding: 6px 0; cursor: pointer; color: var(--muted); }
 .tab-btn svg { width: 20px; height: 20px; stroke: var(--muted); }
@@ -158,7 +151,7 @@ nav.tabbar { position: sticky; bottom: 0; display: flex; background: #fff; borde
 
   <!-- 상단 헤더 -->
   <div class="topbar">
-    <div class="font-ctrl" role="group" aria-label="글자 크기 조절">
+    <div class="font-ctrl">
       <button id="fsMinus" onclick="setFontScale(fsIndex-1)">-</button>
       <span class="level" id="fsLevel">100%</span>
       <button id="fsPlus" onclick="setFontScale(fsIndex+1)">+</button>
@@ -175,7 +168,7 @@ nav.tabbar { position: sticky; bottom: 0; display: flex; background: #fff; borde
   </div>
 
   <main>
-    <!-- HOME -->
+    <!-- HOME 화면 -->
     <section class="screen active" id="screen-home">
       <p class="home-lead">지금 필요한 항목을 눌러 바로 이동하세요.</p>
 
@@ -216,7 +209,7 @@ nav.tabbar { position: sticky; bottom: 0; display: flex; background: #fff; borde
       </div>
     </section>
 
-    <!-- URGENT -->
+    <!-- URGENT 민원 해결 화면 -->
     <section class="screen" id="screen-urgent">
       <div class="search-box">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -228,7 +221,7 @@ nav.tabbar { position: sticky; bottom: 0; display: flex; background: #fff; borde
         <div class="q">강의실 변경이 필요할 때</div>
         <div class="a">대관 담당(총무팀)에게 바로 연락합니다.</div>
         <a class="tel-row" href="tel:010-3324-1187">
-          <span class="left"><span class="who">총무팀 · 주종호 (대관 담당)</span></span>
+          <span class="who">총무팀 · 주종호 (대관 담당)</span>
           <span class="num">010-3324-1187</span>
         </a>
       </div>
@@ -237,87 +230,142 @@ nav.tabbar { position: sticky; bottom: 0; display: flex; background: #fff; borde
         <div class="q">마리아홀 행사 · 조정실 근무 확인</div>
         <div class="a">마리아홀 행사가 있는 경우에만 근무자가 출근합니다. 주말에는 당직자 구내번호로 연락합니다.</div>
         <a class="tel-row" href="tel:010-8681-7196">
-          <span class="left"><span class="who">한정욱 (내선 3147-8261)</span></span>
+          <span class="who">한정욱 (내선 3147-8261)</span>
           <span class="num">010-8681-7196</span>
         </a>
         <a class="tel-row" href="tel:010-7301-0762">
-          <span class="left"><span class="who">김태남 (내선 8262)</span></span>
+          <span class="who">김태남 (내선 8262)</span>
           <span class="num">010-7301-0762</span>
         </a>
       </div>
 
-      <div class="sec-title">설비 · 시스템 문의</div>
+      <div class="sec-title">설비 · 네트워크 장애</div>
       <div class="problem-card">
         <div class="q">냉난방 장애</div>
-        <div class="a">중앙공조기 문제는 통합관제, 개별 냉난방 문제는 설비팀으로 연락합니다.</div>
+        <div class="a">중앙공조기 문제는 통합관제실, 개별 냉난방 조절은 설비팀으로 연락합니다.</div>
         <a class="tel-row" href="tel:2258-5555">
-          <span class="left"><span class="who">중앙공조기 (통합관제)</span></span>
+          <span class="who">중앙공조기 (통합관제)</span>
           <span class="num">2258-5555</span>
         </a>
         <a class="tel-row" href="tel:*1-5624">
-          <span class="left"><span class="who">개별 냉난방 (설비팀)</span></span>
+          <span class="who">개별 냉난방 (설비팀)</span>
           <span class="num">*1-5624</span>
+        </a>
+      </div>
+
+      <div class="problem-card">
+        <div class="q">와이파이 접속 불가 / 네트워크 장애</div>
+        <div class="a">행사장 내 무선인터넷 연결 오류 발생 시 통신팀에 긴급 조치를 요청하세요.</div>
+        <a class="tel-row" href="tel:2258-5555">
+          <span class="who">통신지원 / 네트워크 관리팀</span>
+          <span class="num">2258-5555</span>
         </a>
       </div>
     </section>
 
-    <!-- TIMELINE -->
+    <!-- TIMELINE 타임라인 풀버전 (전체 단계 복원) -->
     <section class="screen" id="screen-timeline">
       <p class="home-lead">단계를 눌러 펼치고 체크하며 진행하세요.</p>
 
       <div class="rail" id="railStages">
+        
+        <!-- STAGE 0: D-1 명일 예정 -->
         <div class="stage" data-stage="0">
           <div class="stage-node"></div>
           <div class="stage-head" onclick="toggleStage(0)">
-            <div><span class="label">D-1 · 명일 예정</span><span class="name">부스 배치 사전 확인</span></div>
+            <div><span class="label">STAGE 01 · D-1 명일 예정</span><span class="name">부스 배치 사전 확인</span></div>
             <svg class="chev" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
           </div>
           <div class="stage-panel"><div class="stage-panel-inner">
-            <div class="chk"><input type="checkbox" id="c00"><label for="c00">부스 설치 도면(배치도) 확인 및 촬영<span class="note">작업자가 휴대폰에 이미지를 가지고 있는 경우가 많습니다.</span></label></div>
-            <div class="chk"><input type="checkbox" id="c01"><label for="c01">확인한 내용 카톡으로 보고</label></div>
-            <button class="copy-btn" onclick="copyText(this,'[부스 배치 확인] 도면 확인 완료, 사진 첨부합니다.')">📋 보고 문구 복사</button>
+            <div class="chk"><input type="checkbox" id="c00"><label for="c00">부스 설치 도면(배치도) 확인 및 현장 촬영<span class="note">작업자가 휴대폰에 이미지를 가지고 있는 경우가 많습니다.</span></label></div>
+            <div class="chk"><input type="checkbox" id="c01"><label for="c01">확인한 내용 단체 카톡방에 사진과 함께 보고</label></div>
+            <button class="copy-btn" onclick="copyText(this,'[D-1 사전 점검] 부스 배치 도면 확인 완료. 사진 첨부합니다.')">📋 보고 문구 복사</button>
           </div></div>
         </div>
 
+        <!-- STAGE 1: D-DAY 행사 시작 점검 -->
         <div class="stage on open" data-stage="1">
           <div class="stage-node"></div>
           <div class="stage-head" onclick="toggleStage(1)">
-            <div><span class="label">D-DAY · 시작</span><span class="name">강의 스케쥴 · 설치 확인</span></div>
+            <div><span class="label">STAGE 02 · D-DAY 시작</span><span class="name">강의 스케쥴 및 시설 배치 점검</span></div>
             <svg class="chev" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
           </div>
           <div class="stage-panel"><div class="stage-panel-inner">
-            <div class="chk"><input type="checkbox" id="c10"><label for="c10">강의 스케쥴 확인 후 시작 보고 (1회)</label></div>
-            <div class="chk"><input type="checkbox" id="c11"><label for="c11">부스·접수데스크·포스터·배너 설치 확인<span class="jump" onclick="jumpTo('supplies','sup-booth')">→ 부스 수량 산정 기준 보기</span></label></div>
-            <div class="chk"><input type="checkbox" id="c12"><label for="c12">전원 공급 위치 협조 안내<span class="jump" onclick="jumpTo('supplies','sup-power')">→ 전원 공급 위치 보기</span></label></div>
-            <button class="copy-btn" onclick="copyText(this,'[행사 시작] 스케쥴 확인 완료. 부스 설치 확인했습니다.')">📋 보고 문구 복사</button>
+            <div class="chk"><input type="checkbox" id="c10"><label for="c10">강의 스케쥴 및 행사 개시 확인 보고 (1회)</label></div>
+            <div class="chk"><input type="checkbox" id="c11"><label for="c11">부스·접수데스크·포스터·배너 설치 상태 점검<span class="jump" onclick="jumpTo('supplies','sup-booth')">→ 부스 수량 산정 기준 보기</span></label></div>
+            <div class="chk"><input type="checkbox" id="c12"><label for="c12">전원 공급 멀티탭 및 소방통로 확보 확인<span class="jump" onclick="jumpTo('supplies','sup-power')">→ 전원 공급 위치 보기</span></label></div>
+            <button class="copy-btn" onclick="copyText(this,'[D-DAY 시작 보고] 스케쥴 확인 및 부스/배너 설치 정상 완료되었습니다.')">📋 보고 문구 복사</button>
           </div></div>
         </div>
+
+        <!-- STAGE 2: D-DAY 진행 중 순찰 점검 -->
+        <div class="stage" data-stage="2">
+          <div class="stage-node"></div>
+          <div class="stage-head" onclick="toggleStage(2)">
+            <div><span class="label">STAGE 03 · D-DAY 진행</span><span class="name">행사 중 주기적 현장 순찰</span></div>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+          <div class="stage-panel"><div class="stage-panel-inner">
+            <div class="chk"><input type="checkbox" id="c20"><label for="c20">로비 및 강의실 소음 상태 및 온도 점검</label></div>
+            <div class="chk"><input type="checkbox" id="c21"><label for="c21">무단 대관공간 점유 및 인근 강의실 간섭 여부 확인</label></div>
+            <div class="chk"><input type="checkbox" id="c22"><label for="c22">음향, 영상, 마이크 상태 이상 유무 주기적 체크<span class="jump" onclick="jumpTo('supplies','sup-mic')">→ 마이크 및 음향 장비 정보 보기</span></label></div>
+            <button class="copy-btn" onclick="copyText(this,'[진행 중 점검] 행사 정상 진행 중이며, 소음 및 온도 문제 없습니다.')">📋 보고 문구 복사</button>
+          </div></div>
+        </div>
+
+        <!-- STAGE 3: D-DAY 종료 및 철수 점검 -->
+        <div class="stage" data-stage="3">
+          <div class="stage-node"></div>
+          <div class="stage-head" onclick="toggleStage(3)">
+            <div><span class="label">STAGE 04 · D-DAY 종료</span><span class="name">행사 종료 보고 및 철수 확인</span></div>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+          <div class="stage-panel"><div class="stage-panel-inner">
+            <div class="chk"><input type="checkbox" id="c30"><label for="c30">부스, 배너, 임대 물품 완복 철수 여부 확인</label></div>
+            <div class="chk"><input type="checkbox" id="c31"><label for="c31">대여한 책상, 의자, 마이크 원위치 원상복구 확인<span class="jump" onclick="jumpTo('supplies','sup-desk')">→ 비품 원위치 배치 정보 보기</span></label></div>
+            <div class="chk"><input type="checkbox" id="c32"><label for="c32">조명 및 냉난방 소등/오프, 출입문 단속 및 최종 종료 보고</label></div>
+            <button class="copy-btn" onclick="copyText(this,'[종료 및 철수 완료] 대관 물품 원상복구 및 전등/냉난방 소등 완료 후 퇴근합니다.')">📋 보고 문구 복사</button>
+          </div></div>
+        </div>
+
       </div>
     </section>
 
-    <!-- SUPPLIES -->
+    <!-- SUPPLIES 물품/시설 풀버전 -->
     <section class="screen" id="screen-supplies">
       <div class="search-box">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
         <input type="text" id="supplySearch" placeholder="예: 마이크, 책상, 포스터 스탠드" oninput="filterList('supplySearch','supply-card')">
       </div>
 
-      <div class="sec-title">비품 수량</div>
-      <div class="supply-card">
-        <div class="h">책상 · 의자</div>
+      <div class="sec-title">기본 비품 수량</div>
+      <div class="supply-card" id="sup-desk">
+        <div class="h">책상 · 의자 수량 및 배치</div>
         <div class="qty-grid">
           <div class="qty-box"><div class="n">4</div><div class="l">대강당 · 책상</div></div>
           <div class="qty-box"><div class="n">4</div><div class="l">대강당 · 의자</div></div>
           <div class="qty-box"><div class="n">2</div><div class="l">로비 · 책상</div></div>
         </div>
-        <div class="desc"><span class="tag flag">변경</span>1002호는 구 1003호와 병합되며 책상·의자 <b>비치 없음</b>.</div>
+        <div class="desc"><span class="tag flag">주의</span> 1002호는 구 1003호와 병합되었으므로 내부에 별도 책상/의자 <b>비치 없음</b>.</div>
       </div>
 
+      <div class="supply-card" id="sup-mic">
+        <div class="h">음향 및 마이크 관리</div>
+        <div class="qty-grid">
+          <div class="qty-box"><div class="n">무선</div><div class="l">핸드 마이크</div></div>
+          <div class="qty-box"><div class="n">핀</div><div class="l">벨트팩 마이크</div></div>
+          <div class="qty-box"><div class="n">AUX</div><div class="l">음향 연결선</div></div>
+        </div>
+        <div class="desc">마리아홀 조정실 보관 / 종료 후 반드시 수량 수거 및 충전기에 연결해야 함.</div>
+      </div>
+
+      <div class="sec-title">시설 및 부스 운영 기준</div>
       <div class="supply-card" id="sup-booth">
         <div class="h">부스 수량 산정 기준</div>
         <ul class="plain">
-          <li>기본 부스 크기를 기준으로 산정</li>
-          <li>커피 부스는 <b>로스팅 머신이 설치된 경우만</b> 수량으로 산정</li>
+          <li>기본 규격 부스 크기를 기준으로 수량 산정</li>
+          <li>커피 부스는 <b>로스팅 머신 및 전원 연결이 설치된 경우만</b> 1개 부스로 인정</li>
+          <li>접수용 롱테이블은 부스 수량에서 제외</li>
         </ul>
       </div>
 
@@ -325,13 +373,13 @@ nav.tabbar { position: sticky; bottom: 0; display: flex; background: #fff; borde
         <div class="h">전원 공급 위치</div>
         <ul class="plain">
           <li>가톨릭대학교기술지주(주) 후면 벽부 콘센트</li>
-          <li>1008호 출입문 옆 벽부 콘센트</li>
-          <li>중앙 E/V 옆 멀티탭</li>
+          <li>1008호 출입문 바로 옆 벽부 콘센트</li>
+          <li>중앙 E/V 옆 매립형 멀티탭 전원함</li>
         </ul>
       </div>
     </section>
 
-    <!-- CONTACTS -->
+    <!-- CONTACTS 연락처 풀버전 -->
     <section class="screen" id="screen-contacts">
       <div class="sec-title">의학교육지원팀</div>
       <div class="contact-card">
@@ -344,6 +392,13 @@ nav.tabbar { position: sticky; bottom: 0; display: flex; background: #fff; borde
       <div class="contact-card">
         <div class="org">강의실 변경 · 대관 담당</div>
         <a class="contact-line" href="tel:010-3324-1187"><span class="name">주종호</span><span class="num">010-3324-1187</span></a>
+      </div>
+
+      <div class="sec-title">통합관제 / 설비팀</div>
+      <div class="contact-card">
+        <div class="org">시설 냉난방 및 시스템 지원</div>
+        <a class="contact-line" href="tel:2258-5555"><span class="name">통합관제실 (중앙공조)</span><span class="num">2258-5555</span></a>
+        <a class="contact-line" href="tel:*1-5624"><span class="name">설비팀 (개별 냉난방)</span><span class="num">*1-5624</span></a>
       </div>
     </section>
   </main>
@@ -432,7 +487,6 @@ function filterList(inputId, cardClass) {
   });
 }
 
-// 체크박스 클릭 시 스타일 취소선 처리
 document.addEventListener('change', function(e) {
   if (e.target.matches('.chk input[type="checkbox"]')) {
     const parent = e.target.closest('.chk');
