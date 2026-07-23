@@ -64,11 +64,16 @@
   <h2>🍱 식단표 이미지 분석</h2>
   <p style="font-size:13px;color:#777;margin-top:-8px;">
     현장에서 식단표 고화질 사진을 업로드하면 자동으로 분석합니다.<br>
-    <b>카메라로 직접 촬영</b>하거나 <b>원본 화질</b> 이미지를 사용해주세요 — 카톡 등으로 전달받은 압축 이미지는 인식률이 떨어질 수 있습니다.
+    <b>카메라로 직접 촬영</b>하거나 <b>원본 화질</b> 이미지를 사용해주세요 — 카톡 등으로 전달받은 압축 이미지는 인식률이 떨어질 수 있습니다.<br>
+    <b>표가 한 장에 다 안 들어오거나 인식이 잘 안 되면, 요일별로 잘라서 여러 장에 나눠 올려주세요.</b> 분석 결과는 아래 표에 계속 누적됩니다 (같은 날짜·끼니는 최신 결과로 교체됨).
   </p>
-  <input type="file" id="fileInput" accept="image/*" capture="environment"
+  <input type="file" id="fileInput" accept="image/*"
          onchange="handleFileSelect()">
   <div id="resWarning" style="display:none; font-size:12px; color:#b45309; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:8px 10px; margin-top:8px; text-align:left;"></div>
+  <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:#555; margin-top:10px; text-align:left;">
+    <input type="checkbox" id="splitCheckbox" checked style="width:16px;height:16px;">
+    표가 넓으면 자동으로 좌우 2등분해서 분석 (권장 — 한 번에 처리할 항목이 많으면 응답이 잘릴 수 있음)
+  </label>
   <button id="analyzeBtn" class="btn btn-primary" onclick="analyze()" disabled>1. 이미지 분석</button>
   <div id="status"></div>
 </div>
@@ -88,6 +93,7 @@
   </div>
   <div class="legend"><span class="legend-dot"></span> 노란색 = AI가 확신하지 못한 메뉴명 (직접 확인 필요, 후보 클릭 시 자동 입력)</div>
   <button id="saveBtn" class="btn btn-success" onclick="saveData()">2. 확정 저장</button>
+  <button class="btn" style="background:#f1f3f4;color:#555;margin-top:6px;" onclick="resetTable()">표 비우고 새로 시작</button>
 </div>
 
 <script>
@@ -98,7 +104,7 @@
   //   - 액세스 권한이 있는 사용자: 전체 (Anyone)
   // 발급된 URL은 보통 https://script.google.com/macros/s/xxxxx/exec 형태입니다.
   // ────────────────────────────────────────────────────────────
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwlyqqk8K4r_X-yA4r3eRGYZuUqg6GbP2v_TNLk7G7JTcHORN0XRMAtB56iIj2u-JdD7w/exec";
+  const WEB_APP_URL = "https://script.google.com/macros/s/여기에_배포된_ID를_입력/exec";
 
   let parsedItems = [];
   let adminPassword = "";
@@ -170,48 +176,145 @@
     img.src = objectUrl;
   }
 
-  function analyze() {
+  function loadImageFromFile(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  // 이미지를 좌/우로 겹치게(경계선의 항목이 잘리지 않도록) 2등분한 base64 PNG 배열 반환
+  function splitImageInHalves(img) {
+    const w = img.naturalWidth, h = img.naturalHeight;
+    const overlap = Math.floor(w * 0.08); // 8% 겹침
+    const halfW = Math.floor(w / 2);
+    const regions = [
+      { x: 0, w: Math.min(halfW + overlap, w) },
+      { x: Math.max(halfW - overlap, 0), w: w - Math.max(halfW - overlap, 0) }
+    ];
+    return regions.map(r => {
+      const canvas = document.createElement('canvas');
+      canvas.width = r.w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, r.x, 0, r.w, h, 0, 0, r.w, h);
+      return canvas.toDataURL('image/png');
+    });
+  }
+
+  // 여러 조각에서 나온 결과를 날짜+구분 기준으로 중복 제거하며 병합
+  function mergeItemLists(lists) {
+    const map = new Map();
+    lists.forEach(items => {
+      items.forEach(item => {
+        const key = `${item.date}__${item.type}`;
+        const existing = map.get(key);
+        if (!existing) {
+          map.set(key, item);
+        } else {
+          // 겹치는 구간에서 중복 인식된 경우, 더 신뢰도 높은(matched=true) 쪽을 채택
+          const existingBetter = existing.matched === true || (existing.main || "").length >= (item.main || "").length;
+          if (!existingBetter) map.set(key, item);
+        }
+      });
+    });
+    return Array.from(map.values());
+  }
+
+  async function analyzeSinglePart(base64Data, mimeType, statusPrefix) {
+    const status = document.getElementById('status');
+    status.textContent = statusPrefix + " ⏳ 데이터를 정밀 분석 중입니다... (최대 30초 소요)";
+    const res = await callBackend("processImage", { base64Data, mimeType });
+    if (!res.ok) throw new Error(res.error || "분석 실패");
+
+    let items;
+    try {
+      items = JSON.parse(res.result);
+    } catch (parseErr) {
+      throw new Error("AI 응답을 JSON으로 해석하지 못했습니다: " + res.result);
+    }
+    if (items && items.error) throw new Error(items.error);
+    return items;
+  }
+
+  // 이번 업로드 결과를 기존 누적 표(parsedItems)에 병합 (같은 날짜+구분은 최신 결과로 교체)
+  function mergeItems_(existing, incoming) {
+    const merged = existing.slice();
+    incoming.forEach(newItem => {
+      const idx = merged.findIndex(it => it.date === newItem.date && it.type === newItem.type);
+      if (idx !== -1) merged[idx] = newItem;
+      else merged.push(newItem);
+    });
+    const typeOrder = ["조식", "간편식", "중식", "석식", "야식"];
+    merged.sort((a, b) => {
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      return typeOrder.indexOf(a.type) - typeOrder.indexOf(b.type);
+    });
+    return merged;
+  }
+
+  function resetTable() {
+    if (parsedItems.length > 0 && !confirm("지금까지 누적된 분석 결과가 모두 사라집니다. 계속할까요?")) return;
+    parsedItems = [];
+    renderTable(parsedItems);
+    document.getElementById('resultCard').style.display = 'none';
+    document.getElementById('status').textContent = "";
+    document.getElementById('fileInput').value = "";
+    document.getElementById('analyzeBtn').disabled = true;
+  }
+
+  async function analyze() {
     const file = document.getElementById('fileInput').files[0];
     const btn = document.getElementById('analyzeBtn');
     const status = document.getElementById('status');
+    const shouldSplit = document.getElementById('splitCheckbox').checked;
     if (!file) return;
 
     btn.disabled = true;
-    status.textContent = "⏳ 데이터를 정밀 분석 중입니다... (최대 30초 소요)";
     document.getElementById('resultCard').style.display = 'none';
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const res = await callBackend("processImage", {
-          base64Data: e.target.result,
-          mimeType: file.type
-        });
+    try {
+      if (shouldSplit) {
+        const img = await loadImageFromFile(file);
+        const halves = splitImageInHalves(img); // [dataURL, dataURL]
 
-        if (!res.ok) throw new Error(res.error || "분석 실패");
-
-        let items;
-        try {
-          items = JSON.parse(res.result);
-        } catch (parseErr) {
-          throw new Error("AI 응답을 JSON으로 해석하지 못했습니다: " + res.result);
+        const resultsPerPart = [];
+        for (let i = 0; i < halves.length; i++) {
+          const items = await analyzeSinglePart(halves[i], 'image/png', `[${i + 1}/${halves.length}]`);
+          resultsPerPart.push(items);
         }
-        if (items && items.error) throw new Error(items.error);
 
-        parsedItems = items;
-        renderTable(items);
-        const reviewCount = items.filter(it => it.matched === false).length;
+        const mergedThisUpload = mergeItemLists(resultsPerPart);
+        parsedItems = mergeItems_(parsedItems, mergedThisUpload);
+        renderTable(parsedItems);
+        const reviewCount = parsedItems.filter(it => it.matched === false).length;
         status.textContent = reviewCount > 0
-          ? `✅ 분석 완료: ${items.length}건 인식됨. ⚠️ ${reviewCount}건은 확인이 필요합니다 (노란 셀).`
-          : `✅ 분석 완료: ${items.length}건 인식됨. 아래 표에서 확인/수정 후 저장하세요.`;
+          ? `✅ 분석 완료(2등분 병합): 이번 이미지에서 ${mergedThisUpload.length}건 인식됨 (누적 ${parsedItems.length}건). ⚠️ ${reviewCount}건은 확인이 필요합니다 (노란 셀).`
+          : `✅ 분석 완료(2등분 병합): 이번 이미지에서 ${mergedThisUpload.length}건 인식됨 (누적 ${parsedItems.length}건). 아래 표에서 확인/수정 후 저장하세요.`;
         document.getElementById('resultCard').style.display = 'block';
-      } catch (err) {
-        status.innerHTML = `<span style="color:red">❌ ${err.message}</span>`;
-      } finally {
-        btn.disabled = false;
+
+      } else {
+        const reader = new FileReader();
+        const base64Data = await new Promise((resolve, reject) => {
+          reader.onload = e => resolve(e.target.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const items = await analyzeSinglePart(base64Data, file.type, "");
+        parsedItems = mergeItems_(parsedItems, items);
+        renderTable(parsedItems);
+        const reviewCount = parsedItems.filter(it => it.matched === false).length;
+        status.textContent = reviewCount > 0
+          ? `✅ 분석 완료: 이번 이미지에서 ${items.length}건 인식됨 (누적 ${parsedItems.length}건). ⚠️ ${reviewCount}건은 확인이 필요합니다 (노란 셀).`
+          : `✅ 분석 완료: 이번 이미지에서 ${items.length}건 인식됨 (누적 ${parsedItems.length}건). 아래 표에서 확인/수정 후 저장하세요.`;
+        document.getElementById('resultCard').style.display = 'block';
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      status.innerHTML = `<span style="color:red">❌ ${err.message}</span>`;
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   function renderTable(items) {
