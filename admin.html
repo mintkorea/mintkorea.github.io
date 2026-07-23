@@ -35,9 +35,18 @@
   table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
   th, td { border: 1px solid #e0e0e0; padding: 6px; text-align: left; vertical-align: top; }
   th { background: #f0f4f8; }
-  td[contenteditable="true"] { background: #fffef5; cursor: text; }
-  td[contenteditable="true"]:focus { outline: 2px solid #1a73e8; background: white; }
+  td[contenteditable="true"], .cell-edit { background: #fffef5; cursor: text; }
+  td[contenteditable="true"]:focus, .cell-edit:focus { outline: 2px solid #1a73e8; background: white; }
   .table-wrap { overflow-x: auto; }
+  td.needs-review { background: #fff3cd; }
+  .suggestions { margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap; }
+  .suggestion-chip {
+    font-size: 11px; background: #e8f0fe; color: #1a73e8; border: 1px solid #c6dafc;
+    border-radius: 10px; padding: 2px 8px; cursor: pointer; white-space: nowrap;
+  }
+  .suggestion-chip:hover { background: #d2e3fc; }
+  .legend { font-size: 12px; color: #777; margin-top: 8px; display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 12px; height: 12px; background: #fff3cd; border: 1px solid #e0c987; border-radius: 3px; display: inline-block; }
 </style>
 </head>
 <body>
@@ -54,10 +63,12 @@
 <div class="card" id="uploadCard" style="display:none;">
   <h2>🍱 식단표 이미지 분석</h2>
   <p style="font-size:13px;color:#777;margin-top:-8px;">
-    현장에서 식단표 고화질 사진을 업로드하면 자동으로 분석합니다.
+    현장에서 식단표 고화질 사진을 업로드하면 자동으로 분석합니다.<br>
+    <b>카메라로 직접 촬영</b>하거나 <b>원본 화질</b> 이미지를 사용해주세요 — 카톡 등으로 전달받은 압축 이미지는 인식률이 떨어질 수 있습니다.
   </p>
   <input type="file" id="fileInput" accept="image/*" capture="environment"
-         onchange="document.getElementById('analyzeBtn').disabled=false">
+         onchange="handleFileSelect()">
+  <div id="resWarning" style="display:none; font-size:12px; color:#b45309; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:8px 10px; margin-top:8px; text-align:left;"></div>
   <button id="analyzeBtn" class="btn btn-primary" onclick="analyze()" disabled>1. 이미지 분석</button>
   <div id="status"></div>
 </div>
@@ -75,6 +86,7 @@
       <tbody id="resultBody"></tbody>
     </table>
   </div>
+  <div class="legend"><span class="legend-dot"></span> 노란색 = AI가 확신하지 못한 메뉴명 (직접 확인 필요, 후보 클릭 시 자동 입력)</div>
   <button id="saveBtn" class="btn btn-success" onclick="saveData()">2. 확정 저장</button>
 </div>
 
@@ -86,7 +98,7 @@
   //   - 액세스 권한이 있는 사용자: 전체 (Anyone)
   // 발급된 URL은 보통 https://script.google.com/macros/s/xxxxx/exec 형태입니다.
   // ────────────────────────────────────────────────────────────
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwlyqqk8K4r_X-yA4r3eRGYZuUqg6GbP2v_TNLk7G7JTcHORN0XRMAtB56iIj2u-JdD7w/exec";
+  const WEB_APP_URL = "https://script.google.com/macros/s/여기에_배포된_ID를_입력/exec";
 
   let parsedItems = [];
   let adminPassword = "";
@@ -128,6 +140,36 @@
     }
   }
 
+  const MIN_WIDTH = 1600; // 이 값보다 좁으면 저해상도로 간주 (카톡 전달 이미지 등)
+
+  function handleFileSelect() {
+    const file = document.getElementById('fileInput').files[0];
+    const warningBox = document.getElementById('resWarning');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    warningBox.style.display = 'none';
+    if (!file) { analyzeBtn.disabled = true; return; }
+
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const w = img.naturalWidth, h = img.naturalHeight;
+
+      if (w < MIN_WIDTH) {
+        warningBox.style.display = 'block';
+        warningBox.innerHTML =
+          `⚠️ 이미지 해상도가 낮습니다 (${w}×${h}px). 인식 오류가 늘어날 수 있어요.<br>` +
+          `카카오톡으로 받은 이미지라면, 대화방에서 사진을 <b>길게 눌러 "저장"</b> 후 갤러리의 <b>원본 사진</b>을 다시 선택해주세요.<br>` +
+          `(카톡으로 전달된 이미지는 자동으로 압축되어 화질이 떨어집니다)`;
+      } else {
+        warningBox.style.display = 'none';
+      }
+      analyzeBtn.disabled = false;
+    };
+    img.onerror = () => { analyzeBtn.disabled = false; };
+    img.src = objectUrl;
+  }
+
   function analyze() {
     const file = document.getElementById('fileInput').files[0];
     const btn = document.getElementById('analyzeBtn');
@@ -158,7 +200,10 @@
 
         parsedItems = items;
         renderTable(items);
-        status.textContent = `✅ 분석 완료: ${items.length}건 인식됨. 아래 표에서 확인/수정 후 저장하세요.`;
+        const reviewCount = items.filter(it => it.matched === false).length;
+        status.textContent = reviewCount > 0
+          ? `✅ 분석 완료: ${items.length}건 인식됨. ⚠️ ${reviewCount}건은 확인이 필요합니다 (노란 셀).`
+          : `✅ 분석 완료: ${items.length}건 인식됨. 아래 표에서 확인/수정 후 저장하세요.`;
         document.getElementById('resultCard').style.display = 'block';
       } catch (err) {
         status.innerHTML = `<span style="color:red">❌ ${err.message}</span>`;
@@ -174,22 +219,52 @@
     body.innerHTML = "";
     items.forEach((item, idx) => {
       const tr = document.createElement('tr');
+      const needsReview = item.matched === false;
+      const suggestions = item.suggestions || [];
+
+      const suggestionHtml = (needsReview && suggestions.length > 0)
+        ? `<div class="suggestions">${suggestions.map(s =>
+            `<span class="suggestion-chip" onclick="applySuggestion(${idx}, this)">${escapeHtml(s)}</span>`
+          ).join('')}</div>`
+        : "";
+
       tr.innerHTML = `
-        <td contenteditable="true" data-idx="${idx}" data-field="date">${item.date || ""}</td>
-        <td contenteditable="true" data-idx="${idx}" data-field="type">${item.type || ""}</td>
-        <td contenteditable="true" data-idx="${idx}" data-field="main">${item.main || ""}</td>
-        <td contenteditable="true" data-idx="${idx}" data-field="all">${item.all || ""}</td>
-        <td contenteditable="true" data-idx="${idx}" data-field="comment">${item.comment || ""}</td>
+        <td><div class="cell-edit" contenteditable="true" data-idx="${idx}" data-field="date">${escapeHtml(item.date || "")}</div></td>
+        <td><div class="cell-edit" contenteditable="true" data-idx="${idx}" data-field="type">${escapeHtml(item.type || "")}</div></td>
+        <td class="${needsReview ? 'needs-review' : ''}">
+          <div class="cell-edit" contenteditable="true" data-idx="${idx}" data-field="main">${escapeHtml(item.main || "")}</div>
+          ${suggestionHtml}
+        </td>
+        <td><div class="cell-edit" contenteditable="true" data-idx="${idx}" data-field="all">${escapeHtml(item.all || "")}</div></td>
+        <td><div class="cell-edit" contenteditable="true" data-idx="${idx}" data-field="comment">${escapeHtml(item.comment || "")}</div></td>
       `;
       body.appendChild(tr);
     });
   }
 
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function applySuggestion(idx, chipEl) {
+    const chosen = chipEl.textContent;
+    const td = chipEl.closest('td');
+    const editDiv = td.querySelector('.cell-edit[data-field="main"]');
+    editDiv.textContent = chosen;
+    td.classList.remove('needs-review');
+    const suggestionsBox = td.querySelector('.suggestions');
+    if (suggestionsBox) suggestionsBox.remove();
+    parsedItems[idx].main = chosen;
+    parsedItems[idx].matched = true;
+  }
+
   function syncEditsFromTable() {
-    document.querySelectorAll('#resultBody td[contenteditable]').forEach(td => {
-      const idx = Number(td.dataset.idx);
-      const field = td.dataset.field;
-      parsedItems[idx][field] = td.textContent.trim();
+    document.querySelectorAll('#resultBody .cell-edit[data-field]').forEach(el => {
+      const idx = Number(el.dataset.idx);
+      const field = el.dataset.field;
+      parsedItems[idx][field] = el.textContent.trim();
     });
   }
 
