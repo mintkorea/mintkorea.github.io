@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+
+body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; scroll-behavior: smooth; }
+
+/* 데이터 칩 & 카드 */
+.bu-chip { transition: all 0.2s; border: 1.5px solid #e2e8f0; cursor: pointer; background: white; white-space: nowrap; }
+.bu-chip.active { background-color: #1E3A5F; color: white; border-color: #1E3A5F; font-weight: 800; }
+
+.rental-card { border: 1.2px solid #e2e8f0; background: white; border-radius: 0.75rem; cursor: pointer; }
+.status-badge { font-weight: 800; padding: 1px 6px; border-radius: 4px; font-size: 10px; border-width: 1px; }
+.empty-box { border: 1.5px dashed #cbd5e1; border-radius: 0.75rem; padding: 1.25rem; text-align: center; color: #64748b; font-size: 11px; font-weight: 700; background-color: #ffffff; }
+
+/* 상태 표시 점 */
+.status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+.dot-online { background-color: #10B981; box-shadow: 0 0 4px #10B981; }
+.dot-offline { background-color: #EF4444; box-shadow: 0 0 4px #EF4444; }
+.dot-cached { background-color: #F59E0B; box-shadow: 0 0 4px #F59E0B; }
+
+/* 모달 및 바텀바 */
+#modalOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 2000; padding: 20px; }
+.modal-box { background: white; width: 100%; max-width: 400px; border-radius: 1.25rem; padding: 1.5rem; border-left: 8px solid #1E3A5F; }
+
+.nav-bar { 
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%;
+    max-width: 42rem; height: 60px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px);
+    border-top: 1px solid #e2e8f0; display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom);
+}
