@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>식단표 관리자 - 분석 및 등록</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f4f7f9;
+    margin: 0;
+    padding: 20px;
+    color: #222;
+  }
+  .card {
+    background: white;
+    padding: 24px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    max-width: 720px;
+    margin: 0 auto 20px auto;
+  }
+  h2 { margin-top: 0; }
+  #status { margin: 16px 0; font-size: 14px; font-weight: bold; color: #555; min-height: 20px; white-space: pre-wrap; }
+  .btn {
+    width: 100%; padding: 15px; border: none; border-radius: 10px;
+    font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
+  }
+  .btn-primary { background: #1a73e8; color: white; }
+  .btn-primary:disabled { background: #dadce0; cursor: not-allowed; }
+  .btn-success { background: #1e8e3e; color: white; }
+  .btn-success:disabled { background: #dadce0; cursor: not-allowed; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+  th, td { border: 1px solid #e0e0e0; padding: 6px; text-align: left; vertical-align: top; }
+  th { background: #f0f4f8; }
+  td[contenteditable="true"] { background: #fffef5; cursor: text; }
+  td[contenteditable="true"]:focus { outline: 2px solid #1a73e8; background: white; }
+  .table-wrap { overflow-x: auto; }
+</style>
+</head>
+<body>
+
+<div class="card" id="loginCard">
+  <h2>🔒 관리자 로그인</h2>
+  <input type="password" id="pwInput" placeholder="비밀번호 입력"
+         style="width:100%;padding:12px;border:1px solid #ccc;border-radius:8px;font-size:15px;"
+         onkeydown="if(event.key==='Enter') login()">
+  <button class="btn btn-primary" onclick="login()">로그인</button>
+  <div id="loginStatus" style="font-size:13px;color:red;margin-top:8px;"></div>
+</div>
+
+<div class="card" id="uploadCard" style="display:none;">
+  <h2>🍱 식단표 이미지 분석</h2>
+  <p style="font-size:13px;color:#777;margin-top:-8px;">
+    현장에서 식단표 고화질 사진을 업로드하면 자동으로 분석합니다.
+  </p>
+  <input type="file" id="fileInput" accept="image/*" capture="environment"
+         onchange="document.getElementById('analyzeBtn').disabled=false">
+  <button id="analyzeBtn" class="btn btn-primary" onclick="analyze()" disabled>1. 이미지 분석</button>
+  <div id="status"></div>
+</div>
+
+<div class="card" id="resultCard" style="display:none;">
+  <h2>📋 분석 결과 확인 / 수정</h2>
+  <p style="font-size:13px;color:#777;margin-top:-8px;">
+    셀을 눌러 직접 수정할 수 있습니다. 확인 후 저장하세요.
+  </p>
+  <div class="table-wrap">
+    <table id="resultTable">
+      <thead>
+        <tr><th>날짜</th><th>구분</th><th>메인메뉴</th><th>반찬/사이드</th><th>코멘트</th></tr>
+      </thead>
+      <tbody id="resultBody"></tbody>
+    </table>
+  </div>
+  <button id="saveBtn" class="btn btn-success" onclick="saveData()">2. 확정 저장</button>
+</div>
+
+<script>
+  // ────────────────────────────────────────────────────────────
+  // ⚙️ 여기에 Apps Script "웹 앱으로 배포" 후 발급받은 URL을 넣으세요.
+  // 배포 방법: Apps Script 편집기 > 배포 > 새 배포 > 유형: 웹 앱
+  //   - 실행할 사용자: 나
+  //   - 액세스 권한이 있는 사용자: 전체 (Anyone)
+  // 발급된 URL은 보통 https://script.google.com/macros/s/xxxxx/exec 형태입니다.
+  // ────────────────────────────────────────────────────────────
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwlyqqk8K4r_X-yA4r3eRGYZuUqg6GbP2v_TNLk7G7JTcHORN0XRMAtB56iIj2u-JdD7w/exec";
+
+  let parsedItems = [];
+  let adminPassword = "";
+
+  async function callBackend(action, extraPayload) {
+    // 주의: Content-Type을 'text/plain'으로 보내야 브라우저가 CORS 프리플라이트(OPTIONS)를
+    // 발생시키지 않습니다. Apps Script 웹 앱은 OPTIONS 요청을 처리하지 못하므로
+    // 여기서 절대 'application/json' 헤더를 쓰면 안 됩니다. (본문 내용은 JSON 문자열로 보냄)
+    const res = await fetch(WEB_APP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action, password: adminPassword, ...extraPayload })
+    });
+    if (!res.ok) throw new Error("서버 응답 오류: " + res.status);
+    return res.json();
+  }
+
+  async function login() {
+    const pw = document.getElementById('pwInput').value;
+    const statusEl = document.getElementById('loginStatus');
+    if (!pw) return;
+
+    statusEl.style.color = "#555";
+    statusEl.textContent = "확인 중...";
+    adminPassword = pw;
+
+    try {
+      const res = await callBackend("ping", {});
+      if (!res.ok) throw new Error(res.error || "로그인 실패");
+
+      // 세션 동안만 유지 (새로고침 시 재입력) — sessionStorage는 사용하지 않음
+      document.getElementById('loginCard').style.display = 'none';
+      document.getElementById('uploadCard').style.display = 'block';
+      statusEl.textContent = "";
+    } catch (err) {
+      adminPassword = "";
+      statusEl.style.color = "red";
+      statusEl.textContent = "❌ " + err.message;
+    }
+  }
+
+  function analyze() {
+    const file = document.getElementById('fileInput').files[0];
+    const btn = document.getElementById('analyzeBtn');
+    const status = document.getElementById('status');
+    if (!file) return;
+
+    btn.disabled = true;
+    status.textContent = "⏳ 데이터를 정밀 분석 중입니다... (최대 30초 소요)";
+    document.getElementById('resultCard').style.display = 'none';
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const res = await callBackend("processImage", {
+          base64Data: e.target.result,
+          mimeType: file.type
+        });
+
+        if (!res.ok) throw new Error(res.error || "분석 실패");
+
+        let items;
+        try {
+          items = JSON.parse(res.result);
+        } catch (parseErr) {
+          throw new Error("AI 응답을 JSON으로 해석하지 못했습니다: " + res.result);
+        }
+        if (items && items.error) throw new Error(items.error);
+
+        parsedItems = items;
+        renderTable(items);
+        status.textContent = `✅ 분석 완료: ${items.length}건 인식됨. 아래 표에서 확인/수정 후 저장하세요.`;
+        document.getElementById('resultCard').style.display = 'block';
+      } catch (err) {
+        status.innerHTML = `<span style="color:red">❌ ${err.message}</span>`;
+      } finally {
+        btn.disabled = false;
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function renderTable(items) {
+    const body = document.getElementById('resultBody');
+    body.innerHTML = "";
+    items.forEach((item, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td contenteditable="true" data-idx="${idx}" data-field="date">${item.date || ""}</td>
+        <td contenteditable="true" data-idx="${idx}" data-field="type">${item.type || ""}</td>
+        <td contenteditable="true" data-idx="${idx}" data-field="main">${item.main || ""}</td>
+        <td contenteditable="true" data-idx="${idx}" data-field="all">${item.all || ""}</td>
+        <td contenteditable="true" data-idx="${idx}" data-field="comment">${item.comment || ""}</td>
+      `;
+      body.appendChild(tr);
+    });
+  }
+
+  function syncEditsFromTable() {
+    document.querySelectorAll('#resultBody td[contenteditable]').forEach(td => {
+      const idx = Number(td.dataset.idx);
+      const field = td.dataset.field;
+      parsedItems[idx][field] = td.textContent.trim();
+    });
+  }
+
+  async function saveData() {
+    const btn = document.getElementById('saveBtn');
+    const status = document.getElementById('status');
+    syncEditsFromTable();
+
+    btn.disabled = true;
+    status.textContent = "⏳ 시트에 저장 중입니다...";
+
+    try {
+      const res = await callBackend("saveConfirmedData", { items: parsedItems });
+      if (!res.ok) throw new Error(res.message || "저장 실패");
+      status.innerHTML = `<span style="color:blue">${res.message}</span>`;
+    } catch (err) {
+      status.innerHTML = `<span style="color:red">❌ ${err.message}</span>`;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>
