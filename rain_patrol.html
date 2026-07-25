@@ -199,17 +199,20 @@ function renderChecklist(items){
     });
 }
 
+const LEAK_API_URL = 'https://script.google.com/macros/s/AKfycbxPlqfcZc0YSLkBFWbAlm1Pape0xGA-fsaUii4fevCY_Ky-tYGtf4LKNONdrJumQKDZ/exec?api=leak';
+
 async function loadDB(){
     const statusEl = document.getElementById('db-status');
     try{
-        const res = await fetch('./leak_db.json', {cache:'no-store'});
+        const res = await fetch(LEAK_API_URL, {cache:'no-store'});
         if(!res.ok) throw new Error('fetch failed');
         const data = await res.json();
+        if(data.error) throw new Error(data.error);
         renderChecklist(data.items);
-        statusEl.textContent = 'DB 연동됨 · leak_db.json' + (data.updated ? ` (업데이트 ${data.updated})` : '');
+        statusEl.textContent = '✅ 구글시트(leak_db) 실시간 연동됨';
     }catch(e){
         renderChecklist(DEFAULT_LEAK_DB.items);
-        statusEl.textContent = '⚠ leak_db.json을 불러오지 못해 내장 백업 데이터로 표시 중';
+        statusEl.textContent = '⚠ 구글시트 연동 실패, 내장 백업 데이터로 표시 중 (' + e.message + ')';
     }
 }
 loadDB();
