@@ -1,0 +1,38 @@
+{
+  "_readme": "이 파일이 누수/배수 점검 지점의 단일 소스(DB)입니다. 우천시 순찰 보고 매뉴얼과 시설 순찰 매뉴얼(층별 카드) 양쪽 모두 이 파일을 불러와 사용합니다. 지점을 추가/삭제/수정하려면 이 파일 하나만 고치면 됩니다. chronic: true = 상습 구역(빨간 배지 표시), false = 일반 점검 지점.",
+  "updated": "2026-07-26",
+  "items": [
+    { "id": "h-d-14f-terrace",   "building": "hall", "type": "drain", "floor": "14F", "location": "14F 야외 테라스",           "chronic": false, "note": "" },
+    { "id": "h-d-13f-garden",    "building": "hall", "type": "drain", "floor": "13F", "location": "13F 중앙정원",             "chronic": true,  "note": "집중 순찰 대상구역" },
+    { "id": "h-d-12f-garden",    "building": "hall", "type": "drain", "floor": "12F", "location": "12F 중앙정원",             "chronic": true,  "note": "집중 순찰 대상구역" },
+    { "id": "h-d-6f-terrace",    "building": "hall", "type": "drain", "floor": "6F",  "location": "6F 테라스",               "chronic": false, "note": "" },
+    { "id": "h-d-4f-terrace",    "building": "hall", "type": "drain", "floor": "4F",  "location": "4F 테라스",               "chronic": true,  "note": "집중 순찰 대상구역(배수로)" },
+
+    { "id": "h-l-11f-ceiling",   "building": "hall", "type": "leak",  "floor": "11F", "location": "11F 도서관 중앙 천장",       "chronic": false, "note": "" },
+    { "id": "h-l-10f-window",    "building": "hall", "type": "leak",  "floor": "10F", "location": "10F 도서관 중앙 창가",       "chronic": false, "note": "" },
+    { "id": "h-l-9f-descender",  "building": "hall", "type": "leak",  "floor": "9F",  "location": "9F 교수열람실 완강기 옆",     "chronic": true,  "note": "집중 순찰 대상구역" },
+    { "id": "h-l-8f-window",     "building": "hall", "type": "leak",  "floor": "8F",  "location": "8F 창가",                "chronic": true,  "note": "집중 순찰 대상구역" },
+    { "id": "h-l-8f-830",        "building": "hall", "type": "leak",  "floor": "8F",  "location": "8F 830호",               "chronic": false, "note": "" },
+    { "id": "h-l-4f-421",        "building": "hall", "type": "leak",  "floor": "4F",  "location": "4F 421호",               "chronic": false, "note": "" },
+    { "id": "h-l-4f-422",        "building": "hall", "type": "leak",  "floor": "4F",  "location": "4F 422호",               "chronic": false, "note": "" },
+    { "id": "h-l-2f-link-start", "building": "hall", "type": "leak",  "floor": "2F",  "location": "2F 연결통로(시점)",         "chronic": false, "note": "" },
+    { "id": "h-l-2f-link-end",   "building": "hall", "type": "leak",  "floor": "2F",  "location": "2F 연결통로(종점)",         "chronic": false, "note": "" },
+    { "id": "h-l-b2-ramp",       "building": "hall", "type": "leak",  "floor": "B2",  "location": "B2F 주차 램프",           "chronic": true,  "note": "집중 순찰 대상구역(지하주차장)" },
+
+    { "id": "i-d-6f-roof",       "building": "isan", "type": "drain", "floor": "6F",  "location": "6F 옥상",                "chronic": false, "note": "" },
+    { "id": "i-d-4f-roof",       "building": "isan", "type": "drain", "floor": "4F",  "location": "4F 옥상",                "chronic": false, "note": "" },
+    { "id": "i-d-1f-locker",     "building": "isan", "type": "drain", "floor": "1F",  "location": "1F 보안탈의실",            "chronic": true,  "note": "집중 순찰 대상구역(배수로)" },
+
+    { "id": "i-l-9f-roof",       "building": "isan", "type": "leak",  "floor": "9F",  "location": "9F 옥상",                "chronic": false, "note": "" },
+    { "id": "i-l-7f-smoke",      "building": "isan", "type": "leak",  "floor": "7F",  "location": "7F 제연창",               "chronic": false, "note": "" },
+    { "id": "i-l-6f-smoke",      "building": "isan", "type": "leak",  "floor": "6F",  "location": "6F 제연창",               "chronic": false, "note": "" },
+    { "id": "i-l-5f-5006",       "building": "isan", "type": "leak",  "floor": "5F",  "location": "5F 5006호",              "chronic": false, "note": "" },
+    { "id": "i-l-5f-5017",       "building": "isan", "type": "leak",  "floor": "5F",  "location": "5F 5017호",              "chronic": false, "note": "" },
+    { "id": "i-l-4f-4006",       "building": "isan", "type": "leak",  "floor": "4F",  "location": "4F 4006호",              "chronic": false, "note": "" },
+    { "id": "i-l-4f-4017",       "building": "isan", "type": "leak",  "floor": "4F",  "location": "4F 4017호",              "chronic": false, "note": "" },
+    { "id": "i-l-4f-4019",       "building": "isan", "type": "leak",  "floor": "4F",  "location": "4F 4019호",              "chronic": false, "note": "" },
+    { "id": "i-l-2f-hall-wall",  "building": "isan", "type": "leak",  "floor": "2F",  "location": "2F 대강당 복층 동측 벽면",    "chronic": true,  "note": "집중 순찰 대상구역(대강당 2F 벽면)" },
+    { "id": "i-l-b1-link-main",  "building": "isan", "type": "leak",  "floor": "B1",  "location": "B1 대학본관 연결통로(시점)",  "chronic": true,  "note": "집중 순찰 대상구역(회관방향 지하통로)" },
+    { "id": "i-l-b1-link-hall",  "building": "isan", "type": "leak",  "floor": "B1",  "location": "B1 성의회관 연결통로(시점)",  "chronic": true,  "note": "집중 순찰 대상구역(회관방향 지하통로)" }
+  ]
+}
