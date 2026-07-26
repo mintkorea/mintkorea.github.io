@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>성의교정 대관 관리 시스템 (업데이트)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Malgun Gothic', dotum, sans-serif; background-color: #f8f9fa; }
+        .main-title { font-size: 24px; font-weight: bold; color: #1E3A5F; text-align: center; margin-bottom: 15px; }
+        .date-bar { background-color: #343a40; color: white; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; margin-top: 25px; margin-bottom: 12px; font-size: 16px; }
+        .bu-header { font-size: 17px; font-weight: bold; color: #1E3A5F; margin: 15px 0 8px 0; border-left: 5px solid #1E3A5F; padding-left: 10px; background: #f1f4f9; padding: 6px 10px; }
+        .custom-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; table-layout: fixed; background: white; }
+        .custom-table th { background: #f8f9fa; border: 1px solid #dee2e6; padding: 10px 5px; text-align: center; color: #495057; }
+        .custom-table td { border: 1px solid #dee2e6; padding: 10px 8px; text-align: center; vertical-align: middle; }
+        .event-cell { text-align: left !important; font-weight: 500; }
+        .time-text { color: #e74c3c; font-weight: bold; font-size: 14px; }
+        .mobile-card { background: white; border: 1px solid #eef0f2; border-radius: 8px; padding: 12px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .period-tag { font-size: 11px; color: #2196F3; margin-top: 4px; display: block; }
+        .step-badge { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; padding:4px 10px; border-radius:20px; margin-right:6px; margin-bottom:6px; }
+        .step-wait { background:#f1f5f9; color:#64748b; }
+        .step-run { background:#fef3c7; color:#92400e; }
+        .step-ok { background:#dcfce7; color:#166534; }
+        .step-fail { background:#fee2e2; color:#991b1b; }
+        .log-line { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color:#475569; padding:2px 0; }
+        .log-line.err { color:#dc2626; font-weight:700; }
+        .log-line.ok { color:#15803d; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <div class="main-title">🏫 성의교정 대관 현황 업데이트 시스템</div>
+        <p class="text-center text-xs text-gray-500 mb-6 -mt-3">대학 서버 → 구글시트(입력용/운영용) 반영 전용 · 인터넷 불안정 환경 대응</p>
+
+        <div class="bg-white border rounded-lg p-4 mb-6 shadow-sm">
+            <div class="font-bold text-gray-700 mb-3 flex items-center">⚙️ 업데이트 설정</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">조회(반영) 시작 / 종료</label>
+                    <div class="flex gap-2">
+                        <input type="date" id="startDate" class="border rounded p-1 w-full text-sm">
+                        <input type="date" id="endDate" class="border rounded p-1 w-full text-sm">
+                    </div>
+                    <p class="text-[10px] text-gray-400 mt-1">이 범위 안에서 사라진 예약은 "취소"로 자동 표시됩니다.</p>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">보기 모드 (미리보기용)</label>
+                    <div class="flex gap-4 items-center mb-2">
+                        <label class="text-sm"><input type="radio" name="viewMode" value="table" checked onchange="renderPreview()"> 표 형식</label>
+                        <label class="text-sm"><input type="radio" name="viewMode" value="card" onchange="renderPreview()"> 카드 형식</label>
+                    </div>
+                    <button onclick="downloadCSV()" class="w-full bg-slate-500 hover:bg-slate-600 text-white font-bold py-1.5 px-4 rounded text-sm transition shadow">
+                        📊 백업용 CSV 내보내기
+                    </button>
+                </div>
+            </div>
+            <div class="mt-4 flex gap-2 justify-end">
+                <button id="scrapeBtn" onclick="runScrape()" class="bg-blue-900 hover:bg-blue-950 text-white font-bold py-2 px-6 rounded text-sm transition shadow">
+                    🔍 ① 대학 서버에서 조회
+                </button>
+                <button id="syncBtn" onclick="runSync()" disabled class="bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-2 px-6 rounded text-sm transition shadow">
+                    ☁️ ② 구글시트에 반영
+                </button>
+            </div>
+        </div>
+
+        <!-- 진행 상태 -->
+        <div class="bg-white border rounded-lg p-4 mb-6 shadow-sm">
+            <div class="font-bold text-gray-700 mb-2 text-sm">진행 상태</div>
+            <div id="stepBadges" class="mb-2">
+                <span class="step-badge step-wait" id="badge-scrape">① 대학 서버 조회 대기</span>
+                <span class="step-badge step-wait" id="badge-sync">② 시트 반영 대기</span>
+            </div>
+            <div id="logArea" class="bg-slate-50 border border-slate-100 rounded p-2 max-h-40 overflow-y-auto"></div>
+            <div id="resultSummary" class="mt-2 text-sm font-bold"></div>
+        </div>
+
+        <div id="resultContainer"></div>
+    </div>
+
+    <script>
+        const KST_OFFSET = 9 * 60 * 60 * 1000;
+        const buList = ["성의회관", "의생명산업연구원", "옴니버스 파크", "옴니버스파크 의과대학", "옴니버스파크 간호대학", "대학본관", "서울성모별관"];
+
+        // 대학 서버 조회에 쓸 CORS 프록시 후보들 (앞에서부터 순서대로 시도, 실패 시 다음으로 자동 전환)
+        const PROXIES = [
+            (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+            (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+            (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+        ];
+
+        // ★ 구글시트(운영용/입력용)를 실제로 쓰는 Apps Script 웹앱 주소 - 조회 프로그램과 동일한 GAS_URL을 사용합니다.
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzDWH34gJk42elBUl-Jky8kvvVlA8s36pYi-bU05wxr7CoOlrWNbOAKS-wxj8kYb-JV/exec";
+
+        let fetchedData = []; // 대학 서버에서 긁어온 가공 데이터 (아직 시트 반영 전)
+
+        window.onload = function() {
+            const today = new Date(Date.now() + KST_OFFSET).toISOString().split('T')[0];
+            const nextWeek = new Date(Date.now() + KST_OFFSET + (7 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+            document.getElementById('startDate').value = today;
+            document.getElementById('endDate').value = nextWeek;
+        };
+
+        function log(msg, cls) {
+            const el = document.getElementById('logArea');
+            const line = document.createElement('div');
+            line.className = 'log-line' + (cls ? ' ' + cls : '');
+            const t = new Date().toLocaleTimeString('ko-KR', { hour12: false });
+            line.textContent = `[${t}] ${msg}`;
+            el.appendChild(line);
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function setBadge(id, state, text) {
+            const el = document.getElementById(id);
+            el.className = 'step-badge step-' + state;
+            el.textContent = text;
+        }
+
+        function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+        /* ---- 타임아웃이 걸린 fetch (프록시가 응답을 안 주고 멈추는 경우 대비) ---- */
+        async function fetchWithTimeout(url, ms) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), ms);
+            try {
+                const res = await fetch(url, { signal: controller.signal });
+                return res;
+            } finally {
+                clearTimeout(timer);
+            }
+        }
+
+        /* ---- 여러 프록시를 순서대로 시도, 각 프록시당 1회 재시도 ---- */
+        async function fetchViaProxies(targetUrl) {
+            let lastError = null;
+            for (let i = 0; i < PROXIES.length; i++) {
+                const proxyUrl = PROXIES[i](targetUrl);
+                for (let attempt = 1; attempt <= 2; attempt++) {
+                    try {
+                        log(`프록시 ${i + 1}/${PROXIES.length} 시도 중 (${attempt}차)...`);
+                        const res = await fetchWithTimeout(proxyUrl, 12000);
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        const text = await res.text();
+                        const json = JSON.parse(text);
+                        log(`프록시 ${i + 1} 성공`, 'ok');
+                        return json;
+                    } catch (err) {
+                        lastError = err;
+                        log(`프록시 ${i + 1} 실패 (${attempt}차): ${err.message}`, 'err');
+                        await sleep(600);
+                    }
+                }
+            }
+            throw lastError || new Error('모든 프록시 실패');
+        }
+
+        function getWeekdayName(dateStr) {
+            const days = ["일", "월", "화", "수", "목", "금", "토"];
+            return days[new Date(dateStr).getDay()];
+        }
+
+        function getShift(dateStr) {
+            const baseDate = new Date("2026-03-13");
+            const targetDate = new Date(dateStr);
+            const diffDays = Math.floor((targetDate - baseDate) / (1000 * 60 * 60 * 24));
+            const shifts = ['A', 'B', 'C'];
+            const idx = ((diffDays % 3) + 3) % 3;
+            return `${shifts[idx]}조`;
+        }
+
+        function getWeekdayNamesFromCodes(codes) {
+            const days = {"1":"월", "2":"화", "3":"수", "4":"목", "5":"금", "6":"토", "7":"일"};
+            if (!codes) return "";
+            return String(codes).split(",").map(c => days[c.trim()] || "").filter(Boolean).join(",");
+        }
+
+        /* ================= ① 대학 서버 조회 ================= */
+        async function runScrape() {
+            const sDateStr = document.getElementById('startDate').value;
+            const eDateStr = document.getElementById('endDate').value;
+            if (!sDateStr || !eDateStr) return alert("시작일과 종료일을 선택해주세요.");
+
+            document.getElementById('scrapeBtn').disabled = true;
+            document.getElementById('syncBtn').disabled = true;
+            document.getElementById('logArea').innerHTML = '';
+            document.getElementById('resultSummary').innerHTML = '';
+            setBadge('badge-scrape', 'run', '① 대학 서버 조회 중...');
+            setBadge('badge-sync', 'wait', '② 시트 반영 대기');
+
+            const targetUrl = `https://songeui.catholic.ac.kr/ko/service/application-for-rental_calendar.do?mode=getReservedData&start=${sDateStr}&end=${eDateStr}`;
+
+            try {
+                const json = await fetchViaProxies(targetUrl);
+                const raw = json.res || [];
+
+                const rows = [];
+                const startLimit = new Date(sDateStr + "T00:00:00");
+                const endLimit = new Date(eDateStr + "T23:59:59");
+
+                raw.forEach(item => {
+                    if (!item.startDt) return;
+                    const sDt = new Date(item.startDt + "T00:00:00");
+                    const eDt = new Date(item.endDt + "T23:59:59");
+                    const isPeriod = item.startDt !== item.endDt;
+                    const pRng = `${item.startDt}~${item.endDt}`;
+                    const dNms = getWeekdayNamesFromCodes(item.allowDay);
+                    const allowed = item.allowDay ? String(item.allowDay).split(",").map(d => d.trim()).filter(d => !isNaN(d)) : [];
+
+                    let curr = new Date(sDt);
+                    while (curr <= eDt) {
+                        if (curr >= startLimit && curr <= endLimit) {
+                            let dayNo = curr.getDay();
+                            if (dayNo === 0) dayNo = 7;
+                            if (allowed.length === 0 || allowed.includes(String(dayNo))) {
+                                const fullDate = curr.toISOString().split('T')[0];
+                                rows.push({
+                                    full_date: fullDate,
+                                    yoil: getWeekdayName(fullDate),
+                                    shift: getShift(fullDate),
+                                    is_period: isPeriod,
+                                    period_range: pRng,
+                                    allowed_days: isPeriod ? dNms : getWeekdayName(fullDate),
+                                    건물명: String(item.buNm || '').trim(),
+                                    장소: item.placeNm || '-',
+                                    시간: `${item.startTime || ''}~${item.endTime || ''}`,
+                                    행사명: item.eventNm || '-',
+                                    부서: item.mgDeptNm || '-',
+                                    인원: String(item.peopleCount || '0'),
+                                    상태: item.status === 'Y' ? '확정' : '대기'
+                                });
+                            }
+                        }
+                        curr.setDate(curr.getDate() + 1);
+                    }
+                });
+
+                const seen = new Set();
+                fetchedData = rows.filter(item => {
+                    const k = item.full_date + item.장소 + item.시간 + item.행사명;
+                    if (seen.has(k)) return false;
+                    seen.add(k);
+                    return true;
+                });
+
+                setBadge('badge-scrape', 'ok', `① 대학 서버 조회 완료 (${fetchedData.length}건)`);
+                log(`총 ${fetchedData.length}건 조회 완료`, 'ok');
+                document.getElementById('syncBtn').disabled = false;
+                renderPreview();
+            } catch (error) {
+                setBadge('badge-scrape', 'fail', '① 조회 실패');
+                log(`최종 실패: ${error.message}`, 'err');
+                document.getElementById('resultContainer').innerHTML =
+                    `<div class="text-red-500 text-center font-bold p-4 bg-red-50 rounded border border-red-200">
+                        대학 서버 조회에 실패했습니다. 인터넷 상태를 확인 후 "① 대학 서버에서 조회" 버튼을 다시 눌러주세요.<br>
+                        <span class="text-xs font-normal text-gray-500">오류: ${error.message}</span>
+                    </div>`;
+            } finally {
+                document.getElementById('scrapeBtn').disabled = false;
+            }
+        }
+
+        /* ================= ② 구글시트 반영 ================= */
+        async function runSync() {
+            if (fetchedData.length === 0) return alert("먼저 ① 대학 서버 조회를 실행해주세요.");
+
+            const sDateStr = document.getElementById('startDate').value;
+            const eDateStr = document.getElementById('endDate').value;
+
+            document.getElementById('syncBtn').disabled = true;
+            setBadge('badge-sync', 'run', '② 시트 반영 중...');
+
+            const payload = { rows: fetchedData, startDate: sDateStr, endDate: eDateStr };
+
+            let lastError = null;
+            for (let attempt = 1; attempt <= 3; attempt++) {
+                try {
+                    log(`시트 반영 요청 (${attempt}/3차)...`);
+                    const postRes = await fetch(GAS_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Apps Script 웹앱 CORS 이슈 회피를 위해 text/plain 사용
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await postRes.json();
+                    if (!data.ok) throw new Error(data.error || '알 수 없는 오류');
+
+                    setBadge('badge-sync', 'ok', '② 시트 반영 완료');
+                    log(`반영 완료 — 신규 ${data.added}건 / 갱신 ${data.updated}건 / 취소처리 ${data.cancelled}건`, 'ok');
+                    document.getElementById('resultSummary').innerHTML =
+                        `<span class="text-emerald-600">✅ 신규 ${data.added}건 · 갱신 ${data.updated}건 · 취소처리 ${data.cancelled}건 · 동기화 시각 ${data.syncedAt}</span>`;
+                    return;
+                } catch (err) {
+                    lastError = err;
+                    log(`반영 실패 (${attempt}/3차): ${err.message}`, 'err');
+                    await sleep(1000 * attempt);
+                }
+            }
+
+            setBadge('badge-sync', 'fail', '② 반영 실패');
+            document.getElementById('resultSummary').innerHTML =
+                `<span class="text-red-600">❌ 시트 반영에 실패했습니다 (${lastError.message}). 인터넷 상태 확인 후 "② 구글시트에 반영" 버튼을 다시 눌러주세요. (조회된 데이터는 유지되어 재조회 없이 다시 시도 가능합니다)</span>`;
+            document.getElementById('syncBtn').disabled = false;
+        }
+
+        /* ================= 미리보기 렌더링 (표/카드) ================= */
+        function renderPreview() {
+            const resultContainer = document.getElementById('resultContainer');
+            if (fetchedData.length === 0) {
+                resultContainer.innerHTML = '<div class="bg-blue-50 text-blue-700 p-4 rounded text-center text-sm shadow-sm">① 버튼으로 먼저 조회해주세요.</div>';
+                return;
+            }
+
+            const sDateStr = document.getElementById('startDate').value;
+            const eDateStr = document.getElementById('endDate').value;
+            const viewMode = document.querySelector('input[name="viewMode"]:checked').value;
+
+            let html = "";
+            let start = new Date(sDateStr + "T00:00:00");
+            const end = new Date(eDateStr + "T00:00:00");
+
+            for (let curr = new Date(start); curr <= end; curr.setDate(curr.getDate() + 1)) {
+                const dStr = curr.toISOString().split('T')[0];
+                const dayRows = fetchedData.filter(r => r.full_date === dStr);
+                if (dayRows.length === 0) continue;
+
+                let dateBarAdded = false;
+                let dayHtml = "";
+
+                buList.forEach(bu => {
+                    const buRows = dayRows.filter(r => r["건물명"].replace(/\s+/g, '') === bu.replace(/\s+/g, ''));
+                    if (buRows.length === 0) return;
+                    buRows.sort((a, b) => a["시간"].localeCompare(b["시간"]));
+
+                    if (!dateBarAdded) {
+                        dayHtml += `<div class="date-bar">📅 ${dStr} (${getWeekdayName(dStr)}) | ${getShift(dStr)}</div>`;
+                        dateBarAdded = true;
+                    }
+                    dayHtml += `<div class="bu-header">🏢 ${bu}</div>`;
+
+                    if (viewMode === "table") {
+                        dayHtml += `<table class="custom-table"><thead><tr><th style="width:20%">장소</th><th style="width:15%">시간</th><th>행사명</th><th style="width:20%">부서</th><th style="width:10%">상태</th></tr></thead><tbody>`;
+                        buRows.forEach(r => {
+                            dayHtml += `<tr><td>${r["장소"]}</td><td class="time-text">${r["시간"]}</td><td class="event-cell">${r["행사명"]}</td><td>${r["부서"]}</td><td>${r["상태"]}</td></tr>`;
+                        });
+                        dayHtml += `</tbody></table>`;
+                    } else {
+                        buRows.forEach(r => {
+                            dayHtml += `
+                                <div class="mobile-card">
+                                    <span class="time-text">🕒 ${r["시간"]}</span> | <b>${r["장소"]}</b><br/>
+                                    <div style="margin-top:5px;"><b>${r["행사명"]}</b> (${r["부서"]})</div>
+                                    ${r.is_period ? `<span class="period-tag">🗓️ ${r.period_range}</span>` : ''}
+                                </div>`;
+                        });
+                    }
+                });
+                html += dayHtml;
+            }
+            resultContainer.innerHTML = html || '<div class="bg-yellow-50 text-yellow-700 p-4 rounded text-center text-sm shadow-sm">해당 기간에 매칭되는 데이터가 없습니다.</div>';
+        }
+
+        function downloadCSV() {
+            if (fetchedData.length === 0) return alert("다운로드할 데이터가 없습니다.");
+            let csvContent = "\uFEFF날짜,요일,근무조,유형,대관기간,해당요일,건물명,장소,시간,행사명,부서,인원,상태\n";
+            fetchedData.forEach(r => {
+                const row = [
+                    r.full_date, r.yoil, r.shift, r.is_period ? "기간" : "당일", r.period_range, r.allowed_days,
+                    r["건물명"], r["장소"], r["시간"], r["행사명"], r["부서"], r["인원"], r["상태"]
+                ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(",");
+                csvContent += row + "\n";
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", `대관현황_백업_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
