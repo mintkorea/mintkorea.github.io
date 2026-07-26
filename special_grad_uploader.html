@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>특수대학원 대관현황 업로드</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: 'Malgun Gothic', dotum, sans-serif; background:#f8f9fa; }
+  .title { font-size:22px; font-weight:900; color:#1E3A5F; text-align:center; margin-bottom:4px; }
+  .sub { text-align:center; color:#64748b; font-size:12px; margin-bottom:20px; }
+  textarea { font-family: ui-monospace, Menlo, monospace; font-size:12.5px; line-height:1.5; }
+  table.prev { width:100%; border-collapse:collapse; font-size:13px; background:#fff; }
+  table.prev th, table.prev td { border:1px solid #e2e8f0; padding:8px; text-align:center; }
+  table.prev th { background:#f1f5f9; font-weight:800; }
+  .row-new { background:#ecfdf5; }
+  .row-upd { background:#fffbeb; }
+  .badge { font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:20px; }
+  .badge-new { background:#d1fae5; color:#065f46; }
+  .badge-upd { background:#fef3c7; color:#92400e; }
+</style>
+</head>
+<body class="p-4 md:p-8">
+  <div class="max-w-4xl mx-auto">
+    <div class="title">🎓 특수대학원 대관현황 업로드</div>
+    <div class="sub">AI로 인식한 마크다운 표를 붙여넣고 → 미리보기 확인 → 시트에 반영합니다</div>
+
+    <div class="bg-white border rounded-lg p-4 mb-5 shadow-sm">
+      <label class="block text-xs font-bold text-gray-600 mb-2">마크다운 표 붙여넣기</label>
+      <textarea id="mdInput" rows="10" class="w-full border rounded p-3" placeholder="| 날짜 | 건물명 | 장소 | 시간 | 행사명 | 확정여부 |
+|---|---|---|---|---|---|
+| 2026-08-01 | 성의회관 | 707호 | 09:00~12:00 | 특수대학원 세미나 | 확정 |
+"></textarea>
+      <div class="flex gap-2 mt-3">
+        <button onclick="parsePreview()" class="flex-1 bg-blue-900 hover:bg-blue-950 text-white font-bold py-2.5 rounded text-sm shadow">👁 미리보기</button>
+        <button id="uploadBtn" onclick="upload()" disabled class="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white font-bold py-2.5 rounded text-sm shadow">☁️ 시트에 반영</button>
+      </div>
+      <p class="text-[11px] text-gray-400 mt-2">날짜는 <b>YYYY-MM-DD</b> 형식으로 인식합니다. 표 형식이 다르면 미리보기에서 바로 확인하고 다시 붙여넣어 주세요.</p>
+    </div>
+
+    <div id="statusBox" class="mb-4 text-sm font-bold"></div>
+    <div id="previewArea" class="bg-white border rounded-lg p-4 shadow-sm overflow-x-auto"></div>
+  </div>
+
+<script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzDWH34gJk42elBUl-Jky8kvvVlA8s36pYi-bU05wxr7CoOlrWNbOAKS-wxj8kYb-JV/exec";
+
+    let parsedRows = [];
+
+    /* ---- 아주 단순한 GFM 마크다운 표 파서 ---- */
+    function parseMarkdownTable(text) {
+        const lines = text.split('\n').map(l => l.trim()).filter(l => l.startsWith('|'));
+        if (lines.length < 2) throw new Error("표 형식을 찾을 수 없습니다. | 로 시작하는 줄이 최소 2줄(헤더+구분선) 필요합니다.");
+
+        const toCells = (line) => line.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+
+        const header = toCells(lines[0]).map(h => h.replace(/\s+/g, ''));
+        // 구분선(---) 줄은 건너뜀
+        const dataLines = lines.slice(1).filter(l => !/^\|?[\s:-]+\|?[\s:|-]*$/.test(l));
+
+        const idx = {
+            date: header.findIndex(h => /날짜/.test(h)),
+            bu: header.findIndex(h => /건물/.test(h)),
+            place: header.findIndex(h => /장소|호실/.test(h)),
+            time: header.findIndex(h => /시간/.test(h)),
+            event: header.findIndex(h => /행사/.test(h)),
+            status: header.findIndex(h => /확정|상태/.test(h)),
+        };
+        if (idx.date === -1 || idx.event === -1) {
+            throw new Error("표에서 '날짜'와 '행사명' 열을 찾지 못했습니다. 헤더 이름을 확인해주세요.");
+        }
+
+        return dataLines.map(line => {
+            const cells = toCells(line);
+            const dateRaw = (cells[idx.date] || '').trim();
+            const dateMatch = dateRaw.match(/(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
+            const date = dateMatch ? `${dateMatch[1]}-${String(dateMatch[2]).padStart(2,'0')}-${String(dateMatch[3]).padStart(2,'0')}` : dateRaw;
+            return {
+                date: date,
+                bu: idx.bu > -1 ? cells[idx.bu] : '',
+                place: idx.place > -1 ? cells[idx.place] : '',
+                time: idx.time > -1 ? cells[idx.time] : '',
+                event: cells[idx.event] || '',
+                status: idx.status > -1 ? (cells[idx.status] || '확정') : '확정'
+            };
+        }).filter(r => r.date && r.event);
+    }
+
+    function parsePreview() {
+        const text = document.getElementById('mdInput').value;
+        const statusBox = document.getElementById('statusBox');
+        const previewArea = document.getElementById('previewArea');
+        try {
+            parsedRows = parseMarkdownTable(text);
+            if (parsedRows.length === 0) throw new Error("인식된 데이터 행이 없습니다.");
+
+            statusBox.innerHTML = `<span class="text-emerald-600">✅ ${parsedRows.length}건 인식됨. 아래 내용 확인 후 "시트에 반영"을 눌러주세요.</span>`;
+            previewArea.innerHTML = `
+                <table class="prev">
+                    <thead><tr><th>날짜</th><th>건물명</th><th>장소</th><th>시간</th><th>행사명</th><th>확정여부</th></tr></thead>
+                    <tbody>
+                        ${parsedRows.map(r => `<tr><td>${r.date}</td><td>${r.bu}</td><td>${r.place}</td><td>${r.time}</td><td style="text-align:left">${r.event}</td><td>${r.status}</td></tr>`).join('')}
+                    </tbody>
+                </table>`;
+            document.getElementById('uploadBtn').disabled = false;
+        } catch (err) {
+            statusBox.innerHTML = `<span class="text-red-600">❌ ${err.message}</span>`;
+            previewArea.innerHTML = '';
+            document.getElementById('uploadBtn').disabled = true;
+        }
+    }
+
+    async function upload() {
+        if (parsedRows.length === 0) return;
+        const statusBox = document.getElementById('statusBox');
+        const btn = document.getElementById('uploadBtn');
+        btn.disabled = true;
+        statusBox.innerHTML = `<span class="text-blue-600">⏳ 시트에 반영 중...</span>`;
+
+        try {
+            const res = await fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ target: 'special', rows: parsedRows })
+            });
+            const data = await res.json();
+            if (!data.ok) throw new Error(data.error || '알 수 없는 오류');
+            statusBox.innerHTML = `<span class="text-emerald-600">✅ 반영 완료 — 신규 ${data.added}건 · 갱신 ${data.updated}건</span>`;
+        } catch (err) {
+            statusBox.innerHTML = `<span class="text-red-600">❌ 반영 실패: ${err.message} (다시 시도해주세요)</span>`;
+            btn.disabled = false;
+        }
+    }
+</script>
+</body>
+</html>
