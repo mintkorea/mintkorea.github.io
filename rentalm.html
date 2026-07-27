@@ -52,10 +52,13 @@
         <div id="header" class="w-full bg-[#EEF2F6] rounded-2xl p-4 flex flex-col mb-3 border border-slate-200 shadow-sm items-center">
             <div class="flex items-center gap-2 mb-3">
                 <h1 class="text-lg font-black text-[#1E3A5F] tracking-tighter">성의교정 대관 현황</h1>
-                <span id="shiftBadge" class="text-white text-[10px] px-2 py-0.5 rounded-md font-black shadow-md tracking-tight">--</span>
+                <span id="onlineBadge" class="flex items-center bg-white border border-slate-200 text-[10px] px-2 py-1 rounded-md shadow-sm">
+                    <span id="statusDot" class="status-dot dot-offline"></span><span id="statusText" class="uppercase font-bold">WAIT</span>
+                </span>
             </div>
-            <div class="w-full flex justify-center">
+            <div class="w-full flex items-center justify-center gap-2">
                 <input type="text" id="datePicker" class="flatpickr-input-custom" placeholder="날짜 선택">
+                <span id="shiftBadge" class="text-white text-[10px] px-2 py-0.5 rounded-md font-black shadow-md tracking-tight whitespace-nowrap">--</span>
             </div>
         </div>
 
@@ -63,11 +66,10 @@
             <div class="grid grid-cols-4 gap-1.5" id="buContainer"></div>
         </div>
 
-        <div id="results-anchor" class="w-full flex flex-wrap items-center justify-between mb-4 px-1 pb-2 border-b border-slate-100 gap-y-2">
+        <div id="results-anchor" class="w-full flex items-center justify-between mb-4 px-1 pb-2 border-b border-slate-100">
             <div class="flex items-center gap-1.5">
-                <div class="ctrl-item"><span id="statusDot" class="status-dot dot-offline"></span><span id="statusText" class="uppercase">WAIT</span></div>
-                <button onclick="fetchOnlineData()" class="ctrl-item ctrl-action"><span class="mr-1">🔄</span>동기화</button>
                 <button id="cancelToggleBtn" onclick="toggleShowCancelled()" class="ctrl-item ctrl-toggle"><span class="mr-1">🚫</span><span id="cancelToggleLabel">취소건 숨김</span></button>
+                <button onclick="fetchOnlineData()" class="ctrl-item ctrl-action"><span class="mr-1">🔄</span>동기화</button>
             </div>
             <div class="flex gap-1">
                 <button onclick="moveDate(-1)" class="ctrl-item ctrl-action px-2">← PREV</button>
