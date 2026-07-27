@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>성의교정 통합 현황판</title>
+<style>
+  :root{
+    --navy:#12233f; --navy-2:#1c3a63; --paper:#f3f4f7; --card:#ffffff;
+    --ink:#1a1f2b; --sub:#5b6270; --line:#e4e6ec;
+    --blue:#2b6cb0; --purple:#6b46c1; --amber:#b8860b; --green:#3f8f4f; --rose:#b23a2e;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Roboto,sans-serif;
+    font-size:16px;}
+  body{padding-bottom:40px;}
+
+  header{position:sticky; top:0; z-index:50; background:linear-gradient(180deg,var(--navy) 0%, var(--navy-2) 100%);
+    color:#fff; padding:14px 16px; box-shadow:0 2px 10px rgba(0,0,0,.25);}
+  .brand{display:flex; align-items:center; gap:8px; margin-bottom:12px;}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:#ffb347;}
+  .brand h1{font-size:17px; margin:0; font-weight:800;}
+
+  .datebar{display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.08); border-radius:12px; padding:8px;}
+  .datebar button{flex:none; background:rgba(255,255,255,.12); border:none; color:#fff; width:34px; height:34px;
+    border-radius:8px; font-weight:800; font-size:15px; cursor:pointer;}
+  .datebar input{flex:1; background:transparent; border:none; color:#fff; font-size:15px; font-weight:800; text-align:center;}
+  .datebar .today-btn{width:auto; padding:0 12px; font-size:12px;}
+
+  main{max-width:640px; margin:0 auto; padding:14px 12px 20px 12px;}
+
+  .section{margin-bottom:20px;}
+  .section-h{display:flex; align-items:center; gap:8px; margin-bottom:10px;}
+  .section-h .ic{font-size:18px;}
+  .section-h h2{font-size:14.5px; margin:0; font-weight:800; color:var(--navy);}
+  .section-h .cnt{font-size:11px; font-weight:800; color:#fff; background:var(--navy-2); padding:2px 8px; border-radius:20px;}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:9px;
+    box-shadow:0 1px 3px rgba(20,30,50,.05);}
+  .card.blue{border-left:4px solid var(--blue);}
+  .card.purple{border-left:4px solid var(--purple);}
+  .card.amber{border-left:4px solid var(--amber);}
+  .card .top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:5px;}
+  .card .room{font-size:12.5px; font-weight:800; color:var(--sub);}
+  .card .time{font-size:12.5px; font-weight:800; color:var(--rose);}
+  .card .content{font-size:15px; font-weight:800; color:var(--ink); line-height:1.4;}
+  .card .note{font-size:12px; color:var(--sub); margin-top:5px; line-height:1.5;}
+  .card .tag{display:inline-block; font-size:10px; font-weight:800; padding:2px 7px; border-radius:20px; margin-top:6px;}
+  .tag.special{background:#f3e8ff; color:var(--purple);}
+
+  .empty{font-size:12.5px; color:var(--sub); text-align:center; padding:16px; background:#f7f8fb; border-radius:10px; border:1px dashed var(--line);}
+  .loading{font-size:12.5px; color:var(--sub); text-align:center; padding:16px;}
+  .err{font-size:12px; color:var(--rose); text-align:center; padding:10px; background:#fdf2f4; border-radius:10px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><span class="dot"></span><h1>성의교정 통합 현황판</h1></div>
+  <div class="datebar">
+    <button onclick="moveDate(-1)">◀</button>
+    <input type="date" id="datePicker" onchange="onDateChange()">
+    <button onclick="moveDate(1)">▶</button>
+    <button class="today-btn" onclick="resetToday()">오늘</button>
+  </div>
+</header>
+
+<main>
+  <div class="section">
+    <div class="section-h"><span class="ic">🔑</span><h2>강의실 개방지침</h2><span class="cnt" id="cnt-guide">0</span></div>
+    <div id="area-guide"><div class="loading">불러오는 중...</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-h"><span class="ic">🏫</span><h2>대관현황</h2><span class="cnt" id="cnt-rental">0</span></div>
+    <div id="area-rental"><div class="loading">불러오는 중...</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-h"><span class="ic">🎓</span><h2>특수대학원 대관</h2><span class="cnt" id="cnt-special">0</span></div>
+    <div id="area-special"><div class="loading">불러오는 중...</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-h"><span class="ic">🌙</span><h2>당직 현황</h2><span class="cnt" id="cnt-duty">0</span></div>
+    <div id="area-duty"><div class="loading">불러오는 중...</div></div>
+  </div>
+</main>
+
+<script>
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxPlqfcZc0YSLkBFWbAlm1Pape0xGA-fsaUii4fevCY_Ky-tYGtf4LKNONdrJumQKDZ/exec";
+
+let guidelineData = [];
+let rentalData = [];
+let dutyData = [];
+let loaded = { guide:false, rental:false, duty:false };
+
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+
+function getSelectedDate(){ return document.getElementById('datePicker').value || todayStr(); }
+
+function moveDate(delta){
+  const cur = new Date(getSelectedDate() + "T00:00:00");
+  cur.setDate(cur.getDate() + delta);
+  document.getElementById('datePicker').value = cur.toISOString().split('T')[0];
+  renderAll();
+}
+function resetToday(){ document.getElementById('datePicker').value = todayStr(); renderAll(); }
+function onDateChange(){ renderAll(); }
+
+async function fetchApi(api){
+  try{
+    const res = await fetch(`${GAS_URL}?api=${api}`, {cache:'no-store'});
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    return data.items || [];
+  }catch(e){
+    return { __error: e.message };
+  }
+}
+
+async function loadAll(){
+  const [g, r, d] = await Promise.all([
+    fetchApi('guideline'),
+    fetchApi('rental'),
+    fetchApi('classroomduty')
+  ]);
+  guidelineData = Array.isArray(g) ? g : []; if(!Array.isArray(g)) renderError('area-guide', g.__error);
+  rentalData = Array.isArray(r) ? r : []; if(!Array.isArray(r)) renderError('area-rental', r.__error);
+  dutyData = Array.isArray(d) ? d : []; if(!Array.isArray(d)) renderError('area-duty', d.__error);
+  renderAll();
+}
+
+function renderError(areaId, msg){
+  document.getElementById(areaId).innerHTML = `<div class="err">⚠ 불러오기 실패: ${msg||'알 수 없는 오류'}</div>`;
+}
+
+function inRange(dateStr, startStr, endStr){
+  if(!startStr || !endStr) return false;
+  const d = new Date(dateStr + "T00:00:00");
+  const s = new Date(String(startStr).replace(/\./g,'-') + "T00:00:00");
+  const e = new Date(String(endStr).replace(/\./g,'-') + "T23:59:59");
+  return d >= s && d <= e;
+}
+
+function renderAll(){
+  const sel = getSelectedDate();
+
+  // 개방지침: 날짜가 시작일~종료일 사이인 것
+  const guideToday = guidelineData.filter(g => inRange(sel, g.startDate, g.endDate));
+  document.getElementById('cnt-guide').textContent = guideToday.length;
+  document.getElementById('area-guide').innerHTML = guideToday.length ? guideToday.map(g => `
+    <div class="card blue">
+      <div class="top"><span class="room">🏢 ${g.bu} · ${g.room}</span></div>
+      <div class="content">${g.content}</div>
+      ${g.note ? `<div class="note">${g.note}</div>` : ''}
+    </div>`).join('') : `<div class="empty">오늘 적용되는 개방지침이 없습니다.</div>`;
+
+  // 대관현황: 대학원 아닌 것만
+  const rentalToday = rentalData.filter(r => r.date === sel && !r.isSpecialGrad);
+  document.getElementById('cnt-rental').textContent = rentalToday.length;
+  document.getElementById('area-rental').innerHTML = rentalToday.length ? rentalToday.map(r => `
+    <div class="card blue">
+      <div class="top"><span class="room">📍 ${r.room}</span><span class="time">🕒 ${r.start}~${r.end}</span></div>
+      <div class="content">${r.content}</div>
+      ${r.note ? `<div class="note">${r.note}</div>` : ''}
+    </div>`).join('') : `<div class="empty">오늘 대관 일정이 없습니다.</div>`;
+
+  // 특수대학원 대관: 대학원 포함된 것
+  const specialToday = rentalData.filter(r => r.date === sel && r.isSpecialGrad);
+  document.getElementById('cnt-special').textContent = specialToday.length;
+  document.getElementById('area-special').innerHTML = specialToday.length ? specialToday.map(r => `
+    <div class="card purple">
+      <div class="top"><span class="room">📍 ${r.room}</span><span class="time">🕒 ${r.start}~${r.end}</span></div>
+      <div class="content">${r.content}</div>
+      <span class="tag special">특수대학원</span>
+      ${r.note ? `<div class="note">${r.note}</div>` : ''}
+    </div>`).join('') : `<div class="empty">오늘 특수대학원 대관 일정이 없습니다.</div>`;
+
+  // 당직 현황(강의실당직대장)
+  const dutyToday = dutyData.filter(d => d.date === sel);
+  document.getElementById('cnt-duty').textContent = dutyToday.length;
+  document.getElementById('area-duty').innerHTML = dutyToday.length ? dutyToday.map(d => `
+    <div class="card amber">
+      <div class="top"><span class="room">📍 ${d.room}</span><span class="time">🕒 ${d.start}~${d.end}</span></div>
+      <div class="content">${d.content}</div>
+      ${d.note ? `<div class="note">${d.note}</div>` : ''}
+    </div>`).join('') : `<div class="empty">오늘 당직 관련 일정이 없습니다.</div>`;
+}
+
+document.getElementById('datePicker').value = todayStr();
+loadAll();
+</script>
+</body>
+</html>
