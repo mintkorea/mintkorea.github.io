@@ -18,6 +18,7 @@
 
   header{position:sticky; top:0; z-index:50; background:linear-gradient(180deg,var(--navy) 0%, var(--navy-2) 100%);
     color:#fff; padding:14px 16px; box-shadow:0 2px 10px rgba(0,0,0,.25);}
+  .header-inner{max-width:640px; margin:0 auto;}
   .brand{display:flex; align-items:center; gap:8px; margin-bottom:12px;}
   .brand .dot{width:9px;height:9px;border-radius:50%;background:#ffb347;}
   .brand h1{font-size:17px; margin:0; font-weight:800;}
@@ -57,12 +58,14 @@
 <body>
 
 <header>
-  <div class="brand"><span class="dot"></span><h1>성의교정 통합 현황판</h1></div>
-  <div class="datebar">
-    <button onclick="moveDate(-1)">◀</button>
-    <input type="date" id="datePicker" onchange="onDateChange()">
-    <button onclick="moveDate(1)">▶</button>
-    <button class="today-btn" onclick="resetToday()">오늘</button>
+  <div class="header-inner">
+    <div class="brand"><span class="dot"></span><h1>성의교정 통합 현황판</h1></div>
+    <div class="datebar">
+      <button onclick="moveDate(-1)">◀</button>
+      <input type="date" id="datePicker" onchange="onDateChange()">
+      <button onclick="moveDate(1)">▶</button>
+      <button class="today-btn" onclick="resetToday()">오늘</button>
+    </div>
   </div>
 </header>
 
@@ -96,17 +99,18 @@ let rentalData = [];
 let dutyData = [];
 let loaded = { guide:false, rental:false, duty:false };
 
-function todayStr(){
-  const d = new Date();
+function toLocalDateStr(d){
   return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
 }
+
+function todayStr(){ return toLocalDateStr(new Date()); }
 
 function getSelectedDate(){ return document.getElementById('datePicker').value || todayStr(); }
 
 function moveDate(delta){
   const cur = new Date(getSelectedDate() + "T00:00:00");
   cur.setDate(cur.getDate() + delta);
-  document.getElementById('datePicker').value = cur.toISOString().split('T')[0];
+  document.getElementById('datePicker').value = toLocalDateStr(cur);
   renderAll();
 }
 function resetToday(){ document.getElementById('datePicker').value = todayStr(); renderAll(); }
@@ -150,12 +154,24 @@ function inRange(dateStr, startStr, endStr){
 function renderAll(){
   const sel = getSelectedDate();
 
-  // 개방지침: 날짜가 시작일~종료일 사이인 것
+  // 개방지침: 날짜가 시작일~종료일 사이인 것 (동일 지침내용은 호실을 묶어서 표시)
   const guideToday = guidelineData.filter(g => inRange(sel, g.startDate, g.endDate));
   document.getElementById('cnt-guide').textContent = guideToday.length;
-  document.getElementById('area-guide').innerHTML = guideToday.length ? guideToday.map(g => `
+
+  const guideGroups = {};
+  guideToday.forEach(g => {
+    const key = (g.content || '') + '|' + (g.note || '');
+    if (!guideGroups[key]) {
+      guideGroups[key] = { content: g.content, note: g.note, bu: g.bu, rooms: [] };
+    }
+    const label = g.bu && g.room ? `${g.bu} ${g.room}` : (g.room || g.bu || '');
+    if (label && !guideGroups[key].rooms.includes(label)) guideGroups[key].rooms.push(label);
+  });
+  const guideGrouped = Object.values(guideGroups);
+
+  document.getElementById('area-guide').innerHTML = guideGrouped.length ? guideGrouped.map(g => `
     <div class="card blue">
-      <div class="top"><span class="room">🏢 ${g.bu} · ${g.room}</span></div>
+      <div class="top"><span class="room">🏢 ${g.rooms.join(' · ')}</span></div>
       <div class="content">${g.content}</div>
       ${g.note ? `<div class="note">${g.note}</div>` : ''}
     </div>`).join('') : `<div class="empty">오늘 적용되는 개방지침이 없습니다.</div>`;
