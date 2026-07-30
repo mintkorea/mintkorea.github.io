@@ -139,10 +139,10 @@
     <div id="settingsOverlay" onclick="closeSettings()" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:none;justify-content:center;align-items:center;z-index:2100;padding:20px;">
         <div class="modal-box" onclick="event.stopPropagation()" style="border-left-color:#1E3A5F;">
             <div class="flex justify-between items-center mb-3">
-                <div class="text-[15px] font-black text-[#1E3A5F]">🏢 건물 표시 순서 설정</div>
+                <div class="text-[15px] font-black text-[#1E3A5F]">📑 화면 배치 순서 설정</div>
                 <button onclick="closeSettings()" class="text-slate-300 text-2xl font-bold">×</button>
             </div>
-            <div class="text-[11px] text-slate-500 mb-3">화살표로 순서를 조정하세요. 위로 갈수록 먼저 표시됩니다.</div>
+            <div class="text-[11px] text-slate-500 mb-3">화살표로 섹션 순서를 조정하세요. 위로 갈수록 먼저 표시됩니다.</div>
             <div id="orderList"></div>
             <button onclick="closeSettings()" class="w-full mt-2 py-2.5 rounded-lg bg-[#1E3A5F] text-white font-black text-[12px]">저장하고 닫기</button>
         </div>
@@ -164,19 +164,9 @@
         const HOLIDAYS = ["2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-01", "2026-05-05", "2026-05-24", "2026-06-06", "2026-08-15", "2026-09-24", "2026-09-25", "2026-09-26", "2026-10-03", "2026-10-09", "2026-12-25"];
         let selectedBu = ["성의회관", "의산연"];
 
-        // 강의실개방 지침 표시용 건물 정렬 순서 (성의회관 1순위, 서울성모별관(병원별관) 후순위)
+        // 강의실개방 지침 표시용 건물 정렬 순서 (성의회관 1순위, 서울성모별관 후순위) - 고정값
         const DEFAULT_BU_ORDER = ["성의회관", "의산연", "옴니버스 파크", "의과대학", "간호대학", "대학본관", "서울성모별관"];
-        let guideBuOrder = (() => {
-            try {
-                const saved = JSON.parse(localStorage.getItem("guide_bu_order"));
-                if (Array.isArray(saved) && saved.length > 0) return saved;
-            } catch (e) {}
-            return [...DEFAULT_BU_ORDER];
-        })();
-
-        function saveGuideBuOrder() {
-            localStorage.setItem("guide_bu_order", JSON.stringify(guideBuOrder));
-        }
+        const guideBuOrder = [...DEFAULT_BU_ORDER];
 
         function sortBuKeys(keys) {
             return [...keys].sort((a, b) => {
@@ -184,6 +174,34 @@
                 let ib = guideBuOrder.indexOf(b); if (ib === -1) ib = 999;
                 if (ia !== ib) return ia - ib;
                 return a.localeCompare(b);
+            });
+        }
+
+        // 화면 섹션 표시 순서 (사용자가 설정창에서 변경 가능)
+        const SECTION_META = [
+            { id: 'guideSection', label: '🔑 강의실 개방지침' },
+            { id: 'rentalSectionWrap', label: '🏫 대관현황' },
+            { id: 'specialSection', label: '🎓 특수대학원 대관' },
+            { id: 'dutySection', label: '🌙 당직 현황' }
+        ];
+        let sectionOrder = (() => {
+            try {
+                const saved = JSON.parse(localStorage.getItem("section_order"));
+                const validIds = SECTION_META.map(s => s.id);
+                if (Array.isArray(saved) && saved.length === validIds.length && saved.every(id => validIds.includes(id))) return saved;
+            } catch (e) {}
+            return SECTION_META.map(s => s.id);
+        })();
+
+        function saveSectionOrder() {
+            localStorage.setItem("section_order", JSON.stringify(sectionOrder));
+        }
+
+        function applySectionOrder() {
+            const container = document.getElementById('app');
+            sectionOrder.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) container.appendChild(el);
             });
         }
 
@@ -217,23 +235,26 @@
 
         function renderOrderSettings() {
             const list = document.getElementById('orderList');
-            list.innerHTML = guideBuOrder.map((bu, idx) => `
+            list.innerHTML = sectionOrder.map((id, idx) => {
+                const meta = SECTION_META.find(s => s.id === id);
+                return `
                 <div class="order-row">
-                    <span class="name">${bu}</span>
+                    <span class="name">${meta ? meta.label : id}</span>
                     <div class="arrows">
-                        <button onclick="moveBuOrder(${idx}, -1)" ${idx === 0 ? 'disabled' : ''}>▲</button>
-                        <button onclick="moveBuOrder(${idx}, 1)" ${idx === guideBuOrder.length - 1 ? 'disabled' : ''}>▼</button>
+                        <button onclick="moveSectionOrder(${idx}, -1)" ${idx === 0 ? 'disabled' : ''}>▲</button>
+                        <button onclick="moveSectionOrder(${idx}, 1)" ${idx === sectionOrder.length - 1 ? 'disabled' : ''}>▼</button>
                     </div>
-                </div>`).join('');
+                </div>`;
+            }).join('');
         }
 
-        function moveBuOrder(idx, dir) {
+        function moveSectionOrder(idx, dir) {
             const target = idx + dir;
-            if (target < 0 || target >= guideBuOrder.length) return;
-            [guideBuOrder[idx], guideBuOrder[target]] = [guideBuOrder[target], guideBuOrder[idx]];
-            saveGuideBuOrder();
+            if (target < 0 || target >= sectionOrder.length) return;
+            [sectionOrder[idx], sectionOrder[target]] = [sectionOrder[target], sectionOrder[idx]];
+            saveSectionOrder();
             renderOrderSettings();
-            renderGuideline(currentDateStr());
+            applySectionOrder();
         }
 
         function currentDateStr() {
@@ -552,6 +573,7 @@
                 };
                 container.appendChild(chip);
             });
+            applySectionOrder();
             initApp();
         };
     </script>
