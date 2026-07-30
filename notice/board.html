@@ -198,45 +198,26 @@
         exec('insertHTML', h + "</table><p><br></p>");
     }
 
-    // ---------- 이미지 → 매뉴얼 AI 변환 ----------
-    const AI_MANUAL_PROMPT = `이 이미지는 회사 공문 또는 신청서입니다. 이 문서의 모든 정보를 빠짐없이 반영하면서, 실무자가 모바일 화면에서 읽기 편한 매뉴얼 형태의 HTML로 재구성해주세요.
+    // ---------- 이미지 → 매뉴얼 AI 변환 (GAS 프록시 경유, Gemini 호출) ----------
+    // ⚠️ 아래 URL을 Code.gs 배포 후 발급받은 웹앱 URL로 반드시 교체하세요.
+    const AI_PROXY_URL = "https://script.google.com/macros/s/AKfycby6vfyDV_RZWwbrlPbetdcCwojuU_8GANPQjA-r0T-XbNEN41py5Dhx1yP0I1wAbVs/exec";
 
-규칙:
-- 표 형태 정보는 <table style="border-collapse:collapse;width:100%;border:1px solid #ddd;margin:10px 0;"> 로 정리하고, 각 <td>에는 style="border:1px solid #ddd;padding:8px;" 를 넣어주세요.
-- 반드시 지켜야 할 날짜/시간/조건/규칙은 <div style="background:#fef3c7;padding:12px;border-radius:8px;margin:10px 0;"> 박스로 별도 강조해주세요.
-- 절차나 단계가 있으면 <ol> 순서 목록으로 정리해주세요.
-- 담당자 이름/연락처는 <div style="background:#e0e7ff;padding:12px;border-radius:8px;margin:10px 0;"> 박스로 눈에 띄게 별도 표시해주세요.
-- 문서에 포함된 사진이나 도면 자체는 재현하려 하지 말고, 텍스트/표 정보만 재구성해주세요. (원본 사진은 이 결과와 별도로 함께 첨부됩니다.)
-- 모든 스타일은 태그의 style 속성으로만 작성하고, class나 <style> 태그는 사용하지 마세요.
-- 다른 설명 없이 HTML 코드만 출력해주세요.`;
-
-    async function callClaudeVision(base64Jpeg) {
+    async function callGeminiViaProxy(base64Jpeg) {
+        if (!AI_PROXY_URL || AI_PROXY_URL.includes("여기에")) {
+            throw new Error('AI_PROXY_URL이 설정되지 않았습니다. GAS 웹앱 배포 후 코드 상단의 AI_PROXY_URL 값을 교체해주세요.');
+        }
         const base64Data = base64Jpeg.split(',')[1];
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
+        // Content-Type을 text/plain으로 보내 GAS 웹앱의 CORS 프리플라이트 문제를 회피합니다.
+        const response = await fetch(AI_PROXY_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: "claude-sonnet-4-6",
-                max_tokens: 2000,
-                messages: [{
-                    role: "user",
-                    content: [
-                        { type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64Data } },
-                        { type: "text", text: AI_MANUAL_PROMPT }
-                    ]
-                }]
-            })
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ image: base64Data, mimeType: "image/jpeg" })
         });
-        if (!response.ok) throw new Error(`AI 서버 응답 오류 (${response.status})`);
+        if (!response.ok) throw new Error(`프록시 서버 응답 오류 (${response.status})`);
         const data = await response.json();
-        const text = (data.content || [])
-            .map(block => block.text || "")
-            .join("\n")
-            .replace(/```html/gi, "")
-            .replace(/```/g, "")
-            .trim();
-        if (!text) throw new Error('AI가 빈 결과를 반환했습니다.');
-        return text;
+        if (!data.success) throw new Error(data.error || 'AI 변환에 실패했습니다.');
+        if (!data.html) throw new Error('AI가 빈 결과를 반환했습니다.');
+        return data.html;
     }
 
     async function handleAiManual(e) {
@@ -251,7 +232,7 @@
                 const compressed = await compressImage(file, 1000, 0.6);
 
                 showAiStatus(`"${file.name}" AI가 매뉴얼로 재구성 중... (몇 초 걸릴 수 있어요)`);
-                const html = await callClaudeVision(compressed);
+                const html = await callGeminiViaProxy(compressed);
 
                 const wrap = document.createElement('div');
                 wrap.className = 'ai-block';
