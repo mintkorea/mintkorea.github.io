@@ -59,6 +59,17 @@
         .simple-card { border-left:4px solid #1E3A5F; background:white; border-radius:0.75rem; padding:10px 12px; margin-bottom:8px; box-shadow:0 1px 2px rgba(0,0,0,.03); }
         .simple-card.amber { border-left-color:#d97706; }
         .simple-card.purple { border-left-color:#7c3aed; }
+
+        .guide-card.weekend { background:#374151; border-color:#374151; }
+        .guide-card.weekend .room-badge { background:#4b5563; color:#e5e7eb; border-color:#6b7280; }
+        .room-badge { cursor:pointer; }
+        .room-badge:active { transform:scale(0.97); }
+        .settings-btn { margin-left:auto; background:none; border:none; cursor:pointer; font-size:15px; color:#94a3b8; }
+        .order-row { display:flex; align-items:center; justify-content:space-between; padding:9px 12px; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:6px; background:#f8fafc; }
+        .order-row .name { font-weight:800; font-size:13px; color:#1E3A5F; }
+        .order-row .arrows { display:flex; gap:4px; }
+        .order-row button { width:28px; height:28px; border-radius:6px; border:1px solid #e2e8f0; background:white; font-weight:900; color:#1E3A5F; cursor:pointer; }
+        .order-row button:disabled { opacity:.3; cursor:default; }
     </style>
 </head>
 <body class="text-slate-800 pb-24">
@@ -92,7 +103,7 @@
         <div id="loading" class="text-center py-10 text-slate-400 font-bold text-xs">데이터 로드 중...</div>
 
         <div class="w-full" id="guideSection">
-            <div class="section-title"><span>🔑</span><h2>강의실 개방지침</h2><span class="cnt" id="guideCnt">0</span></div>
+            <div class="section-title"><span>🔑</span><h2>강의실 개방지침</h2><span class="cnt" id="guideCnt">0</span><button class="settings-btn" onclick="openSettings()">⚙️</button></div>
             <div id="guideArea"></div>
         </div>
 
@@ -109,6 +120,18 @@
         <div class="w-full mt-2" id="dutySection">
             <div class="section-title"><span>🌙</span><h2>당직 현황</h2><span class="cnt" id="dutyCnt">0</span></div>
             <div id="dutyArea"></div>
+        </div>
+    </div>
+
+    <div id="settingsOverlay" onclick="if(event.target===this)closeSettings()" style="position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;justify-content:center;align-items:center;z-index:2100;padding:20px;">
+        <div class="modal-box" style="border-left-color:#1E3A5F;" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-black text-[#1E3A5F] text-base">화면 표시 순서 설정</h3>
+                <button onclick="closeSettings()" class="text-slate-300 text-2xl font-bold">×</button>
+            </div>
+            <p class="text-[11px] text-slate-400 mb-3">위에 있을수록 먼저 표시됩니다. 강의실개방·대관현황·특수대학원·당직 순서를 원하는 대로 바꾸세요.</p>
+            <div id="orderListArea"></div>
+            <button onclick="closeSettings()" class="w-full mt-3 bg-[#1E3A5F] text-white font-black py-2.5 rounded-xl text-sm">저장하고 닫기</button>
         </div>
     </div>
 
