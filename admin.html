@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>식단표 관리자 - 분석 및 등록</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -72,9 +73,10 @@
   <p style="font-size:13px;color:#777;margin-top:-8px;">
     현장에서 식단표 고화질 사진을 업로드하면 자동으로 분석합니다.<br>
     <b>카메라로 직접 촬영</b>하거나 <b>원본 화질</b> 이미지를 사용해주세요 — 카톡 등으로 전달받은 압축 이미지는 인식률이 떨어질 수 있습니다.<br>
-    <b>표가 한 장에 다 안 들어오거나 인식이 잘 안 되면, 요일별로 잘라서 여러 장에 나눠 올려주세요.</b> 분석 결과는 아래 표에 계속 누적됩니다 (같은 날짜·끼니는 최신 결과로 교체됨).
+    <b>표가 한 장에 다 안 들어오거나 인식이 잘 안 되면, 요일별로 잘라서 여러 장에 나눠 올려주세요.</b> 분석 결과는 아래 표에 계속 누적됩니다 (같은 날짜·끼니는 최신 결과로 교체됨).<br>
+    <b>PDF 파일도 업로드 가능합니다</b> (자동으로 이미지로 변환 후 분석, 여러 페이지면 세로로 이어붙여 처리).
   </p>
-  <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect()">
+  <input type="file" id="fileInput" accept="image/*,application/pdf" onchange="handleFileSelect()">
   <div id="resWarning" style="display:none; font-size:12px; color:#b45309; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:8px 10px; margin-top:8px; text-align:left;"></div>
 
   <div id="cropSection" style="display:none; margin-top:14px;">
@@ -127,7 +129,7 @@
   //   - 액세스 권한이 있는 사용자: 전체 (Anyone)
   // 발급된 URL은 보통 https://script.google.com/macros/s/xxxxx/exec 형태입니다.
   // ────────────────────────────────────────────────────────────
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxwqQNPLpPaM_0IsTexNFkjRnlFFGKHL7cYph-2xScfFcfsoiYZSVyvshy1e27IcR8-Rg/exec";
+  const WEB_APP_URL = "https://script.google.com/macros/s/여기에_배포된_ID를_입력/exec";
   const MIN_WIDTH = 1600; // 이 값보다 좁으면 저해상도로 간주 (카톡 전달 이미지 등)
 
   let parsedItems = [];
@@ -187,6 +189,60 @@
       img.onerror = reject;
       img.src = dataUrl;
     });
+  }
+
+  // ── PDF → 이미지 변환 (pdf.js) ─────────────────────────
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+
+  function isPdfFile(file) {
+    return file.type === "application/pdf" || /\.pdf$/i.test(file.name || "");
+  }
+
+  /**
+   * PDF 파일을 받아 모든 페이지를 고해상도로 렌더링한 뒤,
+   * 세로로 이어붙인 하나의 이미지(Image 객체)로 변환해서 반환.
+   * (페이지가 1장이면 그 페이지 그대로가 반환됨)
+   */
+  async function renderPdfToImage(file, onProgress) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+    const RENDER_SCALE = 2.5; // 텍스트가 작을 수 있어 넉넉한 해상도로 렌더링
+    const pageCanvases = [];
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      if (onProgress) onProgress(pageNum, pdf.numPages);
+      const page = await pdf.getPage(pageNum);
+      const viewport = page.getViewport({ scale: RENDER_SCALE });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      pageCanvases.push(canvas);
+    }
+
+    if (pageCanvases.length === 1) {
+      return loadImageFromDataUrl(pageCanvases[0].toDataURL('image/png'));
+    }
+
+    // 여러 페이지 → 세로로 이어붙이기
+    const totalWidth = Math.max(...pageCanvases.map(c => c.width));
+    const totalHeight = pageCanvases.reduce((sum, c) => sum + c.height, 0);
+    const combined = document.createElement('canvas');
+    combined.width = totalWidth;
+    combined.height = totalHeight;
+    const ctx = combined.getContext('2d');
+
+    let yOffset = 0;
+    pageCanvases.forEach(c => {
+      ctx.drawImage(c, 0, yOffset);
+      yOffset += c.height;
+    });
+
+    return loadImageFromDataUrl(combined.toDataURL('image/png'));
   }
 
   function checkResolutionWarning(w, h) {
@@ -319,13 +375,27 @@
 
   async function handleFileSelect() {
     const file = document.getElementById('fileInput').files[0];
+    const status = document.getElementById('status');
     document.getElementById('resWarning').style.display = 'none';
     croppedDataUrl = null;
     if (!file) return;
 
-    const img = await loadImageFromFile(file);
-    checkResolutionWarning(img.naturalWidth, img.naturalHeight);
-    initCropUI(img);
+    try {
+      let img;
+      if (isPdfFile(file)) {
+        status.textContent = "⏳ PDF를 이미지로 변환 중입니다...";
+        img = await renderPdfToImage(file, (cur, total) => {
+          if (total > 1) status.textContent = `⏳ PDF 변환 중... (${cur}/${total}페이지)`;
+        });
+        status.textContent = "";
+      } else {
+        img = await loadImageFromFile(file);
+      }
+      checkResolutionWarning(img.naturalWidth, img.naturalHeight);
+      initCropUI(img);
+    } catch (err) {
+      status.innerHTML = `<span style="color:red">❌ 파일을 여는 중 오류: ${err.message}</span>`;
+    }
   }
 
   // ── 2등분 분할 분석 (긴 표 대응) ───────────────────────────
