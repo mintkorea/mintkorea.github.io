@@ -27,6 +27,10 @@
         .status-badge { font-weight: 800; padding: 2px 4px; border-radius: 4px; font-size: 9px; display: inline-block; border: 1px solid transparent; }
         .period-text { font-size: 9px; font-weight: 800; color: #8B5CF6; margin-top: 2px; line-height: 1.1; }
         .rental-card { border: 1.2px solid #e2e8f0; background: white; border-radius: 12px; padding: 12px; margin-bottom: 8px; border-left-width: 6px; }
+        .rental-card.cancelled { opacity: 0.55; border-style: dashed; }
+        .fixed-table tr.cancelled { opacity: 0.55; }
+        .toggle-chip { transition: all 0.2s; border: 1.5px solid #e2e8f0; cursor: pointer; background: white; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 11px; font-weight: 800; height: 36px; border-radius: 10px; padding: 0 14px; }
+        .toggle-chip.active { background-color: #FEF2F2; border-color: #EF4444; color: #EF4444; }
 
         @media (max-width: 768px) and (orientation: portrait) {
             .view-pc { display: none !important; }
@@ -49,6 +53,7 @@
             <div class="grid grid-cols-4 gap-1.5 w-full mb-4" id="buContainer"></div>
             <div class="flex items-center gap-2">
                 <button onclick="loadFromGoogle(true)" class="h-9 px-4 rounded-lg border border-slate-200 bg-white font-black text-[11px] text-[#1E3A5F]">🔄 동기화</button>
+                <button id="cancelToggleBtn" onclick="toggleShowCancelled()" class="toggle-chip"><span>🚫</span><span id="cancelToggleLabel">취소건 숨김</span></button>
                 <button onclick="downloadExcel()" class="h-9 px-4 rounded-lg bg-[#1E3A5F] text-white font-black text-[11px]">📥 엑셀다운(인쇄)</button>
             </div>
         </div>
@@ -59,13 +64,30 @@
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzDWH34gJk42elBUl-Jky8kvvVlA8s36pYi-bU05wxr7CoOlrWNbOAKS-wxj8kYb-JV/exec";
         const BUILDINGS = ["전체", "성의회관", "의산연", "옴니버스 파크", "의과대학", "간호대학", "대학본관", "서울성모별관"];
-        const HOLIDAYS = ["2026-01-01", "2026-03-01", "2026-05-05", "2026-06-06", "2026-08-15", "2026-10-03", "2026-10-09", "2026-12-25"];
+        // [수정] 모바일 버전(index.html)과 동일한 공휴일 목록으로 동기화 (설/추석 연휴, 부처님오신날 등 누락분 추가)
+        const HOLIDAYS = ["2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-01", "2026-05-05", "2026-05-24", "2026-06-06", "2026-08-15", "2026-09-24", "2026-09-25", "2026-09-26", "2026-10-03", "2026-10-09", "2026-12-25"];
         
         let selectedBu = ["성의회관", "의산연"]; 
         let sheetData = [];
         const now = new Date();
         const kstToday = new Date(now.getTime() + (9 * 60 * 60 * 1000)).toISOString().split('T')[0];
         let dateRange = { start: kstToday, end: kstToday };
+
+        // [기능 추가] 취소건 기본 숨김 여부 (기본값: 숨김/false = 표출 안함)
+        let showCancelled = false;
+
+        function isCancelled(r) {
+            return !!(r.status && r.status.includes('취소'));
+        }
+
+        function toggleShowCancelled() {
+            showCancelled = !showCancelled;
+            const btn = document.getElementById('cancelToggleBtn');
+            const label = document.getElementById('cancelToggleLabel');
+            btn.classList.toggle('active', showCancelled);
+            label.innerText = showCancelled ? '취소건 표시중' : '취소건 숨김';
+            renderUI();
+        }
 
         async function loadFromGoogle(isManual = false) {
             const cached = localStorage.getItem("rental_db_cache");
@@ -116,27 +138,30 @@
 
                 selectedBu.forEach(buName => {
                     const searchBu = buName === "의산연" ? "의생명산업연구원" : buName;
-                    const filtered = sheetData.filter(d => d.rawDate === dStr && d.bu.includes(searchBu));
+                    // [수정] 기본적으로 취소건은 제외하고 표출 (showCancelled 토글로 필요시 표시)
+                    const filtered = sheetData.filter(d => d.rawDate === dStr && d.bu.includes(searchBu) && (showCancelled || !isCancelled(d)));
                     dayHtml += `<div class="mb-6"><div class="flex items-center gap-2 px-1 font-black text-xs text-[#1E3A5F] mb-2"><span class="w-1.5 h-3 bg-[#1E3A5F] rounded-full"></span>${buName} (${filtered.length})</div>`;
 
                     if (filtered.length > 0) {
                         dayHtml += `<div class="view-pc overflow-hidden border border-slate-200 rounded-xl bg-white shadow-sm"><table class="fixed-table"><thead><tr><th class="col-place">장소</th><th class="col-time">시간</th><th>행사명</th><th class="col-count">인원</th><th class="col-dept">부서</th><th class="col-status">상태</th></tr></thead><tbody>`;
                         filtered.forEach(i => {
-                            const statusColor = (i.status === '확정' || i.status === '승인') ? 'text-orange-600 bg-orange-50' : 'text-slate-400 bg-slate-50';
-                            dayHtml += `<tr><td class="text-center font-bold text-slate-600">${i.place}</td><td class="text-center font-bold text-red-500">${i.time}</td><td class="px-2"><div class="font-black text-slate-900">${i.event}</div>${i.type === '기간' ? `<div class="period-text">📅 ${i.period} (${i.yoil})</div>` : ''}</td><td class="text-center font-bold text-slate-500">${i.people || i.count || '-'}</td><td class="text-center text-slate-400 font-bold italic">${i.dept}</td><td class="text-center"><span class="status-badge ${statusColor}">${i.status}</span></td></tr>`;
+                            const cancelled = isCancelled(i);
+                            const statusColor = cancelled ? 'text-red-500 bg-red-50' : ((i.status === '확정' || i.status === '승인') ? 'text-orange-600 bg-orange-50' : 'text-slate-400 bg-slate-50');
+                            dayHtml += `<tr class="${cancelled ? 'cancelled' : ''}"><td class="text-center font-bold text-slate-600">${i.place}</td><td class="text-center font-bold text-red-500">${i.time}</td><td class="px-2"><div class="font-black text-slate-900">${i.event}</div>${i.type === '기간' ? `<div class="period-text">📅 ${i.period} (${i.yoil})</div>` : ''}</td><td class="text-center font-bold text-slate-500">${i.people || i.count || '-'}</td><td class="text-center text-slate-400 font-bold italic">${i.dept}</td><td class="text-center"><span class="status-badge ${statusColor}">${cancelled ? '🚫 ' : ''}${i.status}</span></td></tr>`;
                         });
                         dayHtml += `</tbody></table></div>`;
                         
                         dayHtml += `<div class="view-mo space-y-2">`;
                         filtered.forEach(i => {
-                            const statusColor = (i.status === '확정' || i.status === '승인') ? 'text-orange-600 bg-orange-50' : 'text-slate-400 bg-slate-50';
-                            dayHtml += `<div class="rental-card ${i.type === '기간' ? 'border-l-purple-500' : 'border-l-blue-500'}">
+                            const cancelled = isCancelled(i);
+                            const statusColor = cancelled ? 'text-red-500 bg-red-50' : ((i.status === '확정' || i.status === '승인') ? 'text-orange-600 bg-orange-50' : 'text-slate-400 bg-slate-50');
+                            dayHtml += `<div class="rental-card ${cancelled ? 'cancelled' : ''} ${i.type === '기간' ? 'border-l-purple-500' : 'border-l-blue-500'}">
                                 <div class="flex justify-between items-center mb-1"><span class="text-[12px] font-bold text-slate-500">📍 ${i.place}</span><span class="text-[10px] font-bold text-red-500">🕒 ${i.time}</span></div>
                                 <div class="text-[14px] font-black text-slate-900 leading-tight mb-2">${i.event}</div>
                                 ${i.type === '기간' ? `<div class="period-text mb-2">📅 ${i.period} (${i.yoil})</div>` : ''}
                                 <div class="flex justify-between items-center pt-1 border-t border-slate-50 mt-1">
                                     <div class="flex items-center gap-1.5">
-                                        <span class="status-badge ${statusColor}">${i.status}</span>
+                                        <span class="status-badge ${statusColor}">${cancelled ? '🚫 ' : ''}${i.status}</span>
                                         <span class="text-[10px] font-bold text-slate-400 italic">${i.dept}</span>
                                     </div>
                                     <span class="text-[11px] font-black text-slate-700">👥 ${i.people || i.count || '-'}명</span>
@@ -177,7 +202,8 @@
 
                 selectedBu.forEach(bu => {
                     const search = (bu === "의산연") ? "의생명산업연구원" : bu;
-                    const filtered = sheetData.filter(d => d.rawDate === dStr && d.bu.includes(search));
+                    // [수정] 엑셀 내보내기도 화면과 동일하게 취소건 기본 제외 (showCancelled 토글 상태 따름)
+                    const filtered = sheetData.filter(d => d.rawDate === dStr && d.bu.includes(search) && (showCancelled || !isCancelled(d)));
                     
                     // [건물 구분 헤더] - 높이 35
                     sheet.mergeCells(rIdx, 1, rIdx, 6);
@@ -202,12 +228,14 @@
                         rIdx++;
 
                         filtered.forEach(i => {
+                            const cancelled = isCancelled(i);
                             const evt = i.type === '기간' ? `${i.event}\n(${i.period})` : i.event;
-                            const row = sheet.addRow([i.place, i.time, evt, i.dept, i.people || '-', i.status]);
+                            const row = sheet.addRow([i.place, i.time, evt, i.dept, i.people || '-', (cancelled ? '🚫 ' : '') + i.status]);
                             row.height = 35; 
                             row.eachCell((c, col) => {
                                 c.alignment = { vertical: 'middle', horizontal: col === 3 ? 'left' : 'center', wrapText: col === 3 };
                                 if (col === 5 || col === 6) c.font = { bold: true, size: 10 };
+                                if (cancelled) c.font = Object.assign({}, c.font, { color: { argb: 'FFDC2626' } });
                                 c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
                             });
                             rIdx++;
