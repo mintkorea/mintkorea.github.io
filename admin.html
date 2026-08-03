@@ -134,6 +134,7 @@
 
   let parsedItems = [];
   let adminPassword = "";
+  let extractedPdfText = ""; // PDF 텍스트 레이어에서 추출한 원문 (철자 검증용 정답지)
 
   // ── 로그인 ─────────────────────────────────────────────
   async function callBackend(action, extraPayload) {
@@ -200,15 +201,17 @@
     return file.type === "application/pdf" || /\.pdf$/i.test(file.name || "");
   }
 
-  /**
-   * PDF 파일을 받아 모든 페이지를 고해상도로 렌더링한 뒤,
-   * 세로로 이어붙인 하나의 이미지(Image 객체)로 변환해서 반환.
-   * (페이지가 1장이면 그 페이지 그대로가 반환됨)
-   */
-  async function renderPdfToImage(file, onProgress) {
+  async function loadPdfDocument(file) {
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    return pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  }
 
+  /**
+   * 이미 로드된 PDF 문서의 모든 페이지를 고해상도로 렌더링한 뒤,
+   * 세로로 이어붙인 하나의 이미지(Image 객체)로 변환해서 반환.
+   * (구조/색상 판별용 - 표 레이아웃을 시각적으로 보여주기 위함)
+   */
+  async function renderPdfPagesToImage(pdf, onProgress) {
     const RENDER_SCALE = 2.5; // 텍스트가 작을 수 있어 넉넉한 해상도로 렌더링
     const pageCanvases = [];
 
@@ -243,6 +246,23 @@
     });
 
     return loadImageFromDataUrl(combined.toDataURL('image/png'));
+  }
+
+  /**
+   * PDF에 실제 텍스트 레이어가 있으면(스캔 이미지가 아니라 문서로 만들어진 PDF라면)
+   * 글자 단위로 100% 정확한 원문을 추출한다. 표 레이아웃 정보는 없지만,
+   * 철자 오독을 교정하는 "정답지" 역할로 AI 프롬프트에 함께 제공한다.
+   * @return {string} 추출된 텍스트 (텍스트 레이어가 없으면 빈 문자열)
+   */
+  async function extractPdfText(pdf) {
+    let allText = "";
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const content = await page.getTextContent();
+      const pageText = content.items.map(it => it.str).join(" ").replace(/\s+/g, " ").trim();
+      if (pageText) allText += pageText + "\n";
+    }
+    return allText.trim();
   }
 
   function checkResolutionWarning(w, h) {
@@ -378,16 +398,26 @@
     const status = document.getElementById('status');
     document.getElementById('resWarning').style.display = 'none';
     croppedDataUrl = null;
+    extractedPdfText = "";
     if (!file) return;
 
     try {
       let img;
       if (isPdfFile(file)) {
-        status.textContent = "⏳ PDF를 이미지로 변환 중입니다...";
-        img = await renderPdfToImage(file, (cur, total) => {
-          if (total > 1) status.textContent = `⏳ PDF 변환 중... (${cur}/${total}페이지)`;
+        status.textContent = "⏳ PDF를 불러오는 중입니다...";
+        const pdf = await loadPdfDocument(file);
+
+        status.textContent = "⏳ PDF 원본 텍스트 추출 중...";
+        extractedPdfText = await extractPdfText(pdf);
+
+        img = await renderPdfPagesToImage(pdf, (cur, total) => {
+          if (total > 1) status.textContent = `⏳ PDF 이미지 변환 중... (${cur}/${total}페이지)`;
+          else status.textContent = "⏳ PDF 이미지 변환 중...";
         });
-        status.textContent = "";
+
+        status.textContent = extractedPdfText
+          ? "✅ PDF에서 원본 텍스트를 찾았습니다 — 철자 정확도가 크게 올라갑니다."
+          : "ℹ️ PDF에서 텍스트를 찾지 못했습니다 (스캔 이미지형 PDF로 보임 — 이미지 인식으로만 처리됩니다).";
       } else {
         img = await loadImageFromFile(file);
       }
@@ -452,7 +482,7 @@
   async function analyzeSinglePart(base64Data, mimeType, statusPrefix) {
     const status = document.getElementById('status');
     status.textContent = statusPrefix + " ⏳ 데이터를 정밀 분석 중입니다... (최대 30초 소요)";
-    const res = await callBackend("processImage", { base64Data, mimeType });
+    const res = await callBackend("processImage", { base64Data, mimeType, pdfText: extractedPdfText });
     if (!res.ok) throw new Error(res.error || "분석 실패");
 
     let items;
@@ -525,6 +555,7 @@
     document.getElementById('resWarning').style.display = 'none';
     croppedDataUrl = null;
     originalImg = null;
+    extractedPdfText = "";
   }
 
   // ── 결과 표 렌더링 ─────────────────────────────────────
