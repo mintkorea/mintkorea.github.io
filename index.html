@@ -420,7 +420,8 @@
             const dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
             const container = document.getElementById('event-list');
             const renderHtml = (dataList) => {
-                const f = dataList.filter(r => r.rawDate === dateStr);
+                // [수정] 날짜 일치 + 취소 상태 제외 (취소된 건은 통합조회 오늘 행사에 표출하지 않음)
+                const f = dataList.filter(r => r.rawDate === dateStr && r.status !== '취소');
                 const fmt = (p) => p ? p.replace("성의교정", "").trim() : "장소미정";
 
                 if (viewMode === 'omni') {
