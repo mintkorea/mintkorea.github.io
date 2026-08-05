@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>식단표 관리자 - 분석 및 등록</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -74,9 +75,10 @@
     현장에서 식단표 고화질 사진을 업로드하면 자동으로 분석합니다.<br>
     <b>카메라로 직접 촬영</b>하거나 <b>원본 화질</b> 이미지를 사용해주세요 — 카톡 등으로 전달받은 압축 이미지는 인식률이 떨어질 수 있습니다.<br>
     <b>표가 한 장에 다 안 들어오거나 인식이 잘 안 되면, 요일별로 잘라서 여러 장에 나눠 올려주세요.</b> 분석 결과는 아래 표에 계속 누적됩니다 (같은 날짜·끼니는 최신 결과로 교체됨).<br>
-    <b>PDF 파일도 업로드 가능합니다</b> (자동으로 이미지로 변환 후 분석, 여러 페이지면 세로로 이어붙여 처리).
+    <b>PDF 파일도 업로드 가능합니다</b> (자동으로 이미지로 변환 후 분석, 여러 페이지면 세로로 이어붙여 처리).<br>
+    <b>엑셀(.xlsx) 파일이 있다면 가장 정확합니다</b> — AI 분석 없이 표 안의 글자 규칙(*주메뉴*, &사이드)을 그대로 읽어 등록합니다.
   </p>
-  <input type="file" id="fileInput" accept="image/*,application/pdf" onchange="handleFileSelect()">
+  <input type="file" id="fileInput" accept="image/*,application/pdf,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" onchange="handleFileSelect()">
   <div id="resWarning" style="display:none; font-size:12px; color:#b45309; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:8px 10px; margin-top:8px; text-align:left;"></div>
 
   <div id="cropSection" style="display:none; margin-top:14px;">
@@ -199,6 +201,175 @@
 
   function isPdfFile(file) {
     return file.type === "application/pdf" || /\.pdf$/i.test(file.name || "");
+  }
+
+  // ── 엑셀(.xlsx) 결정론적 파싱 (AI 미사용 - 표 안 텍스트 규칙만으로 100% 정확하게 추출) ──
+  //   규칙: *메뉴명* = 주메뉴 / &메뉴명 = 주메뉴에 딸린 사이드 / 그 외 = 일반 사이드
+  //   별표가 아예 없는 날(간편식, 주말 브런치 등)은 블록 첫 행의 마지막 항목을 메인으로 간주
+  function isExcelFile(file) {
+    return /\.xlsx?$/i.test(file.name || "") ||
+      file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      file.type === "application/vnd.ms-excel";
+  }
+
+  function excelHeaderToIsoDate_(cellText) {
+    const m = String(cellText || "").match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+    if (!m) return null;
+    const [, y, mo, d] = m;
+    return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+
+  const EXCEL_MEAL_TYPES = ["조식", "간편식", "중식", "석식", "야식"];
+  function excelDetectMealType_(label) {
+    const clean = String(label || "").replace(/\s+/g, "");
+    for (const t of EXCEL_MEAL_TYPES) if (clean.startsWith(t)) return t;
+    return null;
+  }
+  function excelIsCalorieLabel_(label) {
+    return String(label || "").replace(/\s+/g, "").startsWith("열량");
+  }
+
+  function excelIsNote_(l) { return /^\(.*\)$/.test(l); }
+  function excelIsStarred_(l) { return /^\*[\s\S]*\*$/.test(l); }
+  function excelIsAmp_(l) { return l.startsWith("&"); }
+
+  function excelAtomize_(line) {
+    let s = line;
+    if (excelIsStarred_(s)) s = s.replace(/^\*/, "").replace(/\*$/, "").trim();
+    return s.split(/[,&]/).map(x => x.trim()).filter(Boolean);
+  }
+
+  function excelParseBlockColumn_(blockRows, colIdx, date, type) {
+    const lineGroups = blockRows.map(row => {
+      const cell = row[colIdx];
+      if (cell === undefined || cell === null || String(cell).trim() === "") return [];
+      return String(cell).split("\n").map(s => s.trim()).filter(s => s !== "");
+    });
+    const allLines = lineGroups.flat();
+    if (allLines.length === 0) return null; // 이 날짜엔 해당 끼니가 없음 (정상)
+
+    let mainText = null;
+    let mainSourceLine = null;
+    let mainIsStarred = false;
+
+    // 1) 별표(*)로 감싼 첫 항목을 메인으로
+    for (const l of allLines) {
+      if (excelIsNote_(l)) continue;
+      if (excelIsStarred_(l)) {
+        mainSourceLine = l;
+        mainIsStarred = true;
+        mainText = l.replace(/^\*/, "").replace(/\*$/, "").trim();
+        break;
+      }
+    }
+
+    // 2) 별표가 없으면: 블록 첫 행에서 &로 시작하지 않는 마지막 줄 → 그 줄의 마지막 콤마 항목을 메인으로
+    if (mainText === null) {
+      const firstRowLines = lineGroups[0] || [];
+      for (let i = firstRowLines.length - 1; i >= 0; i--) {
+        const l = firstRowLines[i];
+        if (excelIsNote_(l) || excelIsAmp_(l)) continue;
+        mainSourceLine = l;
+        break;
+      }
+      if (mainSourceLine) {
+        if (mainSourceLine.includes(",")) {
+          const parts = mainSourceLine.split(",").map(s => s.trim()).filter(Boolean);
+          mainText = parts[parts.length - 1];
+        } else {
+          mainText = mainSourceLine;
+        }
+      }
+    }
+
+    if (!mainText) return null;
+
+    // 메인 안에 '&' 가 있으면 (예: "언양식바싹불고기&파채") 앞부분만 메인
+    let extraFromMain = null;
+    if (mainText.includes("&")) {
+      const idx = mainText.indexOf("&");
+      extraFromMain = mainText.slice(idx + 1).trim();
+      mainText = mainText.slice(0, idx).trim();
+    }
+    // 별표 메인에 콤마가 있으면(드문 케이스) 첫 조각만 메인, 나머지는 사이드로
+    let extraFromMainComma = [];
+    if (mainIsStarred && mainText.includes(",")) {
+      const parts = mainText.split(",").map(s => s.trim()).filter(Boolean);
+      mainText = parts[0];
+      extraFromMainComma = parts.slice(1);
+    }
+
+    const sides = [];
+    if (extraFromMain) sides.push(...excelAtomize_(extraFromMain));
+    extraFromMainComma.forEach(p => sides.push(...excelAtomize_(p)));
+
+    allLines.forEach(l => {
+      if (excelIsNote_(l) || l === mainSourceLine) {
+        // mainSourceLine 자체(별표 없는 케이스)에 남은 콤마 조각은 사이드로
+        if (l === mainSourceLine && !mainIsStarred && l.includes(",")) {
+          const parts = l.split(",").map(s => s.trim()).filter(Boolean);
+          parts.forEach(p => { if (p !== mainText) sides.push(...excelAtomize_(p)); });
+        }
+        return;
+      }
+      sides.push(...excelAtomize_(l));
+    });
+
+    return {
+      date, type, main: mainText, all: sides.join(", "), comment: "",
+      matched: true, suggestions: []
+    };
+  }
+
+  async function parseExcelFile(file) {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
+
+    let headerRowIdx = -1;
+    for (let i = 0; i < rows.length; i++) {
+      if (String(rows[i][0] || "").replace(/\s+/g, "") === "구분") { headerRowIdx = i; break; }
+    }
+    if (headerRowIdx === -1) throw new Error("헤더 행('구분')을 찾지 못했습니다. 엑셀 양식이 다른 것 같습니다.");
+
+    const headerRow = rows[headerRowIdx];
+    const dateColumns = [];
+    for (let c = 1; c < headerRow.length; c++) {
+      const iso = excelHeaderToIsoDate_(headerRow[c]);
+      if (iso) dateColumns.push({ colIdx: c, date: iso });
+    }
+    if (dateColumns.length === 0) throw new Error("날짜 열을 찾지 못했습니다.");
+
+    const blocks = [];
+    let current = null;
+    for (let i = headerRowIdx + 1; i < rows.length; i++) {
+      const row = rows[i];
+      const label = row[0];
+      if (label && String(label).trim() !== "") {
+        const mealType = excelDetectMealType_(label);
+        if (mealType) {
+          current = { type: mealType, rows: [] };
+          blocks.push(current);
+        } else if (excelIsCalorieLabel_(label)) {
+          current = null;
+        } else {
+          break; // 각주/안내문 등장 → 표 끝
+        }
+      }
+      if (current) current.rows.push(row);
+    }
+
+    const items = [];
+    blocks.forEach(block => {
+      dateColumns.forEach(({ colIdx, date }) => {
+        const item = excelParseBlockColumn_(block.rows, colIdx, date, block.type);
+        if (item) items.push(item);
+      });
+    });
+
+    if (items.length === 0) throw new Error("표에서 식단 항목을 하나도 찾지 못했습니다. 양식을 확인해주세요.");
+    return items;
   }
 
   async function loadPdfDocument(file) {
@@ -400,6 +571,27 @@
     croppedDataUrl = null;
     extractedPdfText = "";
     if (!file) return;
+
+    // 엑셀은 이미지/크롭 파이프라인을 완전히 건너뛰고, AI 호출 없이 결정론적으로 바로 파싱
+    if (isExcelFile(file)) {
+      try {
+        status.textContent = "⏳ 엑셀 파일을 읽는 중입니다...";
+        const items = await parseExcelFile(file);
+        parsedItems = mergeItems_(parsedItems, items);
+        renderTable(parsedItems);
+
+        document.getElementById('cropSection').style.display = 'none';
+        document.getElementById('cropPreviewSection').style.display = 'none';
+        document.getElementById('splitLabel').style.display = 'none';
+        document.getElementById('analyzeBtn').style.display = 'none';
+
+        status.textContent = `✅ 엑셀에서 ${items.length}건을 읽었습니다 (누적 ${parsedItems.length}건). AI 분석 없이 표 그대로 반영됐으니, 그래도 한 번 훑어보고 저장해주세요.`;
+        document.getElementById('resultCard').style.display = 'block';
+      } catch (err) {
+        status.innerHTML = `<span style="color:red">❌ 엑셀 처리 오류: ${err.message}</span>`;
+      }
+      return;
+    }
 
     try {
       let img;
