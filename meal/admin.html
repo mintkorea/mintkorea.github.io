@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>식단표 관리자 - 분석 및 등록</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f4f7f9;
+    margin: 0;
+    padding: 20px;
+    color: #222;
+  }
+  .card {
+    background: white;
+    padding: 24px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    max-width: 720px;
+    margin: 0 auto 20px auto;
+  }
+  h2 { margin-top: 0; }
+  #status { margin: 16px 0; font-size: 14px; font-weight: bold; color: #555; min-height: 20px; white-space: pre-wrap; }
+  .btn {
+    width: 100%; padding: 15px; border: none; border-radius: 10px;
+    font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
+  }
+  .btn-primary { background: #1a73e8; color: white; }
+  .btn-primary:disabled { background: #dadce0; cursor: not-allowed; }
+  .btn-success { background: #1e8e3e; color: white; }
+  .btn-success:disabled { background: #dadce0; cursor: not-allowed; }
+  .btn-secondary { background: #f1f3f4; color: #555; }
+  .btn-row { display: flex; gap: 8px; }
+  .btn-row .btn { margin-top: 10px; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+  th, td { border: 1px solid #e0e0e0; padding: 6px; text-align: left; vertical-align: top; }
+  th { background: #f0f4f8; }
+  .cell-edit { background: #fffef5; cursor: text; }
+  .cell-edit:focus { outline: 2px solid #1a73e8; background: white; }
+  .table-wrap { overflow-x: auto; }
+  td.needs-review { background: #fff3cd; }
+  .suggestions { margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap; }
+  .suggestion-chip {
+    font-size: 11px; background: #e8f0fe; color: #1a73e8; border: 1px solid #c6dafc;
+    border-radius: 10px; padding: 2px 8px; cursor: pointer; white-space: nowrap;
+  }
+  .suggestion-chip:hover { background: #d2e3fc; }
+  .legend { font-size: 12px; color: #777; margin-top: 8px; display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 12px; height: 12px; background: #fff3cd; border: 1px solid #e0c987; border-radius: 3px; display: inline-block; }
+
+  #cropCanvas { max-width: 100%; touch-action: none; border-radius: 8px; display: block; cursor: crosshair; background: #eee; }
+  #cropPreviewImg { max-width: 100%; border-radius: 8px; border: 1px solid #ddd; display: block; }
+  .hint { font-size: 13px; color: #555; margin: 6px 0; }
+</style>
+</head>
+<body>
+
+<div class="card" id="loginCard">
+  <h2>🔒 관리자 로그인</h2>
+  <input type="password" id="pwInput" placeholder="비밀번호 입력"
+         style="width:100%;padding:12px;border:1px solid #ccc;border-radius:8px;font-size:15px;"
+         onkeydown="if(event.key==='Enter') login()">
+  <button class="btn btn-primary" onclick="login()">로그인</button>
+  <div id="loginStatus" style="font-size:13px;color:red;margin-top:8px;"></div>
+</div>
+
+<div class="card" id="uploadCard" style="display:none;">
+  <h2>🍱 식단표 이미지 분석</h2>
+  <p style="font-size:13px;color:#777;margin-top:-8px;">
+    현장에서 식단표 고화질 사진을 업로드하면 자동으로 분석합니다.<br>
+    <b>카메라로 직접 촬영</b>하거나 <b>원본 화질</b> 이미지를 사용해주세요 — 카톡 등으로 전달받은 압축 이미지는 인식률이 떨어질 수 있습니다.<br>
+    <b>표가 한 장에 다 안 들어오거나 인식이 잘 안 되면, 요일별로 잘라서 여러 장에 나눠 올려주세요.</b> 분석 결과는 아래 표에 계속 누적됩니다 (같은 날짜·끼니는 최신 결과로 교체됨).<br>
+    <b>PDF 파일도 업로드 가능합니다</b> (자동으로 이미지로 변환 후 분석, 여러 페이지면 세로로 이어붙여 처리).<br>
+    <b>엑셀(.xlsx) 파일이 있다면 가장 정확합니다</b> — AI 분석 없이 표 안의 글자 규칙(*주메뉴*, &사이드)을 그대로 읽어 등록합니다.
+  </p>
+  <input type="file" id="fileInput" accept="image/*,application/pdf,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" onchange="handleFileSelect()">
+  <div id="resWarning" style="display:none; font-size:12px; color:#b45309; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:8px 10px; margin-top:8px; text-align:left;"></div>
+
+  <div id="cropSection" style="display:none; margin-top:14px;">
+    <p class="hint">✂️ 사진에서 <b>식단표 부분만</b> 손가락(또는 마우스)으로 드래그해서 선택하세요. 배경이나 다른 텍스트가 섞이면 인식률이 떨어집니다.</p>
+    <canvas id="cropCanvas"></canvas>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="confirmCrop(false)">✂️ 선택 영역만 사용</button>
+      <button class="btn btn-secondary" onclick="confirmCrop(true)">전체 이미지 사용</button>
+    </div>
+  </div>
+
+  <div id="cropPreviewSection" style="display:none; margin-top:14px;">
+    <p class="hint">✅ 이 영역으로 분석합니다:</p>
+    <img id="cropPreviewImg">
+    <button class="btn btn-secondary" onclick="reCrop()">↺ 다시 선택</button>
+  </div>
+
+  <label id="splitLabel" style="display:none; align-items:center; gap:6px; font-size:13px; color:#555; margin-top:14px; text-align:left;">
+    <input type="checkbox" id="splitCheckbox" checked style="width:16px;height:16px;">
+    표가 넓으면 자동으로 좌우 2등분해서 분석 (권장 — 한 번에 처리할 항목이 많으면 응답이 잘릴 수 있음)
+  </label>
+  <button id="analyzeBtn" class="btn btn-primary" onclick="analyze()" disabled style="display:none;">1. 이미지 분석</button>
+  <div id="status"></div>
+</div>
+
+<div class="card" id="resultCard" style="display:none;">
+  <h2>📋 분석 결과 확인 / 수정</h2>
+  <p style="font-size:13px;color:#777;margin-top:-8px;">
+    셀을 눌러 직접 수정할 수 있습니다. 확인 후 저장하세요.
+  </p>
+  <div class="table-wrap">
+    <table id="resultTable">
+      <thead>
+        <tr><th>날짜</th><th>구분</th><th>메인메뉴</th><th>반찬/사이드</th><th>코멘트</th></tr>
+      </thead>
+      <tbody id="resultBody"></tbody>
+    </table>
+  </div>
+  <div class="legend"><span class="legend-dot"></span> 노란색 = AI가 확신하지 못한 메뉴명 (직접 확인 필요, 후보 클릭 시 자동 입력)</div>
+  <button id="saveBtn" class="btn btn-success" onclick="saveData()">2. 확정 저장</button>
+  <button class="btn btn-secondary" onclick="exportCsv()">📄 CSV로 다운로드</button>
+  <button class="btn btn-secondary" onclick="resetTable()">표 비우고 새로 시작</button>
+</div>
+
+<script>
+  // ────────────────────────────────────────────────────────────
+  // ⚙️ 여기에 Apps Script "웹 앱으로 배포" 후 발급받은 URL을 넣으세요.
+  // 배포 방법: Apps Script 편집기 > 배포 > 새 배포 > 유형: 웹 앱
+  //   - 실행할 사용자: 나
+  //   - 액세스 권한이 있는 사용자: 전체 (Anyone)
+  // 발급된 URL은 보통 https://script.google.com/macros/s/xxxxx/exec 형태입니다.
+  // ────────────────────────────────────────────────────────────
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxwqQNPLpPaM_0IsTexNFkjRnlFFGKHL7cYph-2xScfFcfsoiYZSVyvshy1e27IcR8-Rg/exec";
+  const MIN_WIDTH = 1600; // 이 값보다 좁으면 저해상도로 간주 (카톡 전달 이미지 등)
+
+  let parsedItems = [];
+  let adminPassword = "";
+  let extractedPdfText = ""; // PDF 텍스트 레이어에서 추출한 원문 (철자 검증용 정답지)
+
+  // ── 로그인 ─────────────────────────────────────────────
+  async function callBackend(action, extraPayload) {
+    // 주의: Content-Type을 'text/plain'으로 보내야 브라우저가 CORS 프리플라이트(OPTIONS)를
+    // 발생시키지 않습니다. Apps Script 웹 앱은 OPTIONS 요청을 처리하지 못하므로
+    // 여기서 절대 'application/json' 헤더를 쓰면 안 됩니다. (본문 내용은 JSON 문자열로 보냄)
+    const res = await fetch(WEB_APP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action, password: adminPassword, ...extraPayload })
+    });
+    if (!res.ok) throw new Error("서버 응답 오류: " + res.status);
+    return res.json();
+  }
+
+  async function login() {
+    const pw = document.getElementById('pwInput').value;
+    const statusEl = document.getElementById('loginStatus');
+    if (!pw) return;
+
+    statusEl.style.color = "#555";
+    statusEl.textContent = "확인 중...";
+    adminPassword = pw;
+
+    try {
+      const res = await callBackend("ping", {});
+      if (!res.ok) throw new Error(res.error || "로그인 실패");
+      document.getElementById('loginCard').style.display = 'none';
+      document.getElementById('uploadCard').style.display = 'block';
+      statusEl.textContent = "";
+    } catch (err) {
+      adminPassword = "";
+      statusEl.style.color = "red";
+      statusEl.textContent = "❌ " + err.message;
+    }
+  }
+
+  // ── 이미지 로드 및 해상도 체크 ────────────────────────────
+  function loadImageFromFile(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  function loadImageFromDataUrl(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+  }
+
+  // ── PDF → 이미지 변환 (pdf.js) ─────────────────────────
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+
+  function isPdfFile(file) {
+    return file.type === "application/pdf" || /\.pdf$/i.test(file.name || "");
+  }
+
+  // ── 엑셀(.xlsx) 결정론적 파싱 (AI 미사용 - 표 안 텍스트 규칙만으로 100% 정확하게 추출) ──
+  //   규칙: *메뉴명* = 주메뉴 / &메뉴명 = 주메뉴에 딸린 사이드 / 그 외 = 일반 사이드
+  //   별표가 아예 없는 날(간편식, 주말 브런치 등)은 블록 첫 행의 마지막 항목을 메인으로 간주
+  function isExcelFile(file) {
+    return /\.xlsx?$/i.test(file.name || "") ||
+      file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      file.type === "application/vnd.ms-excel";
+  }
+
+  function excelHeaderToIsoDate_(cellText) {
+    const m = String(cellText || "").match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+    if (!m) return null;
+    const [, y, mo, d] = m;
+    return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+
+  const EXCEL_MEAL_TYPES = ["조식", "간편식", "중식", "석식", "야식"];
+  function excelDetectMealType_(label) {
+    const clean = String(label || "").replace(/\s+/g, "");
+    for (const t of EXCEL_MEAL_TYPES) if (clean.startsWith(t)) return t;
+    return null;
+  }
+  function excelIsCalorieLabel_(label) {
+    return String(label || "").replace(/\s+/g, "").startsWith("열량");
+  }
+
+  function excelIsNote_(l) { return /^\(.*\)$/.test(l); }
+  function excelIsStarred_(l) { return /^\*[\s\S]*\*$/.test(l); }
+  function excelIsAmp_(l) { return l.startsWith("&"); }
+
+  function excelAtomize_(line) {
+    let s = line;
+    if (excelIsStarred_(s)) s = s.replace(/^\*/, "").replace(/\*$/, "").trim();
+    return s.split(/[,&]/).map(x => x.trim()).filter(Boolean);
+  }
+
+  function excelParseBlockColumn_(blockRows, colIdx, date, type) {
+    const lineGroups = blockRows.map(row => {
+      const cell = row[colIdx];
+      if (cell === undefined || cell === null || String(cell).trim() === "") return [];
+      return String(cell).split("\n").map(s => s.trim()).filter(s => s !== "");
+    });
+    const allLines = lineGroups.flat();
+    if (allLines.length === 0) return null; // 이 날짜엔 해당 끼니가 없음 (정상)
+
+    let mainText = null;
+    let mainSourceLine = null;
+    let mainIsStarred = false;
+
+    // 1) 별표(*)로 감싼 첫 항목을 메인으로
+    for (const l of allLines) {
+      if (excelIsNote_(l)) continue;
+      if (excelIsStarred_(l)) {
+        mainSourceLine = l;
+        mainIsStarred = true;
+        mainText = l.replace(/^\*/, "").replace(/\*$/, "").trim();
+        break;
+      }
+    }
+
+    // 2) 별표가 없으면: 블록 첫 행에서 &로 시작하지 않는 마지막 줄 → 그 줄의 마지막 콤마 항목을 메인으로
+    if (mainText === null) {
+      const firstRowLines = lineGroups[0] || [];
+      for (let i = firstRowLines.length - 1; i >= 0; i--) {
+        const l = firstRowLines[i];
+        if (excelIsNote_(l) || excelIsAmp_(l)) continue;
+        mainSourceLine = l;
+        break;
+      }
+      if (mainSourceLine) {
+        if (mainSourceLine.includes(",")) {
+          const parts = mainSourceLine.split(",").map(s => s.trim()).filter(Boolean);
+          mainText = parts[parts.length - 1];
+        } else {
+          mainText = mainSourceLine;
+        }
+      }
+    }
+
+    if (!mainText) return null;
+
+    // 메인 안에 '&' 가 있으면 (예: "언양식바싹불고기&파채") 앞부분만 메인
+    let extraFromMain = null;
+    if (mainText.includes("&")) {
+      const idx = mainText.indexOf("&");
+      extraFromMain = mainText.slice(idx + 1).trim();
+      mainText = mainText.slice(0, idx).trim();
+    }
+    // 별표 메인에 콤마가 있으면(드문 케이스) 첫 조각만 메인, 나머지는 사이드로
+    let extraFromMainComma = [];
+    if (mainIsStarred && mainText.includes(",")) {
+      const parts = mainText.split(",").map(s => s.trim()).filter(Boolean);
+      mainText = parts[0];
+      extraFromMainComma = parts.slice(1);
+    }
+
+    const sides = [];
+    if (extraFromMain) sides.push(...excelAtomize_(extraFromMain));
+    extraFromMainComma.forEach(p => sides.push(...excelAtomize_(p)));
+
+    allLines.forEach(l => {
+      if (excelIsNote_(l) || l === mainSourceLine) {
+        // mainSourceLine 자체(별표 없는 케이스)에 남은 콤마 조각은 사이드로
+        if (l === mainSourceLine && !mainIsStarred && l.includes(",")) {
+          const parts = l.split(",").map(s => s.trim()).filter(Boolean);
+          parts.forEach(p => { if (p !== mainText) sides.push(...excelAtomize_(p)); });
+        }
+        return;
+      }
+      sides.push(...excelAtomize_(l));
+    });
+
+    return {
+      date, type, main: mainText, all: sides.join(", "), comment: "",
+      matched: true, suggestions: []
+    };
+  }
+
+  async function parseExcelFile(file) {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
+
+    let headerRowIdx = -1;
+    for (let i = 0; i < rows.length; i++) {
+      if (String(rows[i][0] || "").replace(/\s+/g, "") === "구분") { headerRowIdx = i; break; }
+    }
+    if (headerRowIdx === -1) throw new Error("헤더 행('구분')을 찾지 못했습니다. 엑셀 양식이 다른 것 같습니다.");
+
+    const headerRow = rows[headerRowIdx];
+    const dateColumns = [];
+    for (let c = 1; c < headerRow.length; c++) {
+      const iso = excelHeaderToIsoDate_(headerRow[c]);
+      if (iso) dateColumns.push({ colIdx: c, date: iso });
+    }
+    if (dateColumns.length === 0) throw new Error("날짜 열을 찾지 못했습니다.");
+
+    const blocks = [];
+    let current = null;
+    for (let i = headerRowIdx + 1; i < rows.length; i++) {
+      const row = rows[i];
+      const label = row[0];
+      if (label && String(label).trim() !== "") {
+        const mealType = excelDetectMealType_(label);
+        if (mealType) {
+          current = { type: mealType, rows: [] };
+          blocks.push(current);
+        } else if (excelIsCalorieLabel_(label)) {
+          current = null;
+        } else {
+          break; // 각주/안내문 등장 → 표 끝
+        }
+      }
+      if (current) current.rows.push(row);
+    }
+
+    const items = [];
+    blocks.forEach(block => {
+      dateColumns.forEach(({ colIdx, date }) => {
+        const item = excelParseBlockColumn_(block.rows, colIdx, date, block.type);
+        if (item) items.push(item);
+      });
+    });
+
+    if (items.length === 0) throw new Error("표에서 식단 항목을 하나도 찾지 못했습니다. 양식을 확인해주세요.");
+    return items;
+  }
+
+  async function loadPdfDocument(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    return pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  }
+
+  /**
+   * 이미 로드된 PDF 문서의 모든 페이지를 고해상도로 렌더링한 뒤,
+   * 세로로 이어붙인 하나의 이미지(Image 객체)로 변환해서 반환.
+   * (구조/색상 판별용 - 표 레이아웃을 시각적으로 보여주기 위함)
+   */
+  async function renderPdfPagesToImage(pdf, onProgress) {
+    const RENDER_SCALE = 2.5; // 텍스트가 작을 수 있어 넉넉한 해상도로 렌더링
+    const pageCanvases = [];
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      if (onProgress) onProgress(pageNum, pdf.numPages);
+      const page = await pdf.getPage(pageNum);
+      const viewport = page.getViewport({ scale: RENDER_SCALE });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      pageCanvases.push(canvas);
+    }
+
+    if (pageCanvases.length === 1) {
+      return loadImageFromDataUrl(pageCanvases[0].toDataURL('image/png'));
+    }
+
+    // 여러 페이지 → 세로로 이어붙이기
+    const totalWidth = Math.max(...pageCanvases.map(c => c.width));
+    const totalHeight = pageCanvases.reduce((sum, c) => sum + c.height, 0);
+    const combined = document.createElement('canvas');
+    combined.width = totalWidth;
+    combined.height = totalHeight;
+    const ctx = combined.getContext('2d');
+
+    let yOffset = 0;
+    pageCanvases.forEach(c => {
+      ctx.drawImage(c, 0, yOffset);
+      yOffset += c.height;
+    });
+
+    return loadImageFromDataUrl(combined.toDataURL('image/png'));
+  }
+
+  /**
+   * PDF에 실제 텍스트 레이어가 있으면(스캔 이미지가 아니라 문서로 만들어진 PDF라면)
+   * 글자 단위로 100% 정확한 원문을 추출한다. 표 레이아웃 정보는 없지만,
+   * 철자 오독을 교정하는 "정답지" 역할로 AI 프롬프트에 함께 제공한다.
+   * @return {string} 추출된 텍스트 (텍스트 레이어가 없으면 빈 문자열)
+   */
+  async function extractPdfText(pdf) {
+    let allText = "";
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const content = await page.getTextContent();
+      const pageText = content.items.map(it => it.str).join(" ").replace(/\s+/g, " ").trim();
+      if (pageText) allText += pageText + "\n";
+    }
+    return allText.trim();
+  }
+
+  function checkResolutionWarning(w, h) {
+    const warningBox = document.getElementById('resWarning');
+    if (w < MIN_WIDTH) {
+      warningBox.style.display = 'block';
+      warningBox.innerHTML =
+        `⚠️ 해상도가 낮습니다 (${w}×${h}px). 인식 오류가 늘어날 수 있어요.<br>` +
+        `카카오톡으로 받은 이미지라면, 대화방에서 사진을 <b>길게 눌러 "저장"</b> 후 갤러리의 <b>원본 사진</b>을 다시 선택해주세요.`;
+    } else {
+      warningBox.style.display = 'none';
+    }
+  }
+
+  // ── 크롭 UI ────────────────────────────────────────────
+  let originalImg = null;
+  let canvasScale = 1;
+  let selRect = null;
+  let dragStart = null;
+  const cropCanvas = document.getElementById('cropCanvas');
+  const cropCtx = cropCanvas.getContext('2d');
+  let croppedDataUrl = null;
+
+  function clampRect(r, maxW, maxH) {
+    const x = Math.max(0, Math.min(r.x, maxW));
+    const y = Math.max(0, Math.min(r.y, maxH));
+    const w = Math.max(0, Math.min(r.w, maxW - x));
+    const h = Math.max(0, Math.min(r.h, maxH - y));
+    return { x, y, w, h };
+  }
+
+  function drawCropCanvas() {
+    cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+    cropCtx.drawImage(originalImg, 0, 0, cropCanvas.width, cropCanvas.height);
+    cropCtx.fillStyle = 'rgba(0,0,0,0.45)';
+    cropCtx.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
+
+    if (selRect && selRect.w > 0 && selRect.h > 0) {
+      const sx = selRect.x / canvasScale, sy = selRect.y / canvasScale;
+      const sw = selRect.w / canvasScale, sh = selRect.h / canvasScale;
+      cropCtx.drawImage(originalImg, sx, sy, sw, sh, selRect.x, selRect.y, selRect.w, selRect.h);
+      cropCtx.strokeStyle = '#1a73e8';
+      cropCtx.lineWidth = 2;
+      cropCtx.strokeRect(selRect.x + 1, selRect.y + 1, Math.max(selRect.w - 2, 0), Math.max(selRect.h - 2, 0));
+    }
+  }
+
+  function getCanvasPos(e) {
+    const rect = cropCanvas.getBoundingClientRect();
+    const scaleX = cropCanvas.width / rect.width;
+    const scaleY = cropCanvas.height / rect.height;
+    const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0].clientY);
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  }
+
+  cropCanvas.addEventListener('pointerdown', e => {
+    cropCanvas.setPointerCapture(e.pointerId);
+    dragStart = getCanvasPos(e);
+    selRect = { x: dragStart.x, y: dragStart.y, w: 0, h: 0 };
+    drawCropCanvas();
+  });
+  cropCanvas.addEventListener('pointermove', e => {
+    if (!dragStart) return;
+    const p = getCanvasPos(e);
+    const x = Math.min(dragStart.x, p.x), y = Math.min(dragStart.y, p.y);
+    const w = Math.abs(p.x - dragStart.x), h = Math.abs(p.y - dragStart.y);
+    selRect = clampRect({ x, y, w, h }, cropCanvas.width, cropCanvas.height);
+    drawCropCanvas();
+  });
+  cropCanvas.addEventListener('pointerup', () => {
+    dragStart = null;
+    if (!selRect || selRect.w < 20 || selRect.h < 20) {
+      selRect = { x: 0, y: 0, w: cropCanvas.width, h: cropCanvas.height };
+      drawCropCanvas();
+    }
+  });
+
+  function initCropUI(img) {
+    originalImg = img;
+    const maxW = Math.min(680, window.innerWidth - 80);
+    canvasScale = Math.min(1, maxW / img.naturalWidth);
+    cropCanvas.width = Math.round(img.naturalWidth * canvasScale);
+    cropCanvas.height = Math.round(img.naturalHeight * canvasScale);
+    selRect = { x: 0, y: 0, w: cropCanvas.width, h: cropCanvas.height };
+    drawCropCanvas();
+
+    document.getElementById('cropSection').style.display = 'block';
+    document.getElementById('cropPreviewSection').style.display = 'none';
+    document.getElementById('splitLabel').style.display = 'none';
+    document.getElementById('analyzeBtn').style.display = 'none';
+    document.getElementById('analyzeBtn').disabled = true;
+  }
+
+  function confirmCrop(useFull) {
+    let sx, sy, sw, sh;
+    if (useFull || !selRect || selRect.w < 20 || selRect.h < 20) {
+      sx = 0; sy = 0; sw = originalImg.naturalWidth; sh = originalImg.naturalHeight;
+    } else {
+      sx = selRect.x / canvasScale;
+      sy = selRect.y / canvasScale;
+      sw = selRect.w / canvasScale;
+      sh = selRect.h / canvasScale;
+    }
+
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = Math.round(sw);
+    outCanvas.height = Math.round(sh);
+    outCanvas.getContext('2d').drawImage(originalImg, sx, sy, sw, sh, 0, 0, outCanvas.width, outCanvas.height);
+    croppedDataUrl = outCanvas.toDataURL('image/png');
+
+    checkResolutionWarning(outCanvas.width, outCanvas.height);
+
+    document.getElementById('cropPreviewImg').src = croppedDataUrl;
+    document.getElementById('cropSection').style.display = 'none';
+    document.getElementById('cropPreviewSection').style.display = 'block';
+    document.getElementById('splitLabel').style.display = 'flex';
+    document.getElementById('analyzeBtn').style.display = 'block';
+    document.getElementById('analyzeBtn').disabled = false;
+  }
+
+  function reCrop() {
+    document.getElementById('cropPreviewSection').style.display = 'none';
+    document.getElementById('splitLabel').style.display = 'none';
+    document.getElementById('analyzeBtn').style.display = 'none';
+    document.getElementById('cropSection').style.display = 'block';
+    selRect = { x: 0, y: 0, w: cropCanvas.width, h: cropCanvas.height };
+    drawCropCanvas();
+  }
+
+  async function handleFileSelect() {
+    const file = document.getElementById('fileInput').files[0];
+    const status = document.getElementById('status');
+    document.getElementById('resWarning').style.display = 'none';
+    croppedDataUrl = null;
+    extractedPdfText = "";
+    if (!file) return;
+
+    // 엑셀은 이미지/크롭 파이프라인을 완전히 건너뛰고, AI 호출 없이 결정론적으로 바로 파싱
+    if (isExcelFile(file)) {
+      try {
+        status.textContent = "⏳ 엑셀 파일을 읽는 중입니다...";
+        const items = await parseExcelFile(file);
+        parsedItems = mergeItems_(parsedItems, items);
+        renderTable(parsedItems);
+
+        document.getElementById('cropSection').style.display = 'none';
+        document.getElementById('cropPreviewSection').style.display = 'none';
+        document.getElementById('splitLabel').style.display = 'none';
+        document.getElementById('analyzeBtn').style.display = 'none';
+
+        status.textContent = `✅ 엑셀에서 ${items.length}건을 읽었습니다 (누적 ${parsedItems.length}건). AI 분석 없이 표 그대로 반영됐으니, 그래도 한 번 훑어보고 저장해주세요.`;
+        document.getElementById('resultCard').style.display = 'block';
+      } catch (err) {
+        status.innerHTML = `<span style="color:red">❌ 엑셀 처리 오류: ${err.message}</span>`;
+      }
+      return;
+    }
+
+    try {
+      let img;
+      if (isPdfFile(file)) {
+        status.textContent = "⏳ PDF를 불러오는 중입니다...";
+        const pdf = await loadPdfDocument(file);
+
+        status.textContent = "⏳ PDF 원본 텍스트 추출 중...";
+        extractedPdfText = await extractPdfText(pdf);
+
+        img = await renderPdfPagesToImage(pdf, (cur, total) => {
+          if (total > 1) status.textContent = `⏳ PDF 이미지 변환 중... (${cur}/${total}페이지)`;
+          else status.textContent = "⏳ PDF 이미지 변환 중...";
+        });
+
+        status.textContent = extractedPdfText
+          ? "✅ PDF에서 원본 텍스트를 찾았습니다 — 철자 정확도가 크게 올라갑니다."
+          : "ℹ️ PDF에서 텍스트를 찾지 못했습니다 (스캔 이미지형 PDF로 보임 — 이미지 인식으로만 처리됩니다).";
+      } else {
+        img = await loadImageFromFile(file);
+      }
+      checkResolutionWarning(img.naturalWidth, img.naturalHeight);
+      initCropUI(img);
+    } catch (err) {
+      status.innerHTML = `<span style="color:red">❌ 파일을 여는 중 오류: ${err.message}</span>`;
+    }
+  }
+
+  // ── 2등분 분할 분석 (긴 표 대응) ───────────────────────────
+  function splitImageInHalves(img) {
+    const w = img.naturalWidth, h = img.naturalHeight;
+    const overlap = Math.floor(w * 0.08); // 8% 겹침 (경계 항목 잘림 방지)
+    const halfW = Math.floor(w / 2);
+    const regions = [
+      { x: 0, w: Math.min(halfW + overlap, w) },
+      { x: Math.max(halfW - overlap, 0), w: w - Math.max(halfW - overlap, 0) }
+    ];
+    return regions.map(r => {
+      const canvas = document.createElement('canvas');
+      canvas.width = r.w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, r.x, 0, r.w, h, 0, 0, r.w, h);
+      return canvas.toDataURL('image/png');
+    });
+  }
+
+  // 여러 조각에서 나온 결과를 날짜+구분 기준으로 중복 제거하며 병합 (같은 업로드 내에서)
+  function mergeItemLists(lists) {
+    const map = new Map();
+    lists.forEach(items => {
+      items.forEach(item => {
+        const key = `${item.date}__${item.type}`;
+        const existing = map.get(key);
+        if (!existing) {
+          map.set(key, item);
+        } else {
+          const existingBetter = existing.matched === true || (existing.main || "").length >= (item.main || "").length;
+          if (!existingBetter) map.set(key, item);
+        }
+      });
+    });
+    return Array.from(map.values());
+  }
+
+  // 이번 업로드 결과를 기존 누적 표(parsedItems)에 병합 (같은 날짜+구분은 최신 결과로 교체)
+  function mergeItems_(existing, incoming) {
+    const merged = existing.slice();
+    incoming.forEach(newItem => {
+      const idx = merged.findIndex(it => it.date === newItem.date && it.type === newItem.type);
+      if (idx !== -1) merged[idx] = newItem;
+      else merged.push(newItem);
+    });
+    const typeOrder = ["조식", "간편식", "중식", "석식", "야식"];
+    merged.sort((a, b) => {
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      return typeOrder.indexOf(a.type) - typeOrder.indexOf(b.type);
+    });
+    return merged;
+  }
+
+  async function analyzeSinglePart(base64Data, mimeType, statusPrefix) {
+    const status = document.getElementById('status');
+    status.textContent = statusPrefix + " ⏳ 데이터를 정밀 분석 중입니다... (최대 30초 소요)";
+    const res = await callBackend("processImage", { base64Data, mimeType, pdfText: extractedPdfText });
+    if (!res.ok) throw new Error(res.error || "분석 실패");
+
+    let items;
+    try {
+      items = JSON.parse(res.result);
+    } catch (parseErr) {
+      throw new Error("AI 응답을 JSON으로 해석하지 못했습니다: " + res.result);
+    }
+    if (items && items.error) throw new Error(items.error);
+    return items;
+  }
+
+  async function analyze() {
+    const btn = document.getElementById('analyzeBtn');
+    const status = document.getElementById('status');
+    const shouldSplit = document.getElementById('splitCheckbox').checked;
+    if (!croppedDataUrl) return;
+
+    btn.disabled = true;
+    document.getElementById('resultCard').style.display = 'none';
+
+    try {
+      if (shouldSplit) {
+        const img = await loadImageFromDataUrl(croppedDataUrl);
+        const halves = splitImageInHalves(img);
+
+        const resultsPerPart = [];
+        for (let i = 0; i < halves.length; i++) {
+          const items = await analyzeSinglePart(halves[i], 'image/png', `[${i + 1}/${halves.length}]`);
+          resultsPerPart.push(items);
+        }
+
+        const mergedThisUpload = mergeItemLists(resultsPerPart);
+        parsedItems = mergeItems_(parsedItems, mergedThisUpload);
+        renderTable(parsedItems);
+        const reviewCount = parsedItems.filter(it => it.matched === false).length;
+        status.textContent = reviewCount > 0
+          ? `✅ 분석 완료(2등분 병합): 이번 이미지에서 ${mergedThisUpload.length}건 인식됨 (누적 ${parsedItems.length}건). ⚠️ ${reviewCount}건은 확인이 필요합니다 (노란 셀).`
+          : `✅ 분석 완료(2등분 병합): 이번 이미지에서 ${mergedThisUpload.length}건 인식됨 (누적 ${parsedItems.length}건). 아래 표에서 확인/수정 후 저장하세요.`;
+        document.getElementById('resultCard').style.display = 'block';
+
+      } else {
+        const items = await analyzeSinglePart(croppedDataUrl, 'image/png', "");
+        parsedItems = mergeItems_(parsedItems, items);
+        renderTable(parsedItems);
+        const reviewCount = parsedItems.filter(it => it.matched === false).length;
+        status.textContent = reviewCount > 0
+          ? `✅ 분석 완료: 이번 이미지에서 ${items.length}건 인식됨 (누적 ${parsedItems.length}건). ⚠️ ${reviewCount}건은 확인이 필요합니다 (노란 셀).`
+          : `✅ 분석 완료: 이번 이미지에서 ${items.length}건 인식됨 (누적 ${parsedItems.length}건). 아래 표에서 확인/수정 후 저장하세요.`;
+        document.getElementById('resultCard').style.display = 'block';
+      }
+    } catch (err) {
+      status.innerHTML = `<span style="color:red">❌ ${err.message}</span>`;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function resetTable() {
+    if (parsedItems.length > 0 && !confirm("지금까지 누적된 분석 결과가 모두 사라집니다. 계속할까요?")) return;
+    parsedItems = [];
+    renderTable(parsedItems);
+    document.getElementById('resultCard').style.display = 'none';
+    document.getElementById('status').textContent = "";
+    document.getElementById('fileInput').value = "";
+    document.getElementById('cropSection').style.display = 'none';
+    document.getElementById('cropPreviewSection').style.display = 'none';
+    document.getElementById('splitLabel').style.display = 'none';
+    document.getElementById('analyzeBtn').style.display = 'none';
+    document.getElementById('resWarning').style.display = 'none';
+    croppedDataUrl = null;
+    originalImg = null;
+    extractedPdfText = "";
+  }
+
+  // ── 결과 표 렌더링 ─────────────────────────────────────
+  function renderTable(items) {
+    const body = document.getElementById('resultBody');
+    body.innerHTML = "";
+    items.forEach((item, idx) => {
+      const tr = document.createElement('tr');
+      const needsReview = item.matched === false;
+      const suggestions = item.suggestions || [];
+
+      const suggestionHtml = (needsReview && suggestions.length > 0)
+        ? `<div class="suggestions">${suggestions.map(s =>
+            `<span class="suggestion-chip" onclick="applySuggestion(${idx}, this)">${escapeHtml(s)}</span>`
+          ).join('')}</div>`
+        : "";
+
+      tr.innerHTML = `
+        <td><div class="cell-edit" contenteditable="true" data-idx="${idx}" data-field="date">${escapeHtml(item.date || "")}</div></td>
+        <td><div class="cell-edit" contenteditable="true" data-idx="${idx}" data-field="type">${escapeHtml(item.type || "")}</div></td>
+        <td class="${needsReview ? 'needs-review' : ''}">
+          <div class="cell-edit" contenteditable="true" data-idx="${idx}" data-field="main">${escapeHtml(item.main || "")}</div>
+          ${suggestionHtml}
+        </td>
+        <td><div class="cell-edit" contenteditable="true" data-idx="${idx}" data-field="all">${escapeHtml(item.all || "")}</div></td>
+        <td><div class="cell-edit" contenteditable="true" data-idx="${idx}" data-field="comment">${escapeHtml(item.comment || "")}</div></td>
+      `;
+      body.appendChild(tr);
+    });
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function applySuggestion(idx, chipEl) {
+    const chosen = chipEl.textContent;
+    const td = chipEl.closest('td');
+    const editDiv = td.querySelector('.cell-edit[data-field="main"]');
+    editDiv.textContent = chosen;
+    td.classList.remove('needs-review');
+    const suggestionsBox = td.querySelector('.suggestions');
+    if (suggestionsBox) suggestionsBox.remove();
+    parsedItems[idx].main = chosen;
+    parsedItems[idx].matched = true;
+  }
+
+  function syncEditsFromTable() {
+    document.querySelectorAll('#resultBody .cell-edit[data-field]').forEach(el => {
+      const idx = Number(el.dataset.idx);
+      const field = el.dataset.field;
+      parsedItems[idx][field] = el.textContent.trim();
+    });
+  }
+
+  async function saveData() {
+    const btn = document.getElementById('saveBtn');
+    const status = document.getElementById('status');
+    syncEditsFromTable();
+
+    btn.disabled = true;
+    status.textContent = "⏳ 시트에 저장 중입니다...";
+
+    try {
+      const res = await callBackend("saveConfirmedData", { items: parsedItems });
+      if (!res.ok) throw new Error(res.message || "저장 실패");
+      status.innerHTML = `<span style="color:blue">${res.message}</span>`;
+      exportCsv(); // 저장 성공 시 CSV도 함께 다운로드
+    } catch (err) {
+      status.innerHTML = `<span style="color:red">❌ ${err.message}</span>`;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── CSV 내보내기 ───────────────────────────────────────
+  function csvEscape(val) {
+    const s = String(val === undefined || val === null ? "" : val);
+    if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  function exportCsv() {
+    syncEditsFromTable();
+    if (parsedItems.length === 0) {
+      alert("다운로드할 데이터가 없습니다. 먼저 이미지를 분석해주세요.");
+      return;
+    }
+
+    const header = ["날짜", "구분", "메인메뉴", "반찬/사이드", "코멘트"];
+    const rows = parsedItems.map(it => [it.date, it.type, it.main, it.all, it.comment]);
+    const csvLines = [header, ...rows].map(row => row.map(csvEscape).join(","));
+    // 엑셀에서 한글이 깨지지 않도록 UTF-8 BOM을 붙임
+    const csvContent = "\uFEFF" + csvLines.join("\r\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `식단표_${today}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+</script>
+</body>
+</html>
