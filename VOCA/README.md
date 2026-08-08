@@ -5,7 +5,7 @@ UI/학습 로직(`src/App.jsx`)은 아티팩트 버전과 거의 동일하고, �
 동작하는 인프라로 교체했습니다.
 
 - **저장소**: 아티팩트 전용 `window.storage` → **IndexedDB (Dexie)** 로컬 저장 + **Firestore** 선택적 백업/동기화
-- **AI 호출**: 아티팩트에서 자동 인증되던 `api.anthropic.com` 직접 호출 → **서버리스 프록시**(`/api/claude.js`)를 거치도록 변경 (API 키를 브라우저에 절대 노출하지 않기 위함)
+- **AI 호출**: 아티팩트에서 자동 인증되던 Anthropic API 직접 호출 → **Gemini API**를 **서버리스 프록시**(`/api/gemini.js`)를 거쳐 호출하도록 변경 (API 키를 브라우저에 절대 노출하지 않기 위함)
 
 ## 로컬에서 실행하기
 
@@ -25,13 +25,14 @@ IP 접속) 후 사진 촬영 버튼과 발음 버튼을 확인해보세요. 아�
 
 ## 2. AI 기능(사진 OCR, 학습 도구 생성) 켜기 — Vercel 배포 기준
 
-1. [Anthropic Console](https://console.anthropic.com)에서 API 키 발급
+1. [Google AI Studio](https://aistudio.google.com/apikey)에서 Gemini API 키 무료 발급
 2. 이 프로젝트를 GitHub에 올리고 [Vercel](https://vercel.com)에 연결 (Import Project)
-3. Vercel 프로젝트 설정 → **Environment Variables** → `ANTHROPIC_API_KEY` 에 발급받은 키 입력
-4. 배포하면 `/api/claude` 가 자동으로 서버리스 함수로 동작합니다 (`api/claude.js` 참고)
+3. Vercel 프로젝트 설정 → **Environment Variables** → `GEMINI_API_KEY` 에 발급받은 키 입력
+4. 배포하면 `/api/gemini` 가 자동으로 서버리스 함수로 동작합니다 (`api/gemini.js` 참고)
 5. 키는 서버에만 있고 브라우저 코드에는 절대 들어가지 않습니다
+6. 필요하면 `GEMINI_MODEL` 환경변수로 모델을 바꿀 수 있어요 (기본값 `gemini-2.0-flash`)
 
-> Vercel이 아닌 다른 곳에 배포한다면 `api/claude.js`와 같은 역할을 하는 서버리스 함수를
+> Vercel이 아닌 다른 곳에 배포한다면 `api/gemini.js`와 같은 역할을 하는 서버리스 함수를
 > 그 플랫폼 방식대로 하나 만들어주면 됩니다 (Netlify Functions, Firebase Functions 등).
 
 ## 3. 기기 간 동기화(선택) — Firebase 설정
@@ -50,12 +51,32 @@ IP 접속) 후 사진 촬영 버튼과 발음 버튼을 확인해보세요. 아�
 
 ## 4. 실제 배포
 
+### GitHub Pages로 배포하는 경우 (지금 쓰고 계신 방식)
+
+이 프로젝트는 `https://mintkorea.github.io/VOCA/` 배포를 기준으로 `vite.config.js`의
+`base: "/VOCA/"`가 이미 설정돼 있어요. 저장소 이름이 다르면 이 값을 그 이름으로 바꿔주세요.
+
+GitHub Pages는 **정적 파일만** 서빙하기 때문에 `api/gemini.js` 서버리스 함수는 여기서
+작동하지 않습니다. AI 기능(사진 OCR, 학습 도구 생성)을 쓰려면:
+
+1. `api/` 폴더만 별도로 Vercel에 배포 (또는 이 프로젝트 전체를 Vercel에도 한 번 더 배포해도 무방)
+2. Vercel 환경변수에 `GEMINI_API_KEY` 등록
+3. GitHub 저장소 → Settings → Secrets and variables → Actions → New repository secret
+   → 이름 `VITE_GEMINI_API_ENDPOINT`, 값은 `https://<your-vercel-project>.vercel.app/api/gemini`
+4. `main` 브랜치에 push하면 `.github/workflows/deploy.yml`이 자동으로 빌드해서
+   GitHub Pages에 배포합니다 (저장소 Settings → Pages → Source를 "GitHub Actions"로 설정해두세요)
+
+AI 기능 없이 학습 도구(단어 학습·SRS·게이미피케이션·엑셀 업로드·붙여넣기)만 쓰실 거면
+이 단계는 건너뛰어도 됩니다 — 나머지는 전부 정적 파일만으로 작동해요.
+
+### Vercel로 배포하는 경우 (더 간단함)
+
 ```bash
 npm run build
 ```
 
 로 생성되는 `dist/` 폴더를 Vercel/Netlify/Firebase Hosting 등에 올리면 끝입니다.
-Vercel을 쓰면 `api/claude.js`가 자동으로 인식되어 서버리스 함수까지 한 번에 배포됩니다.
+Vercel을 쓰면 `api/gemini.js`가 자동으로 인식되어 서버리스 함수까지 한 번에 배포됩니다.
 
 배포된 주소를 딸 폰 브라우저(Safari/Chrome)로 열고 "홈 화면에 추가"를 하면
 앱처럼 아이콘이 생기고 오프라인에서도 어제까지 학습한 데이터로 계속 쓸 수 있어요.
@@ -71,7 +92,7 @@ src/
     firebase.js     ← Firebase 프로젝트 설정 (직접 채워야 함)
     sync.js         ← 코드 기반 클라우드 백업/동기화
 api/
-  claude.js         ← Anthropic API 서버리스 프록시 (Vercel 기준)
+  gemini.js         ← Gemini API 서버리스 프록시 (Vercel 기준)
 ```
 
 ## 알려진 제약
