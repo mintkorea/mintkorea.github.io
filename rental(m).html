@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>성의교정 대관 현황 (Mobile)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -15,7 +15,8 @@
         .day-sat { color: #3B82F6 !important; } 
         .bu-chip { transition: all 0.2s; border: 1.5px solid #e2e8f0; cursor: pointer; background: white; white-space: nowrap; }
         .bu-chip.active { background-color: #1E3A5F; color: white; border-color: #1E3A5F; font-weight: 800; }
-        .rental-card { border: 1.2px solid #e2e8f0; background: white; border-radius: 0.75rem; }
+        .rental-card { border: 1.2px solid #e2e8f0; background: white; border-radius: 0.75rem; cursor: pointer; }
+        .rental-card.cancelled { opacity: 0.55; border-style: dashed; }
         .status-badge { font-weight: 800; padding: 1px 6px; border-radius: 4px; font-size: 10px; border-width: 1px; }
         .type-header { font-size: 11px; font-weight: 900; display: flex; align-items: center; gap: 4px; margin-bottom: 6px; margin-left: 4px; }
         .empty-box { border: 1.5px dashed #cbd5e1; border-radius: 0.75rem; padding: 1.25rem; text-align: center; color: #64748b; font-size: 11px; font-weight: 700; margin-bottom: 1rem; background-color: #ffffff; }
@@ -25,30 +26,25 @@
         .dot-offline { background-color: #EF4444; box-shadow: 0 0 4px #EF4444; }
         .dot-cached { background-color: #F59E0B; box-shadow: 0 0 4px #F59E0B; }
         .ctrl-action { color: #1E3A5F; border-color: #1E3A5F; cursor: pointer; }
+        .ctrl-toggle.active { background-color: #FEF2F2; border-color: #EF4444; color: #EF4444; }
         .flatpickr-input-custom { background-color: white; border: 2px solid white; border-radius: 1rem; height: 3.2rem; width: 100%; max-width: 260px; text-align: center; font-weight: 900; font-size: 1.125rem; color: #1E3A5F; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; }
         
-        /* 하단 플로팅 바 PC 대응 수정 */
         .nav-bar { 
-            position: fixed; 
-            bottom: 0; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            width: 100%;
-            max-width: 42rem; /* Tailwind의 max-w-2xl과 동일 */
-            height: 60px; 
-            background: rgba(255, 255, 255, 0.95); 
-            backdrop-filter: blur(8px);
-            border-top: 1px solid #e2e8f0; 
-            display: flex; 
-            z-index: 100; 
-            padding-bottom: env(safe-area-inset-bottom);
-            padding-left: 0.5rem;
-            padding-right: 0.5rem;
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%;
+            max-width: 42rem; height: 60px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px);
+            border-top: 1px solid #e2e8f0; display: flex; z-index: 100; 
+            padding-bottom: env(safe-area-inset-bottom); padding-left: 0.5rem; padding-right: 0.5rem;
         }
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
         .nav-label { font-size: 10px; font-weight: 900; color: #64748b; }
         .nav-label.active { color: #1E3A5F; }
         .nav-icon { font-size: 16px; margin-bottom: -2px; }
+
+        #modalOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 2000; padding: 20px; }
+        .modal-box { background: white; width: 100%; max-width: 400px; border-radius: 1.25rem; padding: 1.5rem; border-left: 8px solid #1E3A5F; }
+        .m-title { font-size: 1.6rem; font-weight: 900; color: #0F172A; margin: 10px 0; line-height: 1.2; }
+        .m-time { font-size: 1.2rem; font-weight: 800; color: #EF4444; }
+        .m-place { font-size: 1.2rem; font-weight: 700; color: #334155; }
     </style>
 </head>
 <body class="text-slate-800 pb-24">
@@ -56,10 +52,13 @@
         <div id="header" class="w-full bg-[#EEF2F6] rounded-2xl p-4 flex flex-col mb-3 border border-slate-200 shadow-sm items-center">
             <div class="flex items-center gap-2 mb-3">
                 <h1 class="text-lg font-black text-[#1E3A5F] tracking-tighter">성의교정 대관 현황</h1>
-                <span id="shiftBadge" class="text-white text-[10px] px-2 py-0.5 rounded-md font-black shadow-md tracking-tight">--</span>
+                <span id="onlineBadge" class="flex items-center bg-white border border-slate-200 text-[10px] px-2 py-1 rounded-md shadow-sm">
+                    <span id="statusDot" class="status-dot dot-offline"></span><span id="statusText" class="uppercase font-bold">WAIT</span>
+                </span>
             </div>
-            <div class="w-full flex justify-center">
+            <div class="w-full flex items-center justify-center gap-2">
                 <input type="text" id="datePicker" class="flatpickr-input-custom" placeholder="날짜 선택">
+                <span id="shiftBadge" class="text-white text-[10px] px-2 py-0.5 rounded-md font-black shadow-md tracking-tight whitespace-nowrap">--</span>
             </div>
         </div>
 
@@ -69,13 +68,8 @@
 
         <div id="results-anchor" class="w-full flex items-center justify-between mb-4 px-1 pb-2 border-b border-slate-100">
             <div class="flex items-center gap-1.5">
-                <div class="ctrl-item">
-                    <span id="statusDot" class="status-dot dot-offline"></span>
-                    <span id="statusText" class="uppercase">WAIT</span>
-                </div>
-                <button onclick="fetchOnlineData()" class="ctrl-item ctrl-action">
-                    <span class="mr-1">🔄</span>동기화
-                </button>
+                <button id="cancelToggleBtn" onclick="toggleShowCancelled()" class="ctrl-item ctrl-toggle"><span class="mr-1">🚫</span><span id="cancelToggleLabel">취소건 숨김</span></button>
+                <button onclick="fetchOnlineData()" class="ctrl-item ctrl-action"><span class="mr-1">🔄</span>동기화</button>
             </div>
             <div class="flex gap-1">
                 <button onclick="moveDate(-1)" class="ctrl-item ctrl-action px-2">← PREV</button>
@@ -84,43 +78,99 @@
             </div>
         </div>
 
+        <div class="w-full mb-3 px-1">
+            <button id="liveUpdateBtn" onclick="runLiveUpdate()" class="w-full h-10 rounded-lg font-black text-[12px] flex items-center justify-center gap-1.5 transition" style="background:#ECFDF5;border:1px solid #10B981;color:#047857;">
+                <span>🌐</span><span id="liveUpdateLabel">학교 서버에서 최신 정보 업데이트</span>
+            </button>
+            <div id="liveUpdateStatus" class="text-[10px] text-slate-400 mt-1.5 px-1 hidden"></div>
+        </div>
+
         <div id="rentalSection" class="w-full">
             <div id="loading" class="text-center py-10 text-slate-400 font-bold text-xs">데이터 로드 중...</div>
             <div id="listArea"></div>
         </div>
     </div>
 
+    <div id="modalOverlay" onclick="closeModal()">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-start mb-4">
+                <div id="modalBadgeArea" class="flex items-center gap-2"></div>
+                <button onclick="closeModal()" class="text-slate-300 text-2xl font-bold">×</button>
+            </div>
+            <div id="modalPlace" class="m-place"></div>
+            <div id="modalTime" class="m-time"></div>
+            <div id="modalEvent" class="m-title"></div>
+            <div id="modalDept" class="font-bold text-slate-500 mt-2"></div>
+        </div>
+    </div>
+
     <nav class="nav-bar shadow-[0_-8px_20px_rgba(0,0,0,0.08)]">
-        <button onclick="moveDate(-1)" class="nav-item">
-            <span class="nav-icon">◀</span>
-            <span class="nav-label">이전날</span>
-        </button>
-        <button onclick="moveDate(0)" class="nav-item">
-            <span class="nav-icon">📅</span>
-            <span class="nav-label active">오늘</span>
-        </button>
-        <button onclick="moveDate(1)" class="nav-item">
-            <span class="nav-icon">▶</span>
-            <span class="nav-label">다음날</span>
-        </button>
-        <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="nav-item">
-            <span class="nav-icon">▲</span>
-            <span class="nav-label">맨위로</span>
-        </button>
-        <button onclick="document.getElementById('results-anchor').scrollIntoView({behavior:'smooth'})" class="nav-item">
-            <span class="nav-icon">🔍</span>
-            <span class="nav-label">결과</span>
-        </button>
+        <button onclick="moveDate(-1)" class="nav-item"><span class="nav-icon">◀</span><span class="nav-label">이전날</span></button>
+        <button onclick="moveDate(0)" class="nav-item"><span class="nav-icon">📅</span><span class="nav-label active">오늘</span></button>
+        <button onclick="moveDate(1)" class="nav-item"><span class="nav-icon">▶</span><span class="nav-label">다음날</span></button>
+        <button onclick="document.getElementById('results-anchor').scrollIntoView({behavior:'smooth'})" class="nav-item"><span class="nav-icon">🔍</span><span class="nav-label">결과이동</span></button>
+        <button onclick="copyToClipboard()" class="nav-item"><span class="nav-icon">📋</span><span class="nav-label text-blue-600 font-black">스크랩</span></button>
     </nav>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbzKtqrzNK11rX4sCdDFv0lcgUcdVwsNiUnlXYc8Zjm0dJNlNV8ThwKrtqOgKBeVrP3g/exec";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzDWH34gJk42elBUl-Jky8kvvVlA8s36pYi-bU05wxr7CoOlrWNbOAKS-wxj8kYb-JV/exec";
         const BUILDINGS = ["전체", "성의회관", "의산연", "옴니버스 파크", "의과대학", "간호대학", "대학본관", "서울성모별관"];
         const HOLIDAYS = ["2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-01", "2026-05-05", "2026-05-24", "2026-06-06", "2026-08-15", "2026-09-24", "2026-09-25", "2026-09-26", "2026-10-03", "2026-10-09", "2026-12-25"];
         let selectedBu = ["성의회관", "의산연"]; 
         let allData = [];
         let currentDate = new Date();
         let fp;
+
+        // [기능 추가] 취소건 기본 숨김 여부 (기본값: 숨김/false = 표출 안함)
+        let showCancelled = false;
+
+        // [기능 추가] 상태값 기준으로 취소건 여부 판단
+        function isCancelled(r) {
+            return !!(r.status && r.status.includes('취소'));
+        }
+
+        function toggleShowCancelled() {
+            showCancelled = !showCancelled;
+            const btn = document.getElementById('cancelToggleBtn');
+            const label = document.getElementById('cancelToggleLabel');
+            btn.classList.toggle('active', showCancelled);
+            label.innerText = showCancelled ? '취소건 표시중' : '취소건 숨김';
+            updateDisplay();
+        }
+
+        function initDateFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const dateParam = params.get('date');
+            if (dateParam) {
+                const parsedDate = new Date(dateParam);
+                if (!isNaN(parsedDate)) {
+                    currentDate = parsedDate;
+                }
+            }
+        }
+
+        // [기능 추가] URL의 ?bu= 파라미터로 기본 선택 건물을 지정 (예: ?bu=옴니버스 파크,의과대학,간호대학)
+        function initBuildingsFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const buParam = params.get('bu');
+            if (!buParam) return;
+            const requested = buParam.split(',').map(s => s.trim()).filter(Boolean);
+            const matched = requested.filter(b => BUILDINGS.includes(b));
+            if (matched.length > 0) selectedBu = matched;
+        }
+
+        // [기능 추가] URL의 ?showCancelled=1 파라미터로 취소건 기본 표시 여부 지정
+        function initCancelToggleFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const val = params.get('showCancelled');
+            if (val === '1' || val === 'true') {
+                showCancelled = true;
+                const btn = document.getElementById('cancelToggleBtn');
+                const label = document.getElementById('cancelToggleLabel');
+                if (btn) btn.classList.add('active');
+                if (label) label.innerText = '취소건 표시중';
+            }
+        }
 
         async function initApp() {
             const backup = localStorage.getItem("rental_db_cache");
@@ -133,14 +183,199 @@
             await fetchOnlineData(false);
         }
 
+        /* ============ [기능 추가] 조회 화면에서 바로 학교 서버 갱신 ============
+           rental_updater.html의 스크래핑+구글시트 반영 로직을 그대로 가져와,
+           별도 관리자 화면을 열지 않고도 조회 화면에서 버튼 한 번으로
+           "① 대학 서버 조회 → ② 구글시트 반영 → ③ 화면 재조회"까지 한번에 처리한다. */
+        const LIVE_PROXIES = [
+            (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+            (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+            (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+        ];
+
+        function liveSleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+        async function liveFetchWithTimeout(url, ms) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), ms);
+            try {
+                return await fetch(url, { signal: controller.signal });
+            } finally {
+                clearTimeout(timer);
+            }
+        }
+
+        async function liveFetchViaProxies(targetUrl) {
+            let lastError = null;
+            for (let i = 0; i < LIVE_PROXIES.length; i++) {
+                const proxyUrl = LIVE_PROXIES[i](targetUrl);
+                for (let attempt = 1; attempt <= 2; attempt++) {
+                    try {
+                        const res = await liveFetchWithTimeout(proxyUrl, 12000);
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        const text = await res.text();
+                        return JSON.parse(text);
+                    } catch (err) {
+                        lastError = err;
+                        await liveSleep(600);
+                    }
+                }
+            }
+            throw lastError || new Error('모든 프록시 실패');
+        }
+
+        // 로컬 시간대 기준 YYYY-MM-DD (toISOString의 UTC 변환으로 인한 날짜 밀림 방지)
+        function liveToLocalDateStr(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        function liveWeekdayName(dateStr) {
+            const days = ["일", "월", "화", "수", "목", "금", "토"];
+            return days[new Date(dateStr).getDay()];
+        }
+
+        // 대관 원본 데이터의 "근무조" 필드용 계산 (rental_updater.html과 동일 기준일 2026-03-13 사용, 헤더의 개인 근무조 배지와는 별개)
+        function liveRowShift(dateStr) {
+            const baseDate = new Date("2026-03-13");
+            const targetDate = new Date(dateStr);
+            const diffDays = Math.floor((targetDate - baseDate) / (1000 * 60 * 60 * 24));
+            const shifts = ['A', 'B', 'C'];
+            const idx = ((diffDays % 3) + 3) % 3;
+            return `${shifts[idx]}조`;
+        }
+
+        function liveWeekdayNamesFromCodes(codes) {
+            const days = {"1":"월", "2":"화", "3":"수", "4":"목", "5":"금", "6":"토", "7":"일"};
+            if (!codes) return "";
+            return String(codes).split(",").map(c => days[c.trim()] || "").filter(Boolean).join(",");
+        }
+
+        function setLiveStatus(msg, show = true) {
+            const el = document.getElementById('liveUpdateStatus');
+            el.innerText = msg;
+            el.classList.toggle('hidden', !show);
+        }
+
+        async function runLiveUpdate() {
+            const btn = document.getElementById('liveUpdateBtn');
+            const label = document.getElementById('liveUpdateLabel');
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+            label.innerText = '① 대학 서버 조회 중...';
+            setLiveStatus('대학 서버에 접속해 최신 대관 정보를 가져오는 중입니다...');
+
+            // 현재 보고 있는 날짜를 기준으로 앞으로 7일치 창을 갱신 (관리자 화면의 기본 범위와 동일한 폭)
+            const sDate = new Date(currentDate); sDate.setHours(0,0,0,0);
+            const eDate = new Date(currentDate); eDate.setDate(eDate.getDate() + 6);
+            const sDateStr = liveToLocalDateStr(sDate);
+            const eDateStr = liveToLocalDateStr(eDate);
+
+            const targetUrl = `https://songeui.catholic.ac.kr/ko/service/application-for-rental_calendar.do?mode=getReservedData&start=${sDateStr}&end=${eDateStr}`;
+
+            let fetchedData = [];
+            try {
+                const json = await liveFetchViaProxies(targetUrl);
+                const raw = json.res || [];
+                const rows = [];
+                const startLimit = new Date(sDateStr + "T00:00:00");
+                const endLimit = new Date(eDateStr + "T23:59:59");
+
+                raw.forEach(item => {
+                    if (!item.startDt) return;
+                    const sDt = new Date(item.startDt + "T00:00:00");
+                    const eDt = new Date(item.endDt + "T23:59:59");
+                    const isPeriod = item.startDt !== item.endDt;
+                    const pRng = `${item.startDt}~${item.endDt}`;
+                    const dNms = liveWeekdayNamesFromCodes(item.allowDay);
+                    const allowed = item.allowDay ? String(item.allowDay).split(",").map(d => d.trim()).filter(d => !isNaN(d)) : [];
+
+                    let curr = new Date(sDt);
+                    while (curr <= eDt) {
+                        if (curr >= startLimit && curr <= endLimit) {
+                            let dayNo = curr.getDay();
+                            if (dayNo === 0) dayNo = 7;
+                            if (allowed.length === 0 || allowed.includes(String(dayNo))) {
+                                const fullDate = liveToLocalDateStr(curr);
+                                rows.push({
+                                    full_date: fullDate,
+                                    yoil: liveWeekdayName(fullDate),
+                                    shift: liveRowShift(fullDate),
+                                    is_period: isPeriod,
+                                    period_range: pRng,
+                                    allowed_days: isPeriod ? dNms : liveWeekdayName(fullDate),
+                                    건물명: String(item.buNm || '').trim(),
+                                    장소: item.placeNm || '-',
+                                    시간: `${item.startTime || ''}~${item.endTime || ''}`,
+                                    행사명: item.eventNm || '-',
+                                    부서: item.mgDeptNm || '-',
+                                    인원: String(item.peopleCount || '0'),
+                                    상태: item.status === 'Y' ? '확정' : '대기'
+                                });
+                            }
+                        }
+                        curr.setDate(curr.getDate() + 1);
+                    }
+                });
+
+                const seen = new Set();
+                fetchedData = rows.filter(item => {
+                    const k = [item.full_date, item.장소, item.시간, item.행사명].join('|');
+                    if (seen.has(k)) return false;
+                    seen.add(k);
+                    return true;
+                });
+            } catch (err) {
+                label.innerText = '학교 서버에서 최신 정보 업데이트';
+                btn.disabled = false; btn.style.opacity = '1';
+                setLiveStatus(`❌ 대학 서버 조회 실패: ${err.message}. 인터넷 상태 확인 후 다시 시도해주세요.`);
+                return;
+            }
+
+            if (fetchedData.length === 0) {
+                label.innerText = '학교 서버에서 최신 정보 업데이트';
+                btn.disabled = false; btn.style.opacity = '1';
+                setLiveStatus('⚠️ 해당 기간에 조회된 대관 내역이 없습니다.');
+                return;
+            }
+
+            label.innerText = '② 구글시트에 반영 중...';
+            setLiveStatus(`총 ${fetchedData.length}건 조회 완료 — 구글시트에 반영 중...`);
+
+            const payload = { rows: fetchedData, startDate: sDateStr, endDate: eDateStr };
+            let lastError = null;
+            for (let attempt = 1; attempt <= 3; attempt++) {
+                try {
+                    const postRes = await fetch(GAS_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await postRes.json();
+                    if (!data.ok) throw new Error(data.error || '알 수 없는 오류');
+
+                    label.innerText = '학교 서버에서 최신 정보 업데이트';
+                    btn.disabled = false; btn.style.opacity = '1';
+                    setLiveStatus(`✅ 신규 ${data.added}건 · 갱신 ${data.updated}건 · 취소처리 ${data.cancelled}건 · ${data.syncedAt} 기준 최신화 완료`);
+
+                    await fetchOnlineData(false); // 화면 재조회 (완료 alert는 표시하지 않음)
+                    return;
+                } catch (err) {
+                    lastError = err;
+                    await liveSleep(1000 * attempt);
+                }
+            }
+
+            label.innerText = '학교 서버에서 최신 정보 업데이트';
+            btn.disabled = false; btn.style.opacity = '1';
+            setLiveStatus(`❌ 구글시트 반영 실패: ${lastError.message}. 다시 시도해주세요.`);
+        }
+
         async function fetchOnlineData(isAlert = true) {
-            const dot = document.getElementById('statusDot');
-            const txt = document.getElementById('statusText');
-            txt.innerText = "SYNCING";
-            dot.className = "status-dot dot-offline";
             try {
                 const res = await fetch(`${GAS_URL}?t=${new Date().getTime()}`);
-                if (!res.ok) throw new Error("Network error");
                 const data = await res.json();
                 if (data && data.length > 0) {
                     allData = data;
@@ -150,10 +385,7 @@
                     updateDisplay();
                     if(isAlert) alert("최신 정보로 업데이트되었습니다.");
                 }
-            } catch (e) {
-                updateStatusUI(false, "OFFLINE", "dot-offline");
-                if(isAlert) alert("데이터 로드 실패.");
-            }
+            } catch (e) { updateStatusUI(false, "OFFLINE", "dot-offline"); }
         }
 
         function updateStatusUI(isOnline, msg, dotClass) {
@@ -193,17 +425,14 @@
             const listArea = document.getElementById('listArea');
             listArea.innerHTML = "";
             if (selectedBu.length === 0) { listArea.innerHTML = '<div class="empty-box">건물을 선택해주세요.</div>'; return; }
-            
             selectedBu.forEach(buName => {
                 if (buName === "전체") return;
                 const searchBu = buName === "의산연" ? "의생명산업연구원" : buName;
-                const buFiltered = allData.filter(r => r.rawDate === selectedDate && (r.bu && r.bu.includes(searchBu)));
-                
+                // [수정] 기본적으로 취소건은 제외하고 표출 (showCancelled 토글로 필요시 표시)
+                const buFiltered = allData.filter(r => r.rawDate === selectedDate && (r.bu && r.bu.includes(searchBu)) && (showCancelled || !isCancelled(r)));
                 let buHtml = `<div class="mb-5"><div class="flex items-center gap-1.5 px-1 font-black text-[15px] text-[#1E3A5F] mb-2"><span class="w-1 h-3.5 bg-[#1E3A5F] rounded-full"></span>${buName}</div>`;
-                
-                if (buFiltered.length === 0) { 
-                    buHtml += `<div class="empty-box">대관 내역이 없습니다.</div>`; 
-                } else {
+                if (buFiltered.length === 0) buHtml += `<div class="empty-box">대관 내역이 없습니다.</div>`;
+                else {
                     const daily = buFiltered.filter(r => r.type === '당일');
                     const periodic = buFiltered.filter(r => r.type === '기간');
                     if(daily.length > 0) {
@@ -220,8 +449,9 @@
         }
 
         function createCard(r, isPeriodic) {
-            const statusColor = r.status === '확정' || r.status === '승인' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-slate-50 text-slate-500 border-slate-100';
-            return `<div class="rental-card p-3 mb-2 shadow-sm border-l-[4px] ${!isPeriodic ? 'border-l-blue-400' : 'border-l-purple-400'}">
+            const cancelled = isCancelled(r);
+            const statusColor = cancelled ? 'bg-red-50 text-red-500 border-red-100' : (r.status === '확정' || r.status === '승인' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-slate-50 text-slate-500 border-slate-100');
+            return `<div class="rental-card p-3 mb-2 shadow-sm border-l-[4px] ${cancelled ? 'cancelled border-l-red-400' : (!isPeriodic ? 'border-l-blue-400' : 'border-l-purple-400')}" onclick='openModal(${JSON.stringify(r)})'>
                     <div class="flex justify-between items-center mb-1">
                         <span class="text-[12px] font-black text-slate-700 tracking-tight">📍 ${r.place}</span>
                         <span class="text-[10px] font-bold text-red-500 italic">🕒 ${r.time}</span>
@@ -230,7 +460,7 @@
                     ${isPeriodic ? `<div class="mb-2 text-[9px] font-bold text-purple-500 bg-purple-50/50 p-1 rounded tracking-tighter">📅 ${r.period} (${r.yoil})</div>` : ''}
                     <div class="flex justify-between items-center pt-1">
                         <div class="flex items-center gap-1.5">
-                            <span class="status-badge ${statusColor}">${r.status}</span>
+                            <span class="status-badge ${statusColor}">${cancelled ? '🚫 ' : ''}${r.status}</span>
                             <span class="text-[10px] font-bold text-slate-500 italic">🏢 ${r.dept}</span>
                         </div>
                         <span class="text-[10px] font-bold text-slate-300 tracking-tighter">👥 ${r.people}명</span>
@@ -238,40 +468,75 @@
                 </div>`;
         }
 
-        function moveDate(offset) {
-            if (offset === 0) currentDate = new Date();
-            else currentDate.setDate(currentDate.getDate() + offset);
-            updateDisplay();
-            window.scrollTo({top: 0, behavior: 'smooth'});
+        function openModal(r) {
+            const cancelled = isCancelled(r);
+            const badgeCol = cancelled ? 'bg-red-50 text-red-500 border-red-100' : (r.status === '확정' || r.status === '승인' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-slate-50 text-slate-500 border-slate-100');
+            document.getElementById('modalBadgeArea').innerHTML = `<span class="status-badge ${badgeCol} text-xs py-1 px-2">${cancelled ? '🚫 ' : ''}${r.status}</span><span class="font-bold text-slate-400">👥 ${r.people}명</span>`;
+            document.getElementById('modalPlace').innerText = `📍 ${r.place}`;
+            document.getElementById('modalTime').innerText = `🕒 ${r.time}`;
+            document.getElementById('modalEvent').innerText = r.event;
+            document.getElementById('modalDept').innerText = `🏢 ${r.dept}`;
+            document.getElementById('modalOverlay').style.display = 'flex';
+        }
+        function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
+        function moveDate(offset) { if (offset === 0) currentDate = new Date(); else currentDate.setDate(currentDate.getDate() + offset); updateDisplay(); window.scrollTo({top: 0, behavior: 'smooth'}); }
+
+        // [기능 추가/수정] 대관현황 텍스트 가공 및 클립보드 복사 함수
+        // - 기본적으로 취소건은 카톡 보고 텍스트에서 제외 (showCancelled 토글 ON 시에는 [취소] 표시와 함께 포함)
+        function copyToClipboard() {
+            const yyyy = currentDate.getFullYear();
+            const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(currentDate.getDate()).padStart(2, '0');
+            
+            let outputText = `${yyyy}년 ${mm}월 ${dd}일 대관현황\n\n`;
+            
+            // 데이터 추출 및 포맷팅 진행 (선택된 건물 기준)
+            selectedBu.forEach(buName => {
+                if (buName === "전체") return;
+                const searchBu = buName === "의산연" ? "의생명산업연구원" : buName;
+                const buFiltered = allData.filter(r => r.rawDate === `${yyyy}-${mm}-${dd}` && (r.bu && r.bu.includes(searchBu)) && (showCancelled || !isCancelled(r)));
+                
+                outputText += `${buName}(${buFiltered.length})\n`;
+                
+                if (buFiltered.length === 0) {
+                    outputText += "대관 내역이 없습니다.\n\n";
+                } else {
+                    buFiltered.forEach(r => {
+                        const tag = isCancelled(r) ? '[취소] ' : '';
+                        outputText += `${tag}${r.event}\n`;
+                        outputText += `${r.place}(${r.time})\n`;
+                        outputText += `${r.dept}\n\n`;
+                    });
+                }
+            });
+            
+            // 클립보드 복사 실행
+            navigator.clipboard.writeText(outputText.trim()).then(() => {
+                alert(`${yyyy}년 ${mm}월 ${dd}일 대관 내역이 복사되었습니다.\n메신저나 알림톡에 붙여넣기(Ctrl+V) 하세요!`);
+            }).catch(err => {
+                alert("복사에 실패했습니다. 브라우저 권한을 확인해주세요.");
+            });
         }
 
         window.onload = () => {
-            fp = flatpickr("#datePicker", {
-                locale: "ko", dateFormat: "Y.m.d (D)", defaultDate: new Date(), disableMobile: "true",
-                onChange: (selectedDates) => { if(selectedDates.length > 0) { currentDate = selectedDates[0]; updateDisplay(); } }
-            });
-
+            initDateFromURL(); 
+            initBuildingsFromURL();
+            fp = flatpickr("#datePicker", { locale: "ko", dateFormat: "Y.m.d (D)", defaultDate: currentDate, disableMobile: "true", onChange: (sd) => { if(sd.length > 0) { currentDate = sd[0]; updateDisplay(); } } });
+            
             const container = document.getElementById('buContainer');
             BUILDINGS.forEach(bu => {
                 const chip = document.createElement('div');
                 chip.className = `bu-chip py-1.5 rounded-lg text-[10px] font-black text-center shadow-sm ${selectedBu.includes(bu) ? 'active' : ''}`;
                 chip.innerText = bu;
                 chip.onclick = () => {
-                    if (bu === "전체") {
-                        const others = BUILDINGS.filter(b => b !== "전체");
-                        selectedBu = (selectedBu.length === others.length) ? [] : [...others];
-                    } else {
-                        if (selectedBu.includes(bu)) selectedBu = selectedBu.filter(b => b !== bu);
-                        else selectedBu.push(bu);
-                    }
-                    document.querySelectorAll('.bu-chip').forEach((c, i) => {
-                        const b = BUILDINGS[i];
-                        c.classList.toggle('active', b === "전체" ? selectedBu.length === BUILDINGS.length - 1 : selectedBu.includes(b));
-                    });
+                    if (bu === "전체") { const others = BUILDINGS.filter(b => b !== "전체"); selectedBu = (selectedBu.length === others.length) ? [] : [...others]; }
+                    else { if (selectedBu.includes(bu)) selectedBu = selectedBu.filter(b => b !== bu); else selectedBu.push(bu); }
+                    document.querySelectorAll('.bu-chip').forEach((c, i) => { const b = BUILDINGS[i]; c.classList.toggle('active', b === "전체" ? selectedBu.length === BUILDINGS.length - 1 : selectedBu.includes(b)); });
                     updateDisplay();
                 };
                 container.appendChild(chip);
             });
+            initCancelToggleFromURL();
             initApp();
         };
     </script>
