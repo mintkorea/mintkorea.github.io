@@ -386,7 +386,8 @@
                 // [날짜 구분 헤더] - 높이 35
                 sheet.mergeCells(rIdx, 1, rIdx, 6);
                 const dCell = sheet.getCell(rIdx, 1);
-                dCell.value = `📅 성의교정 대관 내역 - ${dStr} (${getShift(dStr).n}조)`;
+                const dayNameForExcel = ["일","월","화","수","목","금","토"][curr.getDay()];
+                dCell.value = `📅 성의교정 대관 내역 - ${dStr}(${dayNameForExcel}) [${getShift(dStr).n}조]`;
                 dCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } };
                 dCell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
                 dCell.alignment = { vertical: 'middle', horizontal: 'center' };
