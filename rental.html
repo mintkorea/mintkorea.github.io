@@ -51,11 +51,15 @@
 
         <div class="w-full mb-4 px-1">
             <div class="grid grid-cols-4 gap-1.5 w-full mb-4" id="buContainer"></div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
                 <button onclick="loadFromGoogle(true)" class="h-9 px-4 rounded-lg border border-slate-200 bg-white font-black text-[11px] text-[#1E3A5F]">🔄 동기화</button>
                 <button id="cancelToggleBtn" onclick="toggleShowCancelled()" class="toggle-chip"><span>🚫</span><span id="cancelToggleLabel">취소건 숨김</span></button>
+                <button id="liveUpdateBtn" onclick="runLiveUpdate()" class="h-9 px-4 rounded-lg font-black text-[11px]" style="background:#ECFDF5;border:1px solid #10B981;color:#047857;">
+                    🌐 <span id="liveUpdateLabel">학교 서버 최신화</span>
+                </button>
                 <button onclick="downloadExcel()" class="h-9 px-4 rounded-lg bg-[#1E3A5F] text-white font-black text-[11px]">📥 엑셀다운(인쇄)</button>
             </div>
+            <div id="liveUpdateStatus" class="text-[10px] text-slate-400 mt-1.5 px-1 hidden"></div>
         </div>
 
         <div id="outputArea" class="space-y-6 pb-20"></div>
@@ -87,6 +91,195 @@
             btn.classList.toggle('active', showCancelled);
             label.innerText = showCancelled ? '취소건 표시중' : '취소건 숨김';
             renderUI();
+        }
+
+        /* ============ [기능 추가] 조회 화면에서 바로 학교 서버 갱신 ============
+           rental_updater.html의 스크래핑+구글시트 반영 로직을 그대로 가져와,
+           별도 관리자 화면을 열지 않고도 조회 화면에서 버튼 한 번으로
+           "① 대학 서버 조회 → ② 구글시트 반영 → ③ 화면 재조회"까지 한번에 처리한다.
+           PC 버전은 이미 상단에 기간(range) 선택기가 있으므로, 그 선택된 기간 그대로를 갱신 범위로 사용. */
+        const LIVE_PROXIES = [
+            (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+            (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+            (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+        ];
+
+        function liveSleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+        async function liveFetchWithTimeout(url, ms) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), ms);
+            try {
+                return await fetch(url, { signal: controller.signal });
+            } finally {
+                clearTimeout(timer);
+            }
+        }
+
+        async function liveFetchViaProxies(targetUrl) {
+            let lastError = null;
+            for (let i = 0; i < LIVE_PROXIES.length; i++) {
+                const proxyUrl = LIVE_PROXIES[i](targetUrl);
+                for (let attempt = 1; attempt <= 2; attempt++) {
+                    try {
+                        const res = await liveFetchWithTimeout(proxyUrl, 12000);
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        const text = await res.text();
+                        return JSON.parse(text);
+                    } catch (err) {
+                        lastError = err;
+                        await liveSleep(600);
+                    }
+                }
+            }
+            throw lastError || new Error('모든 프록시 실패');
+        }
+
+        // 로컬 시간대 기준 YYYY-MM-DD (toISOString의 UTC 변환으로 인한 날짜 밀림 방지)
+        function liveToLocalDateStr(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        function liveWeekdayName(dateStr) {
+            const days = ["일", "월", "화", "수", "목", "금", "토"];
+            return days[new Date(dateStr).getDay()];
+        }
+
+        // 대관 원본 데이터의 "근무조" 필드용 계산 (rental_updater.html과 동일 기준일 2026-03-13 사용, 화면 상단의 개인 근무조 배지와는 별개)
+        function liveRowShift(dateStr) {
+            const baseDate = new Date("2026-03-13");
+            const targetDate = new Date(dateStr);
+            const diffDays = Math.floor((targetDate - baseDate) / (1000 * 60 * 60 * 24));
+            const shifts = ['A', 'B', 'C'];
+            const idx = ((diffDays % 3) + 3) % 3;
+            return `${shifts[idx]}조`;
+        }
+
+        function liveWeekdayNamesFromCodes(codes) {
+            const days = {"1":"월", "2":"화", "3":"수", "4":"목", "5":"금", "6":"토", "7":"일"};
+            if (!codes) return "";
+            return String(codes).split(",").map(c => days[c.trim()] || "").filter(Boolean).join(",");
+        }
+
+        function setLiveStatus(msg, show = true) {
+            const el = document.getElementById('liveUpdateStatus');
+            el.innerText = msg;
+            el.classList.toggle('hidden', !show);
+        }
+
+        async function runLiveUpdate() {
+            const btn = document.getElementById('liveUpdateBtn');
+            const label = document.getElementById('liveUpdateLabel');
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+            label.innerText = '① 대학 서버 조회 중...';
+            setLiveStatus('대학 서버에 접속해 최신 대관 정보를 가져오는 중입니다...');
+
+            // 상단 기간 선택기에서 현재 선택된 범위를 그대로 갱신 대상으로 사용
+            const sDateStr = dateRange.start;
+            const eDateStr = dateRange.end;
+
+            const targetUrl = `https://songeui.catholic.ac.kr/ko/service/application-for-rental_calendar.do?mode=getReservedData&start=${sDateStr}&end=${eDateStr}`;
+
+            let fetchedData = [];
+            try {
+                const json = await liveFetchViaProxies(targetUrl);
+                const raw = json.res || [];
+                const rows = [];
+                const startLimit = new Date(sDateStr + "T00:00:00");
+                const endLimit = new Date(eDateStr + "T23:59:59");
+
+                raw.forEach(item => {
+                    if (!item.startDt) return;
+                    const sDt = new Date(item.startDt + "T00:00:00");
+                    const eDt = new Date(item.endDt + "T23:59:59");
+                    const isPeriod = item.startDt !== item.endDt;
+                    const pRng = `${item.startDt}~${item.endDt}`;
+                    const dNms = liveWeekdayNamesFromCodes(item.allowDay);
+                    const allowed = item.allowDay ? String(item.allowDay).split(",").map(d => d.trim()).filter(d => !isNaN(d)) : [];
+
+                    let curr = new Date(sDt);
+                    while (curr <= eDt) {
+                        if (curr >= startLimit && curr <= endLimit) {
+                            let dayNo = curr.getDay();
+                            if (dayNo === 0) dayNo = 7;
+                            if (allowed.length === 0 || allowed.includes(String(dayNo))) {
+                                const fullDate = liveToLocalDateStr(curr);
+                                rows.push({
+                                    full_date: fullDate,
+                                    yoil: liveWeekdayName(fullDate),
+                                    shift: liveRowShift(fullDate),
+                                    is_period: isPeriod,
+                                    period_range: pRng,
+                                    allowed_days: isPeriod ? dNms : liveWeekdayName(fullDate),
+                                    건물명: String(item.buNm || '').trim(),
+                                    장소: item.placeNm || '-',
+                                    시간: `${item.startTime || ''}~${item.endTime || ''}`,
+                                    행사명: item.eventNm || '-',
+                                    부서: item.mgDeptNm || '-',
+                                    인원: String(item.peopleCount || '0'),
+                                    상태: item.status === 'Y' ? '확정' : '대기'
+                                });
+                            }
+                        }
+                        curr.setDate(curr.getDate() + 1);
+                    }
+                });
+
+                const seen = new Set();
+                fetchedData = rows.filter(item => {
+                    const k = [item.full_date, item.장소, item.시간, item.행사명].join('|');
+                    if (seen.has(k)) return false;
+                    seen.add(k);
+                    return true;
+                });
+            } catch (err) {
+                label.innerText = '학교 서버 최신화';
+                btn.disabled = false; btn.style.opacity = '1';
+                setLiveStatus(`❌ 대학 서버 조회 실패: ${err.message}. 인터넷 상태 확인 후 다시 시도해주세요.`);
+                return;
+            }
+
+            if (fetchedData.length === 0) {
+                label.innerText = '학교 서버 최신화';
+                btn.disabled = false; btn.style.opacity = '1';
+                setLiveStatus('⚠️ 선택된 기간에 조회된 대관 내역이 없습니다.');
+                return;
+            }
+
+            label.innerText = '② 구글시트에 반영 중...';
+            setLiveStatus(`총 ${fetchedData.length}건 조회 완료 — 구글시트에 반영 중...`);
+
+            const payload = { rows: fetchedData, startDate: sDateStr, endDate: eDateStr };
+            let lastError = null;
+            for (let attempt = 1; attempt <= 3; attempt++) {
+                try {
+                    const postRes = await fetch(GAS_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await postRes.json();
+                    if (!data.ok) throw new Error(data.error || '알 수 없는 오류');
+
+                    label.innerText = '학교 서버 최신화';
+                    btn.disabled = false; btn.style.opacity = '1';
+                    setLiveStatus(`✅ 신규 ${data.added}건 · 갱신 ${data.updated}건 · 취소처리 ${data.cancelled}건 · ${data.syncedAt} 기준 최신화 완료`);
+
+                    await loadFromGoogle(true); // 화면 재조회 강제 (isManual=false면 캐시가 있을 때 재조회를 건너뛰는 구조라 true로 호출)
+                    return;
+                } catch (err) {
+                    lastError = err;
+                    await liveSleep(1000 * attempt);
+                }
+            }
+
+            label.innerText = '학교 서버 최신화';
+            btn.disabled = false; btn.style.opacity = '1';
+            setLiveStatus(`❌ 구글시트 반영 실패: ${lastError.message}. 다시 시도해주세요.`);
         }
 
         async function loadFromGoogle(isManual = false) {
