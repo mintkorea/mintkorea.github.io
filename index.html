@@ -229,7 +229,10 @@
 
     <script>
         const EVENT_API = "https://script.google.com/macros/s/AKfycbzDWH34gJk42elBUl-Jky8kvvVlA8s36pYi-bU05wxr7CoOlrWNbOAKS-wxj8kYb-JV/exec";
-        const MEAL_API = "https://script.google.com/macros/s/AKfycbxZkcn8EEcGcxMaT98l_CKJTCM_0Ual_S2JefpHptm_dbEtQ5tjM00TEhU2XdqTObLh/exec";
+        // [수정] 예전 meal_data(외부 시트1)를 읽던 스크립트가 아니라,
+        // 지금 실제로 쓰고 있는 'meal sheet' 단일 소스를 읽는 통합 Apps Script(doGet)로 교체.
+        // index_viewer.html의 GAS_URL과 반드시 같은 값이어야 합니다 — 배포 URL이 바뀌면 여기도 같이 바꿔주세요.
+        const MEAL_API = "https://script.google.com/macros/s/AKfycbzaRaSY6-aV6JW_vJhT09LanGXHRNXpkIkPXMoofe57Q3Ca8sjE6QHSeGa7JFFXZj8R/exec";
         
         let db = null;
         try {
