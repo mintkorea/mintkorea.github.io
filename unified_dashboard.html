@@ -474,14 +474,13 @@
                     });
 
                     html += `<div class="floor-card"><div class="floor-card-title">${fl > 0 ? fl + '층' : '기타'}</div>`;
+                    html += `<div class="rule-line">`;
                     groupsArr.forEach(rg => {
                         const sortedRooms = sortRoomsByFloor(rg.rooms);
                         const rgSafe = JSON.stringify(rg).replace(/'/g, "&#39;");
-                        html += `<div class="rule-line">
-                            <div>${sortedRooms.map(r => `<span class="room-badge ${!rg.openToday ? 'closed' : ''}" onclick='openGuideDetail(${rgSafe}, ${JSON.stringify(r)})'>${r}</span>`).join('')}${!rg.openToday ? `<span class="closed-tag">오늘 미개방</span>` : ''}</div>
-                        </div>`;
+                        html += sortedRooms.map(r => `<span class="room-badge ${!rg.openToday ? 'closed' : ''}" onclick='openGuideDetail(${rgSafe}, ${JSON.stringify(r)})'>${r}${!rg.openToday ? `<span class="closed-tag">휴</span>` : ''}</span>`).join('');
                     });
-                    html += `</div>`;
+                    html += `</div></div>`;
                 });
                 html += `</div>`;
             });
