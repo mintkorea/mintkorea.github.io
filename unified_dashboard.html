@@ -369,7 +369,7 @@
                     safeFetchJson(GAS_URL),
                     safeFetchJson(`${CLASSROOM_GAS_URL}?api=guideline`),
                     safeFetchJson(`${CLASSROOM_GAS_URL}?api=rental`),
-                    safeFetchJson(`${CLASSROOM_GAS_URL}?api=classroomduty`)
+                    safeFetchJson(`${CLASSROOM_GAS_URL}?api=duty`)
                 ]);
 
                 if (Array.isArray(rental) && rental.length > 0) allData = rental;
@@ -536,6 +536,16 @@
         }
 
         function openModal(r) {
+            if (r.name !== undefined && r.event !== undefined && r.room === undefined) {
+                // 당직(의학교육지원팀) 데이터 전용 표시
+                document.getElementById('modalBadgeArea').innerHTML = `<span class="status-badge bg-amber-50 text-amber-600 border-amber-100 text-xs py-1 px-2">${r.category || '당직'}</span>`;
+                document.getElementById('modalPlace').innerText = `👤 ${r.name || ''}`;
+                document.getElementById('modalTime').innerText = r.dateText ? `📅 ${r.dateText}` : '';
+                document.getElementById('modalEvent').innerText = r.event || '';
+                document.getElementById('modalDept').innerText = r.empNo ? `사번 ${r.empNo}` : '';
+                document.getElementById('modalOverlay').style.display = 'flex';
+                return;
+            }
             const badgeCol = r.status === '확정' || r.status === '승인' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-slate-50 text-slate-500 border-slate-100';
             document.getElementById('modalBadgeArea').innerHTML = `<span class="status-badge ${badgeCol} text-xs py-1 px-2">${r.status || ''}</span>${r.people ? `<span class="font-bold text-slate-400">👥 ${r.people}명</span>` : ''}`;
             document.getElementById('modalPlace').innerText = `📍 ${r.place || r.room || ''}`;
@@ -564,17 +574,17 @@
 
         function renderDuty(dateStr) {
             const area = document.getElementById('dutyArea');
-            const today = dutyData.filter(d => d.date === dateStr);
+            // dateText 예: "2026-07-05 일요일" → 앞 10자리(YYYY-MM-DD)만 비교
+            const today = dutyData.filter(d => String(d.dateText || '').slice(0, 10) === dateStr);
             document.getElementById('dutyCnt').textContent = today.length;
             if (today.length === 0) { area.innerHTML = `<div class="empty-box">오늘 당직 관련 일정이 없습니다.</div>`; return; }
             area.innerHTML = today.map(d => `
                 <div class="simple-card amber" onclick='openModal(${JSON.stringify(d)})'>
                     <div class="flex justify-between items-center mb-1">
-                        <span class="text-[12px] font-black text-slate-700">📍 ${d.room}</span>
-                        <span class="text-[10px] font-bold text-red-500 italic">🕒 ${d.start}~${d.end}</span>
+                        <span class="text-[12px] font-black text-slate-700">👤 ${d.name || ''}</span>
+                        <span class="text-[10px] font-bold text-slate-400">${d.category || ''}</span>
                     </div>
-                    <div class="text-[14px] font-black text-slate-900">${d.content}</div>
-                    ${d.note ? `<div class="text-[11px] text-slate-500 mt-1">${d.note}</div>` : ''}
+                    <div class="text-[14px] font-black text-slate-900">${d.event || ''}</div>
                 </div>`).join('');
         }
 
@@ -603,10 +613,10 @@
             if (special.length === 0) outputText += "일정 없음\n\n";
             else { special.forEach(r => outputText += `${r.content} - ${r.room} (${r.start}~${r.end})\n`); outputText += "\n"; }
 
-            const duty = dutyData.filter(d => d.date === dateStr);
+            const duty = dutyData.filter(d => String(d.dateText || '').slice(0, 10) === dateStr);
             outputText += `[당직 현황 (${duty.length})]\n`;
             if (duty.length === 0) outputText += "일정 없음\n";
-            else duty.forEach(d => outputText += `${d.content} - ${d.room} (${d.start}~${d.end})\n`);
+            else duty.forEach(d => outputText += `${d.name || ''} - ${d.event || ''}\n`);
 
             navigator.clipboard.writeText(outputText.trim()).then(() => {
                 alert(`${yyyy}년 ${mm}월 ${dd}일 통합 현황이 복사되었습니다.\n메신저나 알림톡에 붙여넣기(Ctrl+V) 하세요!`);
