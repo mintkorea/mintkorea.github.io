@@ -5,9 +5,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>미화팀 당직 관리</title>
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0"> 
   <style>
     body { font-family: 'Malgun Gothic', sans-serif; margin: 0; background: #f8fafc; color: #1e293b; }
     .wrap { max-width: 560px; margin: 0 auto; padding: 16px; }
@@ -87,6 +84,9 @@
   </div>
 
   <script>
+    // unified_dashboard.html과 동일한 Apps Script Web App 주소 (fetch로 직접 호출, google.script.run 사용 안 함)
+    const CLASSROOM_GAS_URL = "https://script.google.com/macros/s/AKfycbxPlqfcZc0YSLkBFWbAlm1Pape0xGA-fsaUii4fevCY_Ky-tYGtf4LKNONdrJumQKDZ/exec";
+
     const WEEKDAY_KR = ["일", "월", "화", "수", "목", "금", "토"];
 
     function calcDay(dateStr) {
@@ -99,6 +99,32 @@
       setTimeout(() => { document.getElementById('status').innerText = ''; }, 3000);
     }
 
+    // 쓰기(추가/수정/삭제) 요청 공통 헬퍼: text/plain으로 보내야 브라우저가 CORS preflight(OPTIONS)를
+    // 생략해서 Apps Script Web App에 정상적으로 도달함 (application/json으로 보내면 preflight가 막힘)
+    async function callAction(action, payload) {
+      try {
+        const res = await fetch(CLASSROOM_GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action, payload })
+        });
+        const data = await res.json();
+        if (data.error) return "❌ 오류: " + data.error;
+        return data.result;
+      } catch (e) {
+        return "❌ 네트워크 오류: " + e.message;
+      }
+    }
+
+    async function fetchJson(url) {
+      try {
+        const res = await fetch(`${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`);
+        return await res.json();
+      } catch (e) {
+        return { error: e.message };
+      }
+    }
+
     function defaultRange() {
       const today = new Date();
       const first = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -109,25 +135,24 @@
       document.getElementById('addDate').value = fmt(today);
     }
 
-    function loadStaffNames() {
-      google.script.run.withSuccessHandler(names => {
-        const dl = document.getElementById('staffNames');
-        dl.innerHTML = names.map(n => `<option value="${n}">`).join('');
-      }).listCleaningStaffNames();
+    async function loadStaffNames() {
+      const data = await fetchJson(`${CLASSROOM_GAS_URL}?api=staffnames`);
+      const names = (data && data.items) || [];
+      const dl = document.getElementById('staffNames');
+      dl.innerHTML = names.map(n => `<option value="${n}">`).join('');
     }
 
-    function loadList() {
+    async function loadList() {
       const start = document.getElementById('startDate').value;
       const end = document.getElementById('endDate').value;
       const buFilter = document.getElementById('buFilter').value;
       document.getElementById('listArea').innerHTML = '<div class="empty">불러오는 중...</div>';
 
-      google.script.run.withSuccessHandler(res => {
-        if (res.error) { document.getElementById('listArea').innerHTML = `<div class="empty">오류: ${res.error}</div>`; return; }
-        let items = res.items || [];
-        if (buFilter) items = items.filter(it => it.bu === buFilter);
-        renderList(items);
-      }).listCleaningDutyForAdmin(start, end);
+      const res = await fetchJson(`${CLASSROOM_GAS_URL}?api=cleaningdutyadmin&start=${start}&end=${end}`);
+      if (res.error) { document.getElementById('listArea').innerHTML = `<div class="empty">오류: ${res.error}</div>`; return; }
+      let items = res.items || [];
+      if (buFilter) items = items.filter(it => it.bu === buFilter);
+      renderList(items);
     }
 
     function renderList(items) {
@@ -176,29 +201,32 @@
         <button class="btn btn-small" onclick="loadList()">취소</button>`;
     }
 
-    function saveEdit(rowIndex, date, day) {
+    async function saveEdit(rowIndex, date, day) {
       const bu = document.getElementById('editBu-' + rowIndex).value;
       const name = document.getElementById('editName-' + rowIndex).value.trim();
       if (!name) { alert('이름을 입력해주세요.'); return; }
-      google.script.run.withSuccessHandler(res => { setStatus(res); loadList(); }).updateCleaningDutyEntry(rowIndex, bu, date, day, name);
+      const res = await callAction('updateCleaningDutyEntry', { rowIndex, bu, date, day, name });
+      setStatus(res);
+      loadList();
     }
 
-    function removeEntry(rowIndex) {
+    async function removeEntry(rowIndex) {
       if (!confirm('이 항목을 삭제할까요?')) return;
-      google.script.run.withSuccessHandler(res => { setStatus(res); loadList(); }).deleteCleaningDutyEntry(rowIndex);
+      const res = await callAction('deleteCleaningDutyEntry', { rowIndex });
+      setStatus(res);
+      loadList();
     }
 
-    function addEntry() {
+    async function addEntry() {
       const bu = document.getElementById('addBu').value;
       const date = document.getElementById('addDate').value;
       const name = document.getElementById('addName').value.trim();
       if (!date || !name) { alert('날짜와 이름을 입력해주세요.'); return; }
       const day = calcDay(date);
-      google.script.run.withSuccessHandler(res => {
-        setStatus(res);
-        document.getElementById('addName').value = '';
-        loadList();
-      }).addCleaningDutyEntry(bu, date, day, name);
+      const res = await callAction('addCleaningDutyEntry', { bu, date, day, name });
+      setStatus(res);
+      document.getElementById('addName').value = '';
+      loadList();
     }
 
     window.onload = () => {
