@@ -10,40 +10,54 @@
     h2 { color: #1e293b; font-size: 1.3rem; margin-bottom: 20px; }
 
     .type-label { text-align: left; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; }
-    .type-toggle { display: flex; gap: 5px; margin-bottom: 20px; }
-    .type-btn {
-      flex: 1; padding: 10px 3px; border-radius: 10px; border: 2px solid #e2e8f0; background: #fff;
-      color: #64748b; font-weight: 700; font-size: 11px; line-height: 1.3; cursor: pointer; transition: 0.2s;
-    }
-    .type-btn.active { border-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
     .admin-link { display: block; text-align: center; font-size: 11px; color: #94a3b8; margin-top: 14px; text-decoration: none; }
     .admin-link:hover { color: #3b82f6; }
 
     .file-upload { border: 2px dashed #cbd5e1; padding: 30px; border-radius: 12px; margin-bottom: 20px; cursor: pointer; transition: 0.3s; background: #fff; }
     .file-upload:hover { border-color: #3b82f6; background: #eff6ff; }
-    #status { font-size: 14px; color: #475569; margin-top: 15px; line-height: 1.6; min-height: 60px; }
+    #status { font-size: 14px; color: #475569; margin-top: 15px; line-height: 1.6; min-height: 20px; }
     button.submit-btn { background-color: #3b82f6; color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; transition: 0.3s; }
     button.submit-btn:disabled { background-color: #94a3b8; cursor: not-allowed; }
+
+    /* 스캔 미리보기 영역 */
+    .preview-wrap { text-align: left; margin-top: 18px; display: none; }
+    .preview-type-badge { display: inline-block; font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 20px; background: #eff6ff; color: #1d4ed8; margin-bottom: 10px; }
+    .preview-list { max-height: 340px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 12px; }
+    .preview-row { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #f1f5f9; }
+    .preview-row:last-child { border-bottom: none; }
+    .preview-row input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; }
+    .preview-row-text { font-size: 12.5px; color: #1e293b; line-height: 1.5; text-align: left; }
+    .preview-row-text b { color: #1E3A5F; }
+    .preview-actions { display: flex; gap: 8px; }
+    .preview-actions button { flex: 1; padding: 11px; border-radius: 8px; font-weight: 800; font-size: 13px; border: none; cursor: pointer; }
+    .btn-save-scanned { background: #1E3A5F; color: #fff; }
+    .btn-cancel-scanned { background: #f1f5f9; color: #64748b; }
+    .preview-select-all { font-size: 11.5px; color: #64748b; margin-bottom: 8px; cursor: pointer; display: inline-block; }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>📂 성의교정 통합 관리 시스템</h2>
 
-    <div class="type-label">어떤 이미지인가요?</div>
-    <div class="type-toggle">
-      <button type="button" id="typeGuidelineBtn" class="type-btn active" onclick="selectType('guideline')">🔑 개방지침</button>
-      <button type="button" id="typeDutyBtn" class="type-btn" onclick="selectType('duty')">🌙 당직표<br>(의학교육지원팀)</button>
-      <button type="button" id="typeGradBtn" class="type-btn" onclick="selectType('grad')">🎓 특수대학원<br>대관현황</button>
-      <button type="button" id="typeCleaningBtn" class="type-btn" onclick="selectType('cleaning')">🧹 미화팀<br>당직표</button>
-    </div>
+    <div class="type-label">이미지를 올리면 AI가 어떤 문서인지 먼저 확인해드려요</div>
 
     <div class="file-upload" onclick="document.getElementById('fileInput').click()">
       <div id="fileName">이미지 업로드</div>
       <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="updateName(this)">
     </div>
-    <button class="submit-btn" id="runBtn" onclick="runProcess()">데이터베이스 업데이트</button>
-    <div id="status">이미지 종류를 먼저 선택하고, 이미지를 업로드한 뒤<br>전송 버튼을 누르면 해당 위치에 저장됩니다.</div>
+    <button class="submit-btn" id="scanBtn" onclick="runScan()">AI로 스캔하기</button>
+    <div id="status">이미지를 선택하고 스캔 버튼을 누르면<br>AI가 문서 종류와 내용을 먼저 보여드립니다.</div>
+
+    <div class="preview-wrap" id="previewWrap">
+      <span class="preview-type-badge" id="previewTypeBadge"></span>
+      <span class="preview-select-all" onclick="toggleSelectAll()" id="selectAllLabel">전체 선택 해제</span>
+      <div class="preview-list" id="previewList"></div>
+      <div class="preview-actions">
+        <button class="btn-cancel-scanned" onclick="cancelScan()">취소(다시 스캔)</button>
+        <button class="btn-save-scanned" onclick="saveScanned()">선택 항목 저장</button>
+      </div>
+    </div>
+
     <a class="admin-link" href="admin.html">🧹 미화팀 당직 정정 관리 화면 열기 →</a>
   </div>
 
@@ -52,59 +66,130 @@
     // Apps Script Web App(CLASSROOM_GAS_URL)에 fetch(POST)로 직접 요청
     const CLASSROOM_GAS_URL = "https://script.google.com/macros/s/AKfycbxPlqfcZc0YSLkBFWbAlm1Pape0xGA-fsaUii4fevCY_Ky-tYGtf4LKNONdrJumQKDZ/exec";
 
-    let selectedType = 'guideline'; // 'guideline' | 'duty' | 'grad' | 'cleaning'
+    const TYPE_LABELS = { guideline: '🔑 강의실 개방지침', duty: '🌙 당직표(의학교육지원팀)', grad: '🎓 특수대학원 대관현황', cleaning: '🧹 미화팀 당직표' };
 
-    function selectType(type) {
-      selectedType = type;
-      document.getElementById('typeGuidelineBtn').classList.toggle('active', type === 'guideline');
-      document.getElementById('typeDutyBtn').classList.toggle('active', type === 'duty');
-      document.getElementById('typeGradBtn').classList.toggle('active', type === 'grad');
-      document.getElementById('typeCleaningBtn').classList.toggle('active', type === 'cleaning');
-    }
+    let scannedType = null;
+    let scannedItems = [];
+    let selectedFile = null;
 
     function updateName(input) {
-      document.getElementById('fileName').innerText = input.files[0] ? input.files[0].name : "이미지 업로드";
+      selectedFile = input.files[0] || null;
+      document.getElementById('fileName').innerText = selectedFile ? selectedFile.name : "이미지 업로드";
     }
 
-    async function runProcess() {
-      const file = document.getElementById('fileInput').files[0];
-      const btn = document.getElementById('runBtn');
-      const status = document.getElementById('status');
+    async function callApi(action, payload) {
+      const res = await fetch(CLASSROOM_GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action, payload })
+      });
+      return await res.json();
+    }
 
-      if (!file) return alert("이미지를 먼저 선택해 주세요!");
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // 유형별로 미리보기 목록에 한 줄 요약을 만드는 헬퍼
+    function describeItem(type, item) {
+      switch (type) {
+        case 'guideline':
+          return `<b>${item.bu || ''} ${item.room || ''}</b><br>${item.content || ''} (${item.startDate || ''}~${item.endDate || ''})${item.days ? ' · ' + item.days : ''}`;
+        case 'duty':
+          return `<b>${item.dateText || ''}</b> ${item.name || ''}(${item.empNo || ''})<br>${item.event || ''}`;
+        case 'grad':
+          return `<b>${item.date || ''} ${item.room || ''}</b><br>${item.content || ''} (${item.start || ''}~${item.end || ''})`;
+        case 'cleaning':
+          return `<b>${item.bu || ''} ${item.date || ''}(${item.day || ''})</b><br>👤 ${item.name || ''}`;
+        default:
+          return JSON.stringify(item);
+      }
+    }
+
+    async function runScan() {
+      if (!selectedFile) return alert("이미지를 먼저 선택해 주세요!");
+      const btn = document.getElementById('scanBtn');
+      const status = document.getElementById('status');
+      document.getElementById('previewWrap').style.display = 'none';
 
       btn.disabled = true;
-      const typeLabelMap = { guideline: '강의실 개방지침', duty: '당직표(의학교육지원팀)', grad: '특수대학원 대관현황', cleaning: '미화팀 당직표' };
-      status.innerHTML = `⏳ AI가 ${typeLabelMap[selectedType]} 이미지를 분석하고 있습니다...<br><small>잠시만 기다려주세요.</small>`;
+      status.innerHTML = "⏳ AI가 이미지를 분석하고 있습니다...<br><small>문서 종류를 자동으로 판별 중이에요.</small>";
 
-      const actionMap = {
-        guideline: 'processGuidelineImage',
-        duty: 'processDutyImage',
-        grad: 'processSpecialGradImage',
-        cleaning: 'processCleaningDutyImage'
-      };
+      try {
+        const base64Data = await fileToBase64(selectedFile);
+        const data = await callApi('scanImage', { base64Data, mimeType: selectedFile.type });
+        const scanResult = data.result;
 
-      const reader = new FileReader();
-      reader.onload = async function(e) {
-        try {
-          // text/plain으로 보내야 브라우저가 CORS preflight(OPTIONS)를 생략해서 정상 도달함
-          const res = await fetch(CLASSROOM_GAS_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({
-              action: actionMap[selectedType],
-              payload: { base64Data: e.target.result, mimeType: file.type }
-            })
-          });
-          const data = await res.json();
-          status.innerHTML = data.error ? ("❌ 오류: " + data.error) : data.result;
-        } catch (err) {
-          status.innerHTML = "❌ 네트워크 오류: " + err.message;
-        } finally {
-          btn.disabled = false;
+        if (data.error || !scanResult || scanResult.error) {
+          status.innerHTML = "❌ 오류: " + (data.error || scanResult.error);
+          return;
         }
-      };
-      reader.readAsDataURL(file);
+        if (!scanResult.type || !scanResult.items || scanResult.items.length === 0) {
+          status.innerHTML = "⚠️ 문서 내용을 인식하지 못했어요. 사진을 더 선명하게 찍어서 다시 시도해주세요.";
+          return;
+        }
+
+        scannedType = scanResult.type;
+        scannedItems = scanResult.items;
+        status.innerHTML = "";
+        renderPreview();
+      } catch (err) {
+        status.innerHTML = "❌ 네트워크 오류: " + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function renderPreview() {
+      document.getElementById('previewTypeBadge').innerText = (TYPE_LABELS[scannedType] || scannedType) + ` · ${scannedItems.length}건 인식됨`;
+      const list = document.getElementById('previewList');
+      list.innerHTML = scannedItems.map((item, idx) => `
+        <div class="preview-row">
+          <input type="checkbox" id="chk-${idx}" checked>
+          <div class="preview-row-text">${describeItem(scannedType, item)}</div>
+        </div>
+      `).join('');
+      document.getElementById('selectAllLabel').innerText = '전체 선택 해제';
+      document.getElementById('previewWrap').style.display = 'block';
+    }
+
+    function toggleSelectAll() {
+      const boxes = document.querySelectorAll('#previewList input[type="checkbox"]');
+      const anyUnchecked = Array.from(boxes).some(b => !b.checked);
+      boxes.forEach(b => { b.checked = anyUnchecked; });
+      document.getElementById('selectAllLabel').innerText = anyUnchecked ? '전체 선택 해제' : '전체 선택';
+    }
+
+    function cancelScan() {
+      scannedType = null;
+      scannedItems = [];
+      document.getElementById('previewWrap').style.display = 'none';
+      document.getElementById('status').innerHTML = "이미지를 선택하고 스캔 버튼을 누르면<br>AI가 문서 종류와 내용을 먼저 보여드립니다.";
+    }
+
+    async function saveScanned() {
+      const boxes = document.querySelectorAll('#previewList input[type="checkbox"]');
+      const selectedItems = scannedItems.filter((_, idx) => boxes[idx].checked);
+      if (selectedItems.length === 0) return alert("저장할 항목을 하나 이상 선택해주세요.");
+
+      const status = document.getElementById('status');
+      status.innerHTML = `⏳ 선택한 ${selectedItems.length}건을 저장하고 있습니다...`;
+      document.getElementById('previewWrap').style.display = 'none';
+
+      try {
+        const data = await callApi('saveScannedItems', { type: scannedType, items: selectedItems });
+        status.innerHTML = data.error ? ("❌ 오류: " + data.error) : data.result;
+      } catch (err) {
+        status.innerHTML = "❌ 네트워크 오류: " + err.message;
+      } finally {
+        scannedType = null;
+        scannedItems = [];
+      }
     }
   </script>
 </body>
