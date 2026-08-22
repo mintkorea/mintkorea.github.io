@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>미화팀 당직 관리</title>
+  <style>
+    body { font-family: 'Malgun Gothic', sans-serif; margin: 0; background: #f8fafc; color: #1e293b; }
+    .wrap { max-width: 560px; margin: 0 auto; padding: 16px; }
+    h2 { font-size: 1.2rem; color: #1E3A5F; margin: 6px 0 16px; }
+
+    .panel { background: #fff; border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.05); margin-bottom: 14px; }
+    .panel-title { font-size: 12px; font-weight: 800; color: #64748b; margin-bottom: 8px; }
+
+    .row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .row > * { flex: 1; }
+    label { font-size: 11px; color: #94a3b8; font-weight: 700; display: block; margin-bottom: 3px; }
+    input, select { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; }
+
+    .btn { border: none; border-radius: 8px; padding: 9px 12px; font-weight: 800; font-size: 12.5px; cursor: pointer; }
+    .btn-primary { background: #1E3A5F; color: #fff; width: 100%; }
+    .btn-small { background: #eef2f6; color: #1E3A5F; padding: 6px 10px; font-size: 11.5px; }
+    .btn-danger { background: #fef2f2; color: #dc2626; padding: 6px 10px; font-size: 11.5px; }
+    .btn-save { background: #1E3A5F; color: #fff; padding: 6px 10px; font-size: 11.5px; }
+
+    .day-group { margin-bottom: 10px; }
+    .day-label { font-size: 12px; font-weight: 900; color: #1E3A5F; padding: 0 4px; margin-bottom: 6px; }
+    .entry-card { display: flex; align-items: center; justify-content: space-between; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 9px 12px; margin-bottom: 6px; }
+    .entry-left { display: flex; align-items: center; gap: 8px; }
+    .bu-tag { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 20px; background: #eef2f6; color: #475569; white-space: nowrap; }
+    .bu-tag.hall { background: #eff6ff; color: #1d4ed8; }
+    .bu-tag.inst { background: #f0fdf4; color: #15803d; }
+    .entry-name { font-weight: 800; font-size: 13.5px; }
+    .entry-phone { font-size: 10.5px; color: #94a3b8; margin-left: 4px; }
+    .entry-actions { display: flex; gap: 5px; }
+
+    .edit-row { display: flex; gap: 6px; align-items: center; flex: 1; }
+    .edit-row input, .edit-row select { padding: 5px 6px; font-size: 12px; }
+
+    .empty { text-align: center; color: #94a3b8; font-size: 12px; padding: 20px; }
+    #status { font-size: 12px; color: #475569; margin-top: 8px; min-height: 18px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>🧹 미화팀 당직 관리</h2>
+
+    <div class="panel">
+      <div class="panel-title">조회 기간</div>
+      <div class="row">
+        <div><label>시작일</label><input type="date" id="startDate"></div>
+        <div><label>종료일</label><input type="date" id="endDate"></div>
+      </div>
+      <div class="row">
+        <div><label>건물</label>
+          <select id="buFilter">
+            <option value="">전체</option>
+            <option value="성의회관">성의회관</option>
+            <option value="의산연">의산연</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="loadList()">조회</button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">신규 추가</div>
+      <div class="row">
+        <div><label>건물</label>
+          <select id="addBu"><option value="성의회관">성의회관</option><option value="의산연">의산연</option></select>
+        </div>
+        <div><label>날짜</label><input type="date" id="addDate"></div>
+      </div>
+      <div class="row">
+        <div><label>이름</label><input type="text" id="addName" list="staffNames" placeholder="성명 입력"></div>
+      </div>
+      <datalist id="staffNames"></datalist>
+      <button class="btn btn-primary" onclick="addEntry()">추가</button>
+      <div id="status"></div>
+    </div>
+
+    <div id="listArea"></div>
+  </div>
+
+  <script>
+    const WEEKDAY_KR = ["일", "월", "화", "수", "목", "금", "토"];
+
+    function calcDay(dateStr) {
+      const d = new Date(dateStr + "T00:00:00");
+      return WEEKDAY_KR[d.getDay()];
+    }
+
+    function setStatus(msg) {
+      document.getElementById('status').innerText = msg;
+      setTimeout(() => { document.getElementById('status').innerText = ''; }, 3000);
+    }
+
+    function defaultRange() {
+      const today = new Date();
+      const first = new Date(today.getFullYear(), today.getMonth(), 1);
+      const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      const fmt = d => d.toISOString().slice(0, 10);
+      document.getElementById('startDate').value = fmt(first);
+      document.getElementById('endDate').value = fmt(last);
+      document.getElementById('addDate').value = fmt(today);
+    }
+
+    function loadStaffNames() {
+      google.script.run.withSuccessHandler(names => {
+        const dl = document.getElementById('staffNames');
+        dl.innerHTML = names.map(n => `<option value="${n}">`).join('');
+      }).listCleaningStaffNames();
+    }
+
+    function loadList() {
+      const start = document.getElementById('startDate').value;
+      const end = document.getElementById('endDate').value;
+      const buFilter = document.getElementById('buFilter').value;
+      document.getElementById('listArea').innerHTML = '<div class="empty">불러오는 중...</div>';
+
+      google.script.run.withSuccessHandler(res => {
+        if (res.error) { document.getElementById('listArea').innerHTML = `<div class="empty">오류: ${res.error}</div>`; return; }
+        let items = res.items || [];
+        if (buFilter) items = items.filter(it => it.bu === buFilter);
+        renderList(items);
+      }).listCleaningDutyForAdmin(start, end);
+    }
+
+    function renderList(items) {
+      const area = document.getElementById('listArea');
+      if (items.length === 0) { area.innerHTML = '<div class="empty">해당 기간에 등록된 항목이 없습니다.</div>'; return; }
+
+      const byDate = {};
+      items.forEach(it => { (byDate[it.date] = byDate[it.date] || []).push(it); });
+
+      let html = '';
+      Object.keys(byDate).sort().forEach(date => {
+        html += `<div class="day-group"><div class="day-label">${date} (${calcDay(date)})</div>`;
+        byDate[date].forEach(it => {
+          const tagClass = it.bu === '성의회관' ? 'hall' : (it.bu === '의산연' ? 'inst' : '');
+          html += `
+            <div class="entry-card" id="entry-${it.rowIndex}">
+              <div class="entry-left" id="view-${it.rowIndex}">
+                <span class="bu-tag ${tagClass}">${it.bu}</span>
+                <span class="entry-name">${it.name}</span>
+                ${it.phone ? `<span class="entry-phone">📞 ${it.phone}</span>` : ''}
+              </div>
+              <div class="entry-actions" id="actions-${it.rowIndex}">
+                <button class="btn btn-small" onclick="startEdit(${it.rowIndex}, '${it.bu}', '${it.date}', '${it.day}', '${it.name}')">수정</button>
+                <button class="btn btn-danger" onclick="removeEntry(${it.rowIndex})">삭제</button>
+              </div>
+            </div>`;
+        });
+        html += `</div>`;
+      });
+      area.innerHTML = html;
+    }
+
+    function startEdit(rowIndex, bu, date, day, name) {
+      const viewEl = document.getElementById('view-' + rowIndex);
+      const actionsEl = document.getElementById('actions-' + rowIndex);
+      viewEl.innerHTML = `
+        <div class="edit-row">
+          <select id="editBu-${rowIndex}">
+            <option value="성의회관" ${bu === '성의회관' ? 'selected' : ''}>성의회관</option>
+            <option value="의산연" ${bu === '의산연' ? 'selected' : ''}>의산연</option>
+          </select>
+          <input type="text" id="editName-${rowIndex}" value="${name}" list="staffNames">
+        </div>`;
+      actionsEl.innerHTML = `
+        <button class="btn btn-save" onclick="saveEdit(${rowIndex}, '${date}', '${day}')">저장</button>
+        <button class="btn btn-small" onclick="loadList()">취소</button>`;
+    }
+
+    function saveEdit(rowIndex, date, day) {
+      const bu = document.getElementById('editBu-' + rowIndex).value;
+      const name = document.getElementById('editName-' + rowIndex).value.trim();
+      if (!name) { alert('이름을 입력해주세요.'); return; }
+      google.script.run.withSuccessHandler(res => { setStatus(res); loadList(); }).updateCleaningDutyEntry(rowIndex, bu, date, day, name);
+    }
+
+    function removeEntry(rowIndex) {
+      if (!confirm('이 항목을 삭제할까요?')) return;
+      google.script.run.withSuccessHandler(res => { setStatus(res); loadList(); }).deleteCleaningDutyEntry(rowIndex);
+    }
+
+    function addEntry() {
+      const bu = document.getElementById('addBu').value;
+      const date = document.getElementById('addDate').value;
+      const name = document.getElementById('addName').value.trim();
+      if (!date || !name) { alert('날짜와 이름을 입력해주세요.'); return; }
+      const day = calcDay(date);
+      google.script.run.withSuccessHandler(res => {
+        setStatus(res);
+        document.getElementById('addName').value = '';
+        loadList();
+      }).addCleaningDutyEntry(bu, date, day, name);
+    }
+
+    window.onload = () => {
+      defaultRange();
+      loadStaffNames();
+      loadList();
+    };
+  </script>
+</body>
+</html>
