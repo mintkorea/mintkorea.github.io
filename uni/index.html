@@ -611,13 +611,15 @@
             area.innerHTML = today.map(d => `
                 <div class="simple-card amber" onclick='openModal(${JSON.stringify(d)})'>
                     <div class="flex justify-between items-center mb-1">
-                        <span class="text-[12px] font-black text-slate-700">👤 ${d.name || ''}</span>
+                        <span class="text-[12px] font-black text-slate-700">👤 ${d.name || ''}${d.phone ? `<span class="text-[10.5px] font-bold text-slate-400"> (${d.phone})</span>` : ''}</span>
                         <span class="text-[10px] font-bold text-slate-400">${d.category || ''}</span>
                     </div>
                     <div class="text-[14px] font-black text-slate-900">${d.event || ''}</div>
                 </div>`).join('');
         }
 
+        // 미화팀 당직: 건물별로 카드를 나누지 않고, 카드 1개 안에 성의회관 → 의산연 순서로 묶어서 표시
+        const CLEANING_BU_ORDER = ["성의회관", "의산연"];
         function renderCleaningDuty(dateStr) {
             const area = document.getElementById('cleaningDutyArea');
             const today = cleaningDutyData.filter(d => d.date === dateStr);
@@ -627,21 +629,22 @@
             const byBu = {};
             today.forEach(d => { (byBu[d.bu] = byBu[d.bu] || []).push(d); });
 
-            let html = '';
-            Object.keys(byBu).forEach(bu => {
-                html += `<div class="bu-block"><div class="bu-block-title"><span class="bar"></span>🏢 ${bu}</div>`;
-                byBu[bu].forEach(d => {
-                    html += `
-                    <div class="simple-card" onclick='openModal(${JSON.stringify(d)})'>
-                        <div class="flex justify-between items-center">
-                            <span class="text-[13px] font-black text-slate-800">👤 ${d.name || ''}</span>
-                            ${d.phone ? `<span class="text-[11px] font-bold text-slate-400">📞 ${d.phone}</span>` : ''}
-                        </div>
-                    </div>`;
-                });
-                html += `</div>`;
-            });
-            area.innerHTML = html;
+            // 성의회관 → 의산연 순서 고정, 목록에 없는 건물은 뒤에 이어붙임
+            const orderedBuKeys = [
+                ...CLEANING_BU_ORDER.filter(b => byBu[b]),
+                ...Object.keys(byBu).filter(b => !CLEANING_BU_ORDER.includes(b))
+            ];
+
+            const rowsHtml = orderedBuKeys.map(bu => {
+                const names = byBu[bu].map(d => `${d.name || ''}${d.phone ? `(${d.phone})` : ''}`).join(', ');
+                return `
+                <div class="flex items-start gap-2 mb-2 last:mb-0">
+                    <span class="text-[11px] font-black text-white bg-[#1E3A5F] px-2 py-0.5 rounded-full whitespace-nowrap">🏢 ${bu}</span>
+                    <span class="text-[13px] font-bold text-slate-800 leading-relaxed">${names}</span>
+                </div>`;
+            }).join('');
+
+            area.innerHTML = `<div class="simple-card">${rowsHtml}</div>`;
         }
 
         function moveDate(offset) { if (offset === 0) currentDate = new Date(); else currentDate.setDate(currentDate.getDate() + offset); updateDisplay(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
@@ -672,12 +675,23 @@
             const duty = dutyData.filter(d => String(d.dateText || '').slice(0, 10) === dateStr);
             outputText += `[당직 현황 (${duty.length})]\n`;
             if (duty.length === 0) outputText += "일정 없음\n";
-            else duty.forEach(d => outputText += `${d.name || ''} - ${d.event || ''}\n`);
+            else duty.forEach(d => outputText += `${d.name || ''}${d.phone ? '(' + d.phone + ')' : ''} - ${d.event || ''}\n`);
 
             const cleaning = cleaningDutyData.filter(d => d.date === dateStr);
             outputText += `\n[미화팀 당직 (${cleaning.length})]\n`;
             if (cleaning.length === 0) outputText += "일정 없음\n";
-            else cleaning.forEach(d => outputText += `${d.bu} - ${d.name || ''}${d.phone ? ' (' + d.phone + ')' : ''}\n`);
+            else {
+                const cleaningByBu = {};
+                cleaning.forEach(d => { (cleaningByBu[d.bu] = cleaningByBu[d.bu] || []).push(d); });
+                const orderedBuKeys = [
+                    ...CLEANING_BU_ORDER.filter(b => cleaningByBu[b]),
+                    ...Object.keys(cleaningByBu).filter(b => !CLEANING_BU_ORDER.includes(b))
+                ];
+                orderedBuKeys.forEach(bu => {
+                    const names = cleaningByBu[bu].map(d => `${d.name || ''}${d.phone ? '(' + d.phone + ')' : ''}`).join(', ');
+                    outputText += `${bu}: ${names}\n`;
+                });
+            }
 
             navigator.clipboard.writeText(outputText.trim()).then(() => {
                 alert(`${yyyy}년 ${mm}월 ${dd}일 통합 현황이 복사되었습니다.\n메신저나 알림톡에 붙여넣기(Ctrl+V) 하세요!`);
