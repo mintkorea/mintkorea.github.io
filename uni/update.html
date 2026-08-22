@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: 'Malgun Gothic', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f8fafc; }
+    .container { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 350px; text-align: center; }
+    h2 { color: #1e293b; font-size: 1.3rem; margin-bottom: 20px; }
+
+    .type-label { text-align: left; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; }
+    .type-toggle { display: flex; gap: 5px; margin-bottom: 20px; }
+    .type-btn {
+      flex: 1; padding: 10px 3px; border-radius: 10px; border: 2px solid #e2e8f0; background: #fff;
+      color: #64748b; font-weight: 700; font-size: 11px; line-height: 1.3; cursor: pointer; transition: 0.2s;
+    }
+    .type-btn.active { border-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
+    .admin-link { display: block; text-align: center; font-size: 11px; color: #94a3b8; margin-top: 14px; text-decoration: none; }
+    .admin-link:hover { color: #3b82f6; }
+
+    .file-upload { border: 2px dashed #cbd5e1; padding: 30px; border-radius: 12px; margin-bottom: 20px; cursor: pointer; transition: 0.3s; background: #fff; }
+    .file-upload:hover { border-color: #3b82f6; background: #eff6ff; }
+    #status { font-size: 14px; color: #475569; margin-top: 15px; line-height: 1.6; min-height: 60px; }
+    button.submit-btn { background-color: #3b82f6; color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; transition: 0.3s; }
+    button.submit-btn:disabled { background-color: #94a3b8; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📂 성의교정 통합 관리 시스템</h2>
+
+    <div class="type-label">어떤 이미지인가요?</div>
+    <div class="type-toggle">
+      <button type="button" id="typeGuidelineBtn" class="type-btn active" onclick="selectType('guideline')">🔑 개방지침</button>
+      <button type="button" id="typeDutyBtn" class="type-btn" onclick="selectType('duty')">🌙 당직표<br>(의학교육지원팀)</button>
+      <button type="button" id="typeGradBtn" class="type-btn" onclick="selectType('grad')">🎓 특수대학원<br>대관현황</button>
+      <button type="button" id="typeCleaningBtn" class="type-btn" onclick="selectType('cleaning')">🧹 미화팀<br>당직표</button>
+    </div>
+
+    <div class="file-upload" onclick="document.getElementById('fileInput').click()">
+      <div id="fileName">이미지 업로드</div>
+      <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="updateName(this)">
+    </div>
+    <button class="submit-btn" id="runBtn" onclick="runProcess()">데이터베이스 업데이트</button>
+    <div id="status">이미지 종류를 먼저 선택하고, 이미지를 업로드한 뒤<br>전송 버튼을 누르면 해당 위치에 저장됩니다.</div>
+    <a class="admin-link" href="admin.html">🧹 미화팀 당직 정정 관리 화면 열기 →</a>
+  </div>
+
+  <script>
+    // GitHub Pages 등 외부 호스팅에서도 동작하도록 google.script.run 대신
+    // Apps Script Web App(CLASSROOM_GAS_URL)에 fetch(POST)로 직접 요청
+    const CLASSROOM_GAS_URL = "https://script.google.com/macros/s/AKfycbxPlqfcZc0YSLkBFWbAlm1Pape0xGA-fsaUii4fevCY_Ky-tYGtf4LKNONdrJumQKDZ/exec";
+
+    let selectedType = 'guideline'; // 'guideline' | 'duty' | 'grad' | 'cleaning'
+
+    function selectType(type) {
+      selectedType = type;
+      document.getElementById('typeGuidelineBtn').classList.toggle('active', type === 'guideline');
+      document.getElementById('typeDutyBtn').classList.toggle('active', type === 'duty');
+      document.getElementById('typeGradBtn').classList.toggle('active', type === 'grad');
+      document.getElementById('typeCleaningBtn').classList.toggle('active', type === 'cleaning');
+    }
+
+    function updateName(input) {
+      document.getElementById('fileName').innerText = input.files[0] ? input.files[0].name : "이미지 업로드";
+    }
+
+    async function runProcess() {
+      const file = document.getElementById('fileInput').files[0];
+      const btn = document.getElementById('runBtn');
+      const status = document.getElementById('status');
+
+      if (!file) return alert("이미지를 먼저 선택해 주세요!");
+
+      btn.disabled = true;
+      const typeLabelMap = { guideline: '강의실 개방지침', duty: '당직표(의학교육지원팀)', grad: '특수대학원 대관현황', cleaning: '미화팀 당직표' };
+      status.innerHTML = `⏳ AI가 ${typeLabelMap[selectedType]} 이미지를 분석하고 있습니다...<br><small>잠시만 기다려주세요.</small>`;
+
+      const actionMap = {
+        guideline: 'processGuidelineImage',
+        duty: 'processDutyImage',
+        grad: 'processSpecialGradImage',
+        cleaning: 'processCleaningDutyImage'
+      };
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        try {
+          // text/plain으로 보내야 브라우저가 CORS preflight(OPTIONS)를 생략해서 정상 도달함
+          const res = await fetch(CLASSROOM_GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action: actionMap[selectedType],
+              payload: { base64Data: e.target.result, mimeType: file.type }
+            })
+          });
+          const data = await res.json();
+          status.innerHTML = data.error ? ("❌ 오류: " + data.error) : data.result;
+        } catch (err) {
+          status.innerHTML = "❌ 네트워크 오류: " + err.message;
+        } finally {
+          btn.disabled = false;
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  </script>
+</body>
+</html>
