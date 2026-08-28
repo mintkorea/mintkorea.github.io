@@ -1,0 +1,587 @@
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Manrope:wght@400;500;600;700&display=swap');
+
+  * { box-sizing: border-box; }
+
+  .nrup-root {
+    --bg: #130c1f;
+    --panel: #1c1330;
+    --panel-2: #241a3a;
+    --line: #362a52;
+    --text: #f1ecfb;
+    --text-dim: #a597c4;
+    --accent: #ffb86b;
+    --sky-top: #2a1a44;
+    --sky-bottom: #4a2a55;
+    --good: #7be0b8;
+
+    font-family: 'Manrope', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 22px;
+    border-radius: 20px;
+    max-width: 780px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+
+  .nrup-root * { transition: background .35s ease, box-shadow .35s ease, top .5s ease, opacity .35s ease, border-color .3s ease; }
+
+  /* ---------- Header / sky signature ---------- */
+  .nrup-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px;}
+  .nrup-title { font-family:'Orbitron',sans-serif; font-weight:700; font-size:20px; letter-spacing:.5px; }
+  .nrup-title span { color: var(--accent); }
+  .nrup-sub { font-size:12.5px; color:var(--text-dim); }
+
+  .sky {
+    position: relative;
+    height: 140px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--sky-top), var(--sky-bottom));
+    margin-bottom: 18px;
+    border: 1px solid var(--line);
+  }
+  .sun {
+    position: absolute;
+    left: 50%;
+    width: 62px; height: 62px;
+    border-radius: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    box-shadow: 0 0 46px var(--accent);
+    -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 4px, transparent 4px 8px);
+            mask-image: repeating-linear-gradient(to bottom, #000 0 4px, transparent 4px 8px);
+  }
+  .sun.is-night { -webkit-mask-image:none; mask-image:none; }
+  .sun.is-night::before {
+    content:'';
+    position:absolute; top:-8px; left:-16px;
+    width:62px; height:62px; border-radius:50%;
+    background: var(--sky-top);
+    box-shadow: 0 0 20px 6px var(--sky-top);
+  }
+  .horizon { position:absolute; left:0; right:0; height:2px; background:var(--accent); box-shadow:0 0 14px var(--accent); }
+  .grid-floor {
+    position:absolute; left:0; right:0; bottom:0; height:60%;
+    background-image: repeating-linear-gradient(90deg, var(--accent) 0 1.5px, transparent 1.5px 34px);
+    opacity:.3;
+    -webkit-mask-image: linear-gradient(to top, #000, transparent);
+            mask-image: linear-gradient(to top, #000, transparent);
+  }
+  .stars { position:absolute; inset:0; opacity:0; }
+  .stars span { position:absolute; width:2px; height:2px; background:#fff; border-radius:50%; opacity:.8; }
+
+  /* ---------- Mood tabs ---------- */
+  .mood-tabs { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:18px; }
+  .mood-tab {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    border-radius: 12px;
+    padding: 10px 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    text-align:center;
+    cursor: pointer;
+    line-height:1.3;
+  }
+  .mood-tab b { display:block; font-size:16px; margin-bottom:2px; }
+  .mood-tab.active { color: var(--bg); background: var(--accent); border-color: var(--accent); box-shadow: 0 0 18px -2px var(--accent); }
+
+  /* ---------- Project row ---------- */
+  .project-row { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+  .project-row select, .project-row input {
+    background: var(--panel); border:1px solid var(--line); color:var(--text);
+    border-radius:10px; padding:9px 12px; font-family:inherit; font-size:13.5px;
+  }
+  .project-row select { flex:1; min-width:140px; }
+  .project-row input { flex:2; min-width:160px; }
+  .btn {
+    background: var(--panel-2); border:1px solid var(--line); color:var(--text);
+    border-radius:10px; padding:9px 14px; font-family:inherit; font-size:13px; font-weight:600;
+    cursor:pointer; white-space:nowrap;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color:#1a1225; border-color:var(--accent); }
+  .btn.danger { color:#ff8a8a; }
+  .btn.small { padding:6px 10px; font-size:12px; }
+
+  /* ---------- Progress ---------- */
+  .progress-wrap { margin-bottom: 22px; }
+  .progress-label { display:flex; justify-content:space-between; font-size:12.5px; color:var(--text-dim); margin-bottom:6px; }
+  .progress-bar { height:8px; border-radius:6px; background:var(--panel-2); overflow:hidden; border:1px solid var(--line); }
+  .progress-fill { height:100%; background:linear-gradient(90deg, var(--accent), var(--good)); width:0%; }
+
+  /* ---------- Sections ---------- */
+  .section { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
+  .section-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .section-title { font-weight:700; font-size:14.5px; display:flex; align-items:center; gap:8px; }
+  .section-title .num { font-family:'Orbitron',sans-serif; font-size:11px; color:var(--accent); border:1px solid var(--accent); border-radius:6px; padding:2px 6px; }
+
+  .chk-list { display:flex; flex-direction:column; gap:8px; }
+  .chk { display:flex; align-items:center; gap:9px; font-size:13.5px; cursor:pointer; user-select:none; }
+  .chk input { width:17px; height:17px; accent-color:var(--accent); cursor:pointer; }
+  .chk.done span { color: var(--good); }
+
+  .field-actions { display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap; }
+  textarea, input.text-input {
+    width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text);
+    border-radius:10px; padding:10px 12px; font-family:inherit; font-size:13px; resize:vertical;
+  }
+  textarea { min-height:110px; }
+  .hint { font-size:11.5px; color:var(--text-dim); margin-top:6px; }
+  .toast {
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+    background:var(--good); color:#0e2b1f; font-weight:700; font-size:13px;
+    padding:9px 16px; border-radius:10px; opacity:0; pointer-events:none;
+  }
+  .toast.show { opacity:1; }
+  .empty-note { font-size:12.5px; color:var(--text-dim); text-align:center; padding:14px 0; }
+
+  .settings-toggle { font-size:12px; color:var(--text-dim); cursor:pointer; text-align:right; margin-bottom:10px; text-decoration:underline; }
+  .settings-panel { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-bottom:16px; display:none; }
+  .settings-panel.open { display:block; }
+  .settings-panel-title { font-weight:700; font-size:13px; margin-bottom:10px; }
+  .pl-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .pl-row .pl-label { width:150px; font-size:12.5px; color:var(--text-dim); flex-shrink:0; }
+  .pl-row input { flex:1; }
+  .pl-current { display:flex; align-items:center; gap:8px; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:9px 12px; font-size:12.5px; color:var(--text-dim); word-break:break-all; }
+  .pl-current a { color: var(--accent); text-decoration:none; }
+  .pl-current.empty { color:#ff9d9d; }
+</style>
+
+<div class="nrup-root" id="nrupRoot">
+  <div class="nrup-head">
+    <div class="nrup-title">NEO RETRO <span>업로드 준비</span></div>
+    <div class="nrup-sub">무드 고르고 → 체크하며 진행</div>
+  </div>
+
+  <div class="sky" id="sky">
+    <div class="stars" id="stars"></div>
+    <div class="grid-floor"></div>
+    <div class="horizon" id="horizon" style="bottom:56px;"></div>
+    <div class="sun" id="sun"></div>
+  </div>
+
+  <div class="mood-tabs" id="moodTabs"></div>
+
+  <div class="settings-toggle" id="settingsToggle">⚙ 재생목록 링크 설정 (최초 1회)</div>
+  <div class="settings-panel" id="settingsPanel">
+    <div class="settings-panel-title">채널 재생목록 4개 링크 — 여기 등록해두면 모든 영상에서 자동으로 재사용돼요</div>
+    <div id="playlistLinkRows"></div>
+  </div>
+
+  <div class="project-row">
+    <select id="projectSelect"></select>
+    <input id="newProjectInput" type="text" placeholder="새 영상 이름 (예: Light Walk Start)" />
+    <button class="btn primary" id="newProjectBtn">만들기</button>
+    <button class="btn danger small" id="deleteProjectBtn">삭제</button>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-label"><span id="progressText">0 / 9 완료</span><span id="savedLabel"></span></div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+
+  <div id="mainArea"></div>
+</div>
+
+<div class="toast" id="toast">복사됨!</div>
+
+<script>
+(function(){
+  const MASTER_TAGS = ['neo retro','city pop','retro music','synth pop','urban pop','retro inspired music','nostalgic music','nostalgic city sounds','modern city pop','retro pop','urban music','synth beats','chill music','relaxing music','work bgm','focus music','study music','coffee shop music','cafe music','commute music','night walk music','sunset drive music','background music','daily life music','original music'];
+
+  const MOODS = {
+    morning: {
+      label: 'Morning Commute & Coffee', emoji: '🌅', accent:'#ffb86b',
+      skyTop:'#2a2144', skyBottom:'#6a4a3a', sunTop:'62%', night:false,
+      core: ['city pop','coffee shop music','commute music'],
+      titlePattern: '예: Light Walk Start 🌞 | Feel-Good Acoustic Pop for a Fresh Morning',
+      description: 'City Pop for your morning commute — coffee shop music and cafe music to start the day right.\n\n☕ This City Pop track, "{TITLE}", blends commute music with warm, retro-inspired melodies — perfect coffee shop music for your morning routine.\n🎧 Featuring Neo Retro\'s signature Synth Pop sound, made for daily life music that fits your morning commute.\n\nOriginal City Pop and cafe music by Neo Retro — bringing yesterday\'s feeling into today\'s morning.',
+      pinned: '🎧 Thanks for listening to "{TITLE}"!\nPerfect for your morning commute or coffee break — this is our take on City Pop & Retro Music.\n\n👉 More City Pop tracks: {PLAYLIST}\n🔔 Subscribe for weekly City Pop & Retro releases!\n\nWhat\'s your go-to morning ritual — coffee first or music first? Let me know below 👇'
+    },
+    afternoon: {
+      label: 'Afternoon Focus & Work BGM', emoji:'☕', accent:'#4deeea',
+      skyTop:'#1c2c46', skyBottom:'#3a5a72', sunTop:'14%', night:false,
+      core: ['work bgm','focus music','study music'],
+      titlePattern: '예: Deskside Drift ☕ | Retro Work BGM for Deep Focus',
+      description: 'Work BGM and focus music to power through your afternoon — Retro Music for deep concentration.\n\n🎯 This work BGM track, "{TITLE}", is built for focus music and study music sessions, blending Retro Music with steady Synth Pop rhythms.\n🎧 Background music by Neo Retro, designed as work BGM for office hours, study music for deep work, and focus music that won\'t distract.\n\nOriginal Retro Music and study music by Neo Retro — soundtrack for a productive afternoon.',
+      pinned: '🎧 Thanks for listening to "{TITLE}"!\nPerfect work BGM for focus & study sessions — Retro Music meets steady Synth Pop.\n\n👉 More focus music: {PLAYLIST}\n🔔 Subscribe for weekly Work BGM & Retro releases!\n\nWhat helps you focus most — instrumental music or something with a beat? Let me know below 👇'
+    },
+    sunset: {
+      label: 'Sunset Drive & Evening Walks', emoji:'🌇', accent:'#ff6ec7',
+      skyTop:'#2a1a3c', skyBottom:'#8a3a5a', sunTop:'62%', night:false,
+      core: ['synth pop','sunset drive music','urban pop'],
+      titlePattern: '예: Sunset Drive for Two 🌆 | Retro Synthpop for a Golden Hour',
+      description: 'Sunset drive music and night walk music — Synth Pop for golden hour and evening streets.\n\n🚗 This sunset drive track, "{TITLE}", captures the mood of dusk, mixing Synth Pop with nostalgic night walk music.\n🎧 Urban Pop meets synth beats — made for that in-between hour between day and night.\n\nOriginal sunset drive music and Urban Pop by Neo Retro — evening walks never sounded this retro.',
+      pinned: '🎧 Thanks for listening to "{TITLE}"!\nPerfect for a sunset drive or evening walk — this is our take on Synth Pop & Urban Pop.\n\n👉 More sunset drive tracks: {PLAYLIST}\n🔔 Subscribe for weekly Synth Pop & Retro releases!\n\nWhat\'s your favorite way to spend golden hour — driving or walking? Let me know below 👇'
+    },
+    night: {
+      label: 'Late-Night Chilling & Relaxation', emoji:'🌙', accent:'#7b6cf6',
+      skyTop:'#0c0a1c', skyBottom:'#241a3c', sunTop:'18%', night:true,
+      core: ['chill music','relaxing music','nostalgic city sounds'],
+      titlePattern: '예: Midnight Hotel Lounge 🌙 | Neo Lounge Music for Late Nights',
+      description: 'Chill music and relaxing music for late nights — nostalgic city sounds to wind down.\n\n🌙 This chill music track, "{TITLE}", is made for late-night relaxing music sessions, layering nostalgic city sounds with soft Synth Pop textures.\n🎧 Retro pop meets ambient calm — relaxing music by Neo Retro for unwinding after a long day.\n\nOriginal chill music and nostalgic music by Neo Retro — your late-night relaxation soundtrack.',
+      pinned: '🎧 Thanks for listening to "{TITLE}"!\nPerfect chill music for winding down late at night — nostalgic city sounds meet soft Synth Pop.\n\n👉 More late-night chill tracks: {PLAYLIST}\n🔔 Subscribe for weekly Chill & Retro releases!\n\nWhat\'s your late-night wind-down routine? Let me know below 👇'
+    }
+  };
+  const MOOD_ORDER = ['morning','afternoon','sunset','night'];
+
+  let state = null;      // current project data
+  let currentId = null;
+  let saveTimer = null;
+  let plSaveTimer = null;
+  let playlistLinks = { morning:'', afternoon:'', sunset:'', night:'' };
+
+  const root = document.getElementById('nrupRoot');
+  const $ = (id) => document.getElementById(id);
+
+  function emptyState(name){
+    return {
+      name: name, mood: 'morning',
+      checklist: { script:false, track:false, thumbnail:false, assembled:false, playlistAdded:false },
+      title:'', description:'', tags:'', pinned:'',
+      updatedAt: Date.now()
+    };
+  }
+
+  function reorderTags(core){
+    const rest = MASTER_TAGS.filter(t => t!=='neo retro' && !core.includes(t));
+    return ['neo retro', ...core, ...rest].join(', ');
+  }
+
+  function showToast(msg){
+    const t = $('toast'); t.textContent = msg || '복사됨!';
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 1400);
+  }
+
+  /* ---------------- storage ---------------- */
+  async function loadIndex(){
+    try{
+      const r = await window.storage.get('project-index', false);
+      return r ? JSON.parse(r.value) : [];
+    }catch(e){ return []; }
+  }
+  async function saveIndex(list){
+    try{ await window.storage.set('project-index', JSON.stringify(list), false); }catch(e){ console.error(e); }
+  }
+  async function loadProject(id){
+    try{
+      const r = await window.storage.get('project:'+id, false);
+      return r ? JSON.parse(r.value) : null;
+    }catch(e){ return null; }
+  }
+  async function saveProject(id, data){
+    try{ await window.storage.set('project:'+id, JSON.stringify(data), false); $('savedLabel').textContent='저장됨'; }
+    catch(e){ $('savedLabel').textContent='저장 실패'; }
+  }
+  async function deleteProjectStorage(id){
+    try{ await window.storage.delete('project:'+id, false); }catch(e){}
+  }
+  async function loadPlaylistLinks(){
+    try{
+      const r = await window.storage.get('playlist-links', false);
+      return r ? JSON.parse(r.value) : { morning:'', afternoon:'', sunset:'', night:'' };
+    }catch(e){ return { morning:'', afternoon:'', sunset:'', night:'' }; }
+  }
+  async function savePlaylistLinks(){
+    try{ await window.storage.set('playlist-links', JSON.stringify(playlistLinks), false); }catch(e){}
+  }
+
+  function scheduleSave(){
+    $('savedLabel').textContent = '저장 중...';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async ()=>{
+      if(!currentId) return;
+      state.updatedAt = Date.now();
+      await saveProject(currentId, state);
+    }, 500);
+  }
+
+  /* ---------------- sky visual ---------------- */
+  function updateSky(moodKey){
+    const m = MOODS[moodKey];
+    $('sky').style.setProperty('--sky-top', m.skyTop);
+    $('sky').style.setProperty('--sky-bottom', m.skyBottom);
+    $('sky').style.background = 'linear-gradient(180deg,'+m.skyTop+','+m.skyBottom+')';
+    const sun = $('sun');
+    sun.style.background = m.accent;
+    sun.style.boxShadow = '0 0 46px '+m.accent;
+    sun.style.top = m.sunTop;
+    sun.classList.toggle('is-night', m.night);
+    $('horizon').style.background = m.accent;
+    $('horizon').style.boxShadow = '0 0 14px '+m.accent;
+    $('stars').style.opacity = m.night ? 1 : 0;
+    root.style.setProperty('--accent', m.accent);
+    if(m.night && !$('stars').dataset.built){
+      $('stars').dataset.built = '1';
+      let html='';
+      for(let i=0;i<26;i++){
+        const x=Math.random()*100, y=Math.random()*70;
+        html += '<span style="left:'+x+'%;top:'+y+'%;"></span>';
+      }
+      $('stars').innerHTML = html;
+    }
+  }
+
+  /* ---------------- playlist link settings ---------------- */
+  function renderPlaylistLinkRows(){
+    const wrap = $('playlistLinkRows'); wrap.innerHTML = '';
+    MOOD_ORDER.forEach(key=>{
+      const m = MOODS[key];
+      const row = document.createElement('div');
+      row.className = 'pl-row';
+      row.innerHTML = `<div class="pl-label">${m.emoji} ${m.label.split(' ')[0]}</div>
+        <input type="text" data-mood="${key}" placeholder="재생목록 URL 붙여넣기" value="${escapeAttr(playlistLinks[key]||'')}" />`;
+      wrap.appendChild(row);
+    });
+    wrap.querySelectorAll('input').forEach(inp=>{
+      inp.oninput = (e) => {
+        const key = e.target.dataset.mood;
+        playlistLinks[key] = e.target.value;
+        clearTimeout(plSaveTimer);
+        plSaveTimer = setTimeout(savePlaylistLinks, 400);
+        if(state && state.mood === key) renderMain();
+      };
+    });
+  }
+
+  /* ---------------- mood tabs ---------------- */
+  function renderMoodTabs(){
+    const wrap = $('moodTabs'); wrap.innerHTML='';
+    MOOD_ORDER.forEach(key=>{
+      const m = MOODS[key];
+      const el = document.createElement('div');
+      el.className = 'mood-tab' + (state.mood===key ? ' active':'');
+      el.innerHTML = '<b>'+m.emoji+'</b>'+m.label.split(' ')[0];
+      el.title = m.label;
+      el.onclick = ()=>{ state.mood = key; renderMoodTabs(); updateSky(key); scheduleSave(); };
+      wrap.appendChild(el);
+    });
+  }
+
+  /* ---------------- main checklist area ---------------- */
+  function fillTemplate(str, m){
+    const link = playlistLinks[state.mood] || '[재생목록 링크 미설정 — 위 ⚙ 설정에서 등록하세요]';
+    return str.replace('{TITLE}', state.title || '제목 미정')
+              .replace('{PLAYLIST}', link);
+  }
+
+  function computeProgress(){
+    const c = state.checklist;
+    let done = 0, total = 9;
+    if(c.script) done++;
+    if(c.track) done++;
+    if(c.thumbnail) done++;
+    if(c.assembled) done++;
+    if(state.title.trim()) done++;
+    if(state.description.trim()) done++;
+    if(state.tags.trim()) done++;
+    if(c.playlistAdded) done++;
+    if(state.pinned.trim()) done++;
+    $('progressText').textContent = done+' / '+total+' 완료';
+    $('progressFill').style.width = Math.round(done/total*100)+'%';
+  }
+
+  function renderMain(){
+    const m = MOODS[state.mood];
+    const area = $('mainArea');
+    area.innerHTML = `
+      <div class="section">
+        <div class="section-head"><div class="section-title"><span class="num">1</span> 콘텐츠 준비</div></div>
+        <div class="chk-list">
+          <label class="chk ${state.checklist.script?'done':''}"><input type="checkbox" id="c_script" ${state.checklist.script?'checked':''}><span>스크립트 / 가사 준비됨</span></label>
+          <label class="chk ${state.checklist.track?'done':''}"><input type="checkbox" id="c_track" ${state.checklist.track?'checked':''}><span>Suno 트랙 생성 완료</span></label>
+          <label class="chk ${state.checklist.thumbnail?'done':''}"><input type="checkbox" id="c_thumb" ${state.checklist.thumbnail?'checked':''}><span>썸네일 이미지 준비됨</span></label>
+          <label class="chk ${state.checklist.assembled?'done':''}"><input type="checkbox" id="c_assembled" ${state.checklist.assembled?'checked':''}><span>Vrew 영상 조립 완료</span></label>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><div class="section-title"><span class="num">2</span> 제목</div>
+          <button class="btn small" id="copyTitle">복사</button>
+        </div>
+        <input class="text-input" id="titleInput" placeholder="영상 제목 입력" value="${escapeAttr(state.title)}" />
+        <div class="hint">패턴 ${m.titlePattern}</div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><div class="section-title"><span class="num">3</span> 설명란 (${m.label})</div></div>
+        <div class="field-actions">
+          <button class="btn small" id="insertDesc">템플릿 넣기</button>
+          <button class="btn small" id="copyDesc">복사</button>
+        </div>
+        <textarea id="descInput" placeholder="설명란 내용">${escapeHtml(state.description)}</textarea>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><div class="section-title"><span class="num">4</span> 태그</div></div>
+        <div class="field-actions">
+          <button class="btn small" id="insertTags">템플릿 넣기 (${m.label.split(' ')[0]} 우선)</button>
+          <button class="btn small" id="copyTags">복사</button>
+        </div>
+        <textarea id="tagsInput" placeholder="태그 목록" style="min-height:70px;">${escapeHtml(state.tags)}</textarea>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><div class="section-title"><span class="num">5</span> 재생목록</div></div>
+        <label class="chk ${state.checklist.playlistAdded?'done':''}" style="margin-bottom:10px;">
+          <input type="checkbox" id="c_playlist" ${state.checklist.playlistAdded?'checked':''}>
+          <span>"${m.label}" 재생목록에 추가함</span>
+        </label>
+        ${playlistLinks[state.mood]
+          ? `<div class="pl-current"><a href="${escapeAttr(playlistLinks[state.mood])}" target="_blank" rel="noopener">${escapeHtml(playlistLinks[state.mood])}</a></div>`
+          : `<div class="pl-current empty">이 무드의 재생목록 링크가 아직 없어요 — 위 ⚙ 설정에서 등록하세요.</div>`}
+      </div>
+
+      <div class="section">
+        <div class="section-head"><div class="section-title"><span class="num">6</span> 고정댓글</div></div>
+        <div class="field-actions">
+          <button class="btn small" id="insertPinned">템플릿 넣기</button>
+          <button class="btn small" id="copyPinned">복사</button>
+        </div>
+        <textarea id="pinnedInput" placeholder="고정댓글 내용">${escapeHtml(state.pinned)}</textarea>
+        <div class="hint">업로드 후 댓글창에 붙여넣고 점3개(⋮) → 고정 누르는 것 잊지 마세요.</div>
+      </div>
+    `;
+
+    // checkbox bindings
+    bindChk('c_script','script'); bindChk('c_track','track'); bindChk('c_thumb','thumbnail');
+    bindChk('c_assembled','assembled'); bindChk('c_playlist','playlistAdded');
+
+    $('titleInput').oninput = e => { state.title = e.target.value; computeProgress(); scheduleSave(); };
+    $('descInput').oninput = e => { state.description = e.target.value; computeProgress(); scheduleSave(); };
+    $('tagsInput').oninput = e => { state.tags = e.target.value; computeProgress(); scheduleSave(); };
+    $('pinnedInput').oninput = e => { state.pinned = e.target.value; computeProgress(); scheduleSave(); };
+
+    $('insertDesc').onclick = () => {
+      if(state.description.trim() && !confirm('기존 설명란 내용을 템플릿으로 덮어쓸까요?')) return;
+      state.description = fillTemplate(m.description, m);
+      renderMain(); computeProgress(); scheduleSave();
+    };
+    $('insertTags').onclick = () => {
+      if(state.tags.trim() && !confirm('기존 태그를 템플릿으로 덮어쓸까요?')) return;
+      state.tags = reorderTags(m.core);
+      renderMain(); computeProgress(); scheduleSave();
+    };
+    $('insertPinned').onclick = () => {
+      if(state.pinned.trim() && !confirm('기존 고정댓글을 템플릿으로 덮어쓸까요?')) return;
+      state.pinned = fillTemplate(m.pinned, m);
+      renderMain(); computeProgress(); scheduleSave();
+    };
+    $('copyTitle').onclick = () => copyText(state.title);
+    $('copyDesc').onclick = () => copyText(state.description);
+    $('copyTags').onclick = () => copyText(state.tags);
+    $('copyPinned').onclick = () => copyText(state.pinned);
+
+    computeProgress();
+  }
+
+  function bindChk(id, key){
+    $(id).onchange = e => { state.checklist[key] = e.target.checked; renderMain(); scheduleSave(); };
+  }
+  function copyText(txt){
+    if(!txt){ showToast('내용이 비어있어요'); return; }
+    navigator.clipboard.writeText(txt).then(()=>showToast('복사됨!')).catch(()=>showToast('복사 실패'));
+  }
+  function escapeHtml(s){ return (s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function escapeAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
+
+  /* ---------------- project switching ---------------- */
+  async function refreshProjectSelect(index){
+    const sel = $('projectSelect');
+    sel.innerHTML = '';
+    if(index.length === 0){
+      const opt = document.createElement('option');
+      opt.textContent = '저장된 영상 없음';
+      opt.value = '';
+      sel.appendChild(opt);
+      return;
+    }
+    index.sort((a,b)=>b.updatedAt-a.updatedAt).forEach(p=>{
+      const opt = document.createElement('option');
+      opt.value = p.id; opt.textContent = p.name;
+      sel.appendChild(opt);
+    });
+  }
+
+  async function switchToProject(id){
+    const data = await loadProject(id);
+    if(!data) return;
+    currentId = id;
+    state = data;
+    renderMoodTabs(); updateSky(state.mood); renderMain();
+    $('projectSelect').value = id;
+    try{ await window.storage.set('last-active', id, false); }catch(e){}
+  }
+
+  async function init(){
+    playlistLinks = await loadPlaylistLinks();
+    renderPlaylistLinkRows();
+    const hasAnyLink = MOOD_ORDER.some(k => playlistLinks[k]);
+    if(!hasAnyLink) $('settingsPanel').classList.add('open');
+    $('settingsToggle').onclick = () => {
+      $('settingsPanel').classList.toggle('open');
+    };
+
+    let index = await loadIndex();
+    await refreshProjectSelect(index);
+
+    if(index.length > 0){
+      let lastId = null;
+      try{ const r = await window.storage.get('last-active', false); lastId = r ? r.value : null; }catch(e){}
+      const target = index.find(p=>p.id===lastId) || index[0];
+      await switchToProject(target.id);
+    } else {
+      area_empty();
+    }
+
+    $('projectSelect').onchange = (e)=>{ if(e.target.value) switchToProject(e.target.value); };
+
+    $('newProjectBtn').onclick = async () => {
+      const name = $('newProjectInput').value.trim();
+      if(!name){ showToast('영상 이름을 입력해주세요'); return; }
+      const id = 'p'+Date.now()+Math.floor(Math.random()*1000);
+      const data = emptyState(name);
+      currentId = id; state = data;
+      let idx = await loadIndex();
+      idx.push({id, name, updatedAt: Date.now()});
+      await saveIndex(idx);
+      await saveProject(id, data);
+      await refreshProjectSelect(idx);
+      $('projectSelect').value = id;
+      $('newProjectInput').value = '';
+      renderMoodTabs(); updateSky(state.mood); renderMain();
+      try{ await window.storage.set('last-active', id, false); }catch(e){}
+    };
+
+    $('deleteProjectBtn').onclick = async () => {
+      if(!currentId){ showToast('삭제할 프로젝트가 없어요'); return; }
+      if(!confirm('"'+state.name+'" 삭제할까요? 되돌릴 수 없어요.')) return;
+      await deleteProjectStorage(currentId);
+      let idx = await loadIndex();
+      idx = idx.filter(p=>p.id!==currentId);
+      await saveIndex(idx);
+      await refreshProjectSelect(idx);
+      currentId = null; state = null;
+      if(idx.length>0){ await switchToProject(idx[0].id); } else { area_empty(); }
+    };
+  }
+
+  function area_empty(){
+    $('mainArea').innerHTML = '<div class="empty-note">위에서 새 영상 이름을 입력하고 "만들기"를 눌러 시작하세요.</div>';
+    renderMoodTabs2Placeholder();
+  }
+  function renderMoodTabs2Placeholder(){
+    $('moodTabs').innerHTML = '';
+    $('progressText').textContent = '0 / 9 완료';
+    $('progressFill').style.width = '0%';
+    updateSky('morning');
+  }
+
+  init();
+})();
+</script>
