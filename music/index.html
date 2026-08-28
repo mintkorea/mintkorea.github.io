@@ -149,12 +149,29 @@
   .pl-current { display:flex; align-items:center; gap:8px; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:9px 12px; font-size:12.5px; color:var(--text-dim); word-break:break-all; }
   .pl-current a { color: var(--accent); text-decoration:none; }
   .pl-current.empty { color:#ff9d9d; }
+
+  .ai-section { background: linear-gradient(135deg, var(--panel), var(--panel-2)); border:1px solid var(--accent); }
+  .ai-section .section-title { color: var(--accent); }
+  .ai-note { font-size:11.5px; color:var(--text-dim); margin-bottom:10px; }
+  .ai-btn { width:100%; padding:12px; font-size:14px; margin-top:4px; }
+  .ai-btn:disabled { opacity:.6; cursor:default; }
+  .spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.35); border-top-color:#1a1225; border-radius:50%; animation: spin .7s linear infinite; vertical-align:-2px; margin-right:6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ai-error { font-size:12px; color:#ff9d9d; margin-top:8px; }
+
+  .chip-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .chip { background:var(--bg); border:1px solid var(--line); color:var(--text-dim); border-radius:20px; padding:6px 12px; font-size:12px; cursor:pointer; }
+  .chip:hover { border-color:var(--accent); color:var(--text); }
+  .chip.selected { background:var(--accent); color:#1a1225; border-color:var(--accent); font-weight:700; }
+
+  .thumb-idea { background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:12.5px; margin-bottom:8px; display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+  .thumb-idea .idea-text { flex:1; }
 </style>
 
 <div class="nrup-root" id="nrupRoot">
   <div class="nrup-head">
     <div class="nrup-title">NEO RETRO <span>업로드 준비</span></div>
-    <div class="nrup-sub">무드 고르고 → 체크하며 진행</div>
+    <div class="nrup-sub">가사·스타일 넣으면 AI가 나머지 채워줘요</div>
   </div>
 
   <div class="sky" id="sky">
@@ -242,7 +259,9 @@
     return {
       name: name, mood: 'morning',
       checklist: { script:false, track:false, thumbnail:false, assembled:false, playlistAdded:false },
+      lyrics:'', style:'',
       title:'', description:'', tags:'', pinned:'',
+      aiTitles: [], thumbnailIdeas: [], aiDescTemplate:'', aiPinnedTemplate:'', moodReason:'',
       updatedAt: Date.now()
     };
   }
@@ -363,6 +382,82 @@
     });
   }
 
+  /* ---------------- AI metadata generation ---------------- */
+  function buildSystemPrompt(){
+    return `You are the content strategist for "Neo Retro", a YouTube channel that publishes retro-inspired City Pop / Synth Pop / Urban Pop tracks made with Suno AI. All titles, descriptions, tags, and pinned comments are written in English for a global audience.
+
+The channel has four mood-based playlists. Pick exactly one that best fits the given song:
+- "morning": Morning Commute & Coffee — city pop, coffee shop vibes, gentle morning energy
+- "afternoon": Afternoon Focus & Work BGM — work bgm, focus/study music, steady non-distracting
+- "sunset": Sunset Drive & Evening Walks — synth pop, driving/dusk mood, nostalgic urban energy
+- "night": Late-Night Chilling & Relaxation — chill, ambient, slow, nostalgic, relaxing
+
+Master tag pool (reuse these where relevant, you may add a few new specific tags only if clearly justified by the song): ${MASTER_TAGS.join(', ')}.
+
+Given the song's Suno lyrics and style tags, respond with ONLY a single JSON object (no markdown fences, no preamble, no explanation outside the JSON) with exactly this shape:
+{
+  "mood": "morning" | "afternoon" | "sunset" | "night",
+  "moodReason": "1문장, 한국어로 왜 이 무드를 골랐는지",
+  "titles": ["title option 1", "title option 2", "title option 3"],
+  "description": "YouTube description in English, 4-6 lines, must include the literal token {TITLE} exactly once where the song title belongs, and naturally repeat the mood's core keywords 3+ times",
+  "tags": "comma, separated, tag, list, starting, with, neo retro",
+  "pinnedComment": "Pinned comment in English, must include the literal token {TITLE} once and the literal token {PLAYLIST} once, ending with a short question to the viewer",
+  "thumbnailIdeas": ["한국어로 짧은 썸네일 비주얼 아이디어 1", "아이디어 2", "아이디어 3"]
+}`;
+  }
+
+  async function callClaudeGenerate(lyrics, style){
+    const userContent = `Suno Lyrics:\n${lyrics || '(instrumental / no lyrics)'}\n\nSuno Style Tags:\n${style || '(not provided)'}`;
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        system: buildSystemPrompt(),
+        messages: [ { role: "user", content: userContent } ]
+      })
+    });
+    const data = await response.json();
+    const text = (data.content || []).map(b => b.text || '').join('\n');
+    const clean = text.replace(/```json|```/g, '').trim();
+    return JSON.parse(clean);
+  }
+
+  async function runAiGeneration(){
+    const btn = $('aiGenerateBtn');
+    const errBox = $('aiError');
+    errBox.textContent = '';
+    if(!state.lyrics.trim() && !state.style.trim()){
+      errBox.textContent = '가사나 스타일 태그 중 하나는 입력해주세요.';
+      return;
+    }
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> AI 분석 중...';
+    try{
+      const result = await callClaudeGenerate(state.lyrics, state.style);
+      if(!MOOD_ORDER.includes(result.mood)) result.mood = 'morning';
+      state.mood = result.mood;
+      state.aiTitles = Array.isArray(result.titles) ? result.titles.slice(0,3) : [];
+      state.title = state.aiTitles[0] || state.title;
+      state.aiDescTemplate = result.description || '';
+      state.aiPinnedTemplate = result.pinnedComment || '';
+      state.tags = result.tags || state.tags;
+      state.thumbnailIdeas = Array.isArray(result.thumbnailIdeas) ? result.thumbnailIdeas.slice(0,4) : [];
+      state.description = state.aiDescTemplate ? fillTemplate(state.aiDescTemplate) : state.description;
+      state.pinned = state.aiPinnedTemplate ? fillTemplate(state.aiPinnedTemplate) : state.pinned;
+      state.moodReason = result.moodReason || '';
+      renderMoodTabs(); updateSky(state.mood); renderMain(); scheduleSave();
+      showToast('AI 생성 완료!');
+    }catch(e){
+      console.error(e);
+      errBox.textContent = 'AI 생성에 실패했어요. 잠시 후 다시 시도해주세요.';
+    }finally{
+      btn.disabled = false;
+      btn.textContent = '🎧 AI로 메타데이터 자동 생성';
+    }
+  }
+
   /* ---------------- main checklist area ---------------- */
   function fillTemplate(str, m){
     const link = playlistLinks[state.mood] || '[재생목록 링크 미설정 — 위 ⚙ 설정에서 등록하세요]';
@@ -390,8 +485,18 @@
     const m = MOODS[state.mood];
     const area = $('mainArea');
     area.innerHTML = `
+      <div class="section ai-section">
+        <div class="section-head"><div class="section-title"><span class="num">1</span> Suno 가사 &amp; 스타일</div></div>
+        <div class="ai-note">가사와 스타일 태그를 붙여넣으면 AI가 무드 판단부터 제목·설명·태그·고정댓글·썸네일 아이디어까지 한 번에 만들어줘요.</div>
+        <textarea id="lyricsInput" placeholder="Suno 가사 붙여넣기 (인스트루멘탈이면 비워둬도 돼요)">${escapeHtml(state.lyrics)}</textarea>
+        <input class="text-input" id="styleInput" style="margin-top:8px;" placeholder="Suno 스타일 태그 (예: retro synthwave, city pop, male vocal, 90 bpm)" value="${escapeAttr(state.style)}" />
+        <button class="btn primary ai-btn" id="aiGenerateBtn">🎧 AI로 메타데이터 자동 생성</button>
+        <div class="ai-error" id="aiError"></div>
+        ${state.moodReason ? `<div class="hint">AI 판단: ${escapeHtml(state.moodReason)}</div>` : ''}
+      </div>
+
       <div class="section">
-        <div class="section-head"><div class="section-title"><span class="num">1</span> 콘텐츠 준비</div></div>
+        <div class="section-head"><div class="section-title"><span class="num">2</span> 콘텐츠 준비</div></div>
         <div class="chk-list">
           <label class="chk ${state.checklist.script?'done':''}"><input type="checkbox" id="c_script" ${state.checklist.script?'checked':''}><span>스크립트 / 가사 준비됨</span></label>
           <label class="chk ${state.checklist.track?'done':''}"><input type="checkbox" id="c_track" ${state.checklist.track?'checked':''}><span>Suno 트랙 생성 완료</span></label>
@@ -401,15 +506,15 @@
       </div>
 
       <div class="section">
-        <div class="section-head"><div class="section-title"><span class="num">2</span> 제목</div>
+        <div class="section-head"><div class="section-title"><span class="num">3</span> 제목</div>
           <button class="btn small" id="copyTitle">복사</button>
         </div>
         <input class="text-input" id="titleInput" placeholder="영상 제목 입력" value="${escapeAttr(state.title)}" />
-        <div class="hint">패턴 ${m.titlePattern}</div>
+        ${state.aiTitles.length ? `<div class="chip-row">${state.aiTitles.map(t=>`<div class="chip ${t===state.title?'selected':''}" data-title="${escapeAttr(t)}">${escapeHtml(t)}</div>`).join('')}</div>` : `<div class="hint">패턴 ${m.titlePattern}</div>`}
       </div>
 
       <div class="section">
-        <div class="section-head"><div class="section-title"><span class="num">3</span> 설명란 (${m.label})</div></div>
+        <div class="section-head"><div class="section-title"><span class="num">4</span> 설명란 (${m.label})</div></div>
         <div class="field-actions">
           <button class="btn small" id="insertDesc">템플릿 넣기</button>
           <button class="btn small" id="copyDesc">복사</button>
@@ -418,7 +523,7 @@
       </div>
 
       <div class="section">
-        <div class="section-head"><div class="section-title"><span class="num">4</span> 태그</div></div>
+        <div class="section-head"><div class="section-title"><span class="num">5</span> 태그</div></div>
         <div class="field-actions">
           <button class="btn small" id="insertTags">템플릿 넣기 (${m.label.split(' ')[0]} 우선)</button>
           <button class="btn small" id="copyTags">복사</button>
@@ -427,7 +532,7 @@
       </div>
 
       <div class="section">
-        <div class="section-head"><div class="section-title"><span class="num">5</span> 재생목록</div></div>
+        <div class="section-head"><div class="section-title"><span class="num">6</span> 재생목록</div></div>
         <label class="chk ${state.checklist.playlistAdded?'done':''}" style="margin-bottom:10px;">
           <input type="checkbox" id="c_playlist" ${state.checklist.playlistAdded?'checked':''}>
           <span>"${m.label}" 재생목록에 추가함</span>
@@ -438,7 +543,7 @@
       </div>
 
       <div class="section">
-        <div class="section-head"><div class="section-title"><span class="num">6</span> 고정댓글</div></div>
+        <div class="section-head"><div class="section-title"><span class="num">7</span> 고정댓글</div></div>
         <div class="field-actions">
           <button class="btn small" id="insertPinned">템플릿 넣기</button>
           <button class="btn small" id="copyPinned">복사</button>
@@ -446,19 +551,45 @@
         <textarea id="pinnedInput" placeholder="고정댓글 내용">${escapeHtml(state.pinned)}</textarea>
         <div class="hint">업로드 후 댓글창에 붙여넣고 점3개(⋮) → 고정 누르는 것 잊지 마세요.</div>
       </div>
+
+      ${state.thumbnailIdeas.length ? `
+      <div class="section">
+        <div class="section-head"><div class="section-title"><span class="num">8</span> 썸네일 아이디어</div></div>
+        ${state.thumbnailIdeas.map((idea,i)=>`<div class="thumb-idea"><div class="idea-text">${escapeHtml(idea)}</div><button class="btn small" data-idea-idx="${i}">복사</button></div>`).join('')}
+        <div class="hint">Google Flow 프롬프트나 이미지 검색어로 그대로 활용하세요.</div>
+      </div>` : ''}
     `;
 
     // checkbox bindings
     bindChk('c_script','script'); bindChk('c_track','track'); bindChk('c_thumb','thumbnail');
     bindChk('c_assembled','assembled'); bindChk('c_playlist','playlistAdded');
 
-    $('titleInput').oninput = e => { state.title = e.target.value; computeProgress(); scheduleSave(); };
-    $('descInput').oninput = e => { state.description = e.target.value; computeProgress(); scheduleSave(); };
+    $('lyricsInput').oninput = e => { state.lyrics = e.target.value; scheduleSave(); };
+    $('styleInput').oninput = e => { state.style = e.target.value; scheduleSave(); };
+    $('aiGenerateBtn').onclick = runAiGeneration;
+
+    $('titleInput').oninput = e => {
+      state.title = e.target.value; computeProgress(); scheduleSave();
+    };
+    document.querySelectorAll('.chip').forEach(chip=>{
+      chip.onclick = () => {
+        state.title = chip.dataset.title;
+        if(state.aiDescTemplate) state.description = fillTemplate(state.aiDescTemplate);
+        if(state.aiPinnedTemplate) state.pinned = fillTemplate(state.aiPinnedTemplate);
+        renderMain(); computeProgress(); scheduleSave();
+      };
+    });
+    document.querySelectorAll('[data-idea-idx]').forEach(btn=>{
+      btn.onclick = () => copyText(state.thumbnailIdeas[Number(btn.dataset.ideaIdx)]);
+    });
+
+    $('descInput').oninput = e => { state.description = e.target.value; state.aiDescTemplate=''; computeProgress(); scheduleSave(); };
     $('tagsInput').oninput = e => { state.tags = e.target.value; computeProgress(); scheduleSave(); };
-    $('pinnedInput').oninput = e => { state.pinned = e.target.value; computeProgress(); scheduleSave(); };
+    $('pinnedInput').oninput = e => { state.pinned = e.target.value; state.aiPinnedTemplate=''; computeProgress(); scheduleSave(); };
 
     $('insertDesc').onclick = () => {
       if(state.description.trim() && !confirm('기존 설명란 내용을 템플릿으로 덮어쓸까요?')) return;
+      state.aiDescTemplate = '';
       state.description = fillTemplate(m.description, m);
       renderMain(); computeProgress(); scheduleSave();
     };
@@ -469,6 +600,7 @@
     };
     $('insertPinned').onclick = () => {
       if(state.pinned.trim() && !confirm('기존 고정댓글을 템플릿으로 덮어쓸까요?')) return;
+      state.aiPinnedTemplate = '';
       state.pinned = fillTemplate(m.pinned, m);
       renderMain(); computeProgress(); scheduleSave();
     };
