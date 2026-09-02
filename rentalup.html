@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/732/732220.png">
+    <title>성의교정 대관 현황</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; }
+        .day-red { color: #ef4444 !important; }
+        .day-blue { color: #3b82f6 !important; }
+        .flatpickr-day.sunday { color: #ef4444 !important; }
+        .flatpickr-day.saturday { color: #3b82f6 !important; }
+        .bu-chip { transition: all 0.2s; border: 1.5px solid #e2e8f0; cursor: pointer; background: white; white-space: nowrap; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; height: 40px; border-radius: 12px; }
+        .bu-chip.active { background-color: #1E3A5F; color: white; border-color: #1E3A5F; font-weight: 900; }
+        .fixed-table { table-layout: fixed; width: 100%; border-collapse: collapse; background: white; }
+        .fixed-table th { background-color: #f8fafc; color: #64748b; font-weight: 700; font-size: 10px; padding: 10px 2px; border-bottom: 1px solid #e2e8f0; text-align: center; }
+        .fixed-table td { padding: 10px 4px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; line-height: 1.3; font-size: 11px; }
+        .col-place { width: 110px; } .col-time { width: 75px; } .col-count { width: 45px; } .col-dept { width: 100px; } .col-status { width: 55px; }
+        .status-badge { font-weight: 800; padding: 2px 4px; border-radius: 4px; font-size: 9px; display: inline-block; border: 1px solid transparent; }
+        .period-text { font-size: 9px; font-weight: 800; color: #8B5CF6; margin-top: 2px; line-height: 1.1; }
+        .rental-card { border: 1.2px solid #e2e8f0; background: white; border-radius: 12px; padding: 12px; margin-bottom: 8px; border-left-width: 6px; }
+        .rental-card.cancelled { opacity: 0.55; border-style: dashed; }
+        .fixed-table tr.cancelled { opacity: 0.55; }
+        .toggle-chip { transition: all 0.2s; border: 1.5px solid #e2e8f0; cursor: pointer; background: white; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 11px; font-weight: 800; height: 36px; border-radius: 10px; padding: 0 14px; }
+        .toggle-chip.active { background-color: #FEF2F2; border-color: #EF4444; color: #EF4444; }
+
+        @media (max-width: 768px) and (orientation: portrait) {
+            .view-pc { display: none !important; }
+            .view-mo { display: block !important; }
+        }
+        @media (min-width: 769px), (orientation: landscape) {
+            .view-pc { display: block !important; }
+            .view-mo { display: none !important; }
+        }
+    </style>
+</head>
+<body class="p-3 md:p-6">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-[#EEF2F6] rounded-3xl p-5 mb-4 border border-slate-200 shadow-sm flex flex-col items-center">
+            <h1 class="text-xl font-black text-[#1E3A5F] mb-4">성의교정 대관 현황</h1>
+            <input type="text" id="rangePicker" class="w-full max-w-xs h-12 rounded-2xl border-2 border-white font-black text-slate-700 shadow-sm text-center text-sm">
+        </div>
+
+        <div class="w-full mb-4 px-1">
+            <div class="grid grid-cols-4 gap-1.5 w-full mb-4" id="buContainer"></div>
+            <div class="flex items-center gap-2 flex-wrap">
+                <button onclick="loadFromGoogle(true)" class="h-9 px-4 rounded-lg border border-slate-200 bg-white font-black text-[11px] text-[#1E3A5F]">🔄 동기화</button>
+                <button id="cancelToggleBtn" onclick="toggleShowCancelled()" class="toggle-chip"><span>🚫</span><span id="cancelToggleLabel">취소건 숨김</span></button>
+                <button id="liveUpdateBtn" onclick="runLiveUpdate()" class="h-9 px-4 rounded-lg font-black text-[11px]" style="background:#ECFDF5;border:1px solid #10B981;color:#047857;">
+                    🌐 <span id="liveUpdateLabel">학교 서버 최신화</span>
+                </button>
+                <button onclick="downloadExcel()" class="h-9 px-4 rounded-lg bg-[#1E3A5F] text-white font-black text-[11px]">📥 엑셀다운(인쇄)</button>
+            </div>
+            <div id="liveUpdateStatus" class="text-[10px] text-slate-400 mt-1.5 px-1 hidden"></div>
+        </div>
+
+        <div id="outputArea" class="space-y-6 pb-20"></div>
+    </div>
+
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzDWH34gJk42elBUl-Jky8kvvVlA8s36pYi-bU05wxr7CoOlrWNbOAKS-wxj8kYb-JV/exec";
+        const BUILDINGS = ["전체", "성의회관", "의산연", "옴니버스 파크", "의과대학", "간호대학", "대학본관", "서울성모별관"];
+        // [수정] 모바일 버전(index.html)과 동일한 공휴일 목록으로 동기화 (설/추석 연휴, 부처님오신날 등 누락분 추가)
+        const HOLIDAYS = ["2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-01", "2026-05-05", "2026-05-24", "2026-06-06", "2026-08-15", "2026-09-24", "2026-09-25", "2026-09-26", "2026-10-03", "2026-10-09", "2026-12-25"];
+        
+        let selectedBu = ["성의회관", "의산연"]; 
+        let sheetData = [];
+        const now = new Date();
+        const kstToday = new Date(now.getTime() + (9 * 60 * 60 * 1000)).toISOString().split('T')[0];
+        let dateRange = { start: kstToday, end: kstToday };
+
+        // [기능 추가] 취소건 기본 숨김 여부 (기본값: 숨김/false = 표출 안함)
+        let showCancelled = false;
+
+        function isCancelled(r) {
+            return !!(r.status && r.status.includes('취소'));
+        }
+
+        function toggleShowCancelled() {
+            showCancelled = !showCancelled;
+            const btn = document.getElementById('cancelToggleBtn');
+            const label = document.getElementById('cancelToggleLabel');
+            btn.classList.toggle('active', showCancelled);
+            label.innerText = showCancelled ? '취소건 표시중' : '취소건 숨김';
+            renderUI();
+        }
+
+        /* ============ [기능 추가] 조회 화면에서 바로 학교 서버 갱신 ============
+           rental_updater.html의 스크래핑+구글시트 반영 로직을 그대로 가져와,
+           별도 관리자 화면을 열지 않고도 조회 화면에서 버튼 한 번으로
+           "① 대학 서버 조회 → ② 구글시트 반영 → ③ 화면 재조회"까지 한번에 처리한다.
+           PC 버전은 이미 상단에 기간(range) 선택기가 있으므로, 그 선택된 기간 그대로를 갱신 범위로 사용. */
+        const LIVE_PROXIES = [
+            (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+            (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+            (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+        ];
+
+        function liveSleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+        async function liveFetchWithTimeout(url, ms) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), ms);
+            try {
+                return await fetch(url, { signal: controller.signal });
+            } finally {
+                clearTimeout(timer);
+            }
+        }
+
+        async function liveFetchViaProxies(targetUrl) {
+            let lastError = null;
+            for (let i = 0; i < LIVE_PROXIES.length; i++) {
+                const proxyUrl = LIVE_PROXIES[i](targetUrl);
+                for (let attempt = 1; attempt <= 2; attempt++) {
+                    try {
+                        const res = await liveFetchWithTimeout(proxyUrl, 12000);
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        const text = await res.text();
+                        return JSON.parse(text);
+                    } catch (err) {
+                        lastError = err;
+                        await liveSleep(600);
+                    }
+                }
+            }
+            throw lastError || new Error('모든 프록시 실패');
+        }
+
+        // 로컬 시간대 기준 YYYY-MM-DD (toISOString의 UTC 변환으로 인한 날짜 밀림 방지)
+        function liveToLocalDateStr(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        function liveWeekdayName(dateStr) {
+            const days = ["일", "월", "화", "수", "목", "금", "토"];
+            return days[new Date(dateStr).getDay()];
+        }
+
+        // 대관 원본 데이터의 "근무조" 필드용 계산 (rental_updater.html과 동일 기준일 2026-03-13 사용, 화면 상단의 개인 근무조 배지와는 별개)
+        function liveRowShift(dateStr) {
+            const baseDate = new Date("2026-03-13");
+            const targetDate = new Date(dateStr);
+            const diffDays = Math.floor((targetDate - baseDate) / (1000 * 60 * 60 * 24));
+            const shifts = ['A', 'B', 'C'];
+            const idx = ((diffDays % 3) + 3) % 3;
+            return `${shifts[idx]}조`;
+        }
+
+        function liveWeekdayNamesFromCodes(codes) {
+            const days = {"1":"월", "2":"화", "3":"수", "4":"목", "5":"금", "6":"토", "7":"일"};
+            if (!codes) return "";
+            return String(codes).split(",").map(c => days[c.trim()] || "").filter(Boolean).join(",");
+        }
+
+        function setLiveStatus(msg, show = true) {
+            const el = document.getElementById('liveUpdateStatus');
+            el.innerText = msg;
+            el.classList.toggle('hidden', !show);
+        }
+
+        async function runLiveUpdate() {
+            const btn = document.getElementById('liveUpdateBtn');
+            const label = document.getElementById('liveUpdateLabel');
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+            label.innerText = '① 대학 서버 조회 중...';
+            setLiveStatus('대학 서버에 접속해 최신 대관 정보를 가져오는 중입니다...');
+
+            // 상단 기간 선택기에서 현재 선택된 범위를 그대로 갱신 대상으로 사용
+            const sDateStr = dateRange.start;
+            const eDateStr = dateRange.end;
+
+            const targetUrl = `https://songeui.catholic.ac.kr/ko/service/application-for-rental_calendar.do?mode=getReservedData&start=${sDateStr}&end=${eDateStr}`;
+
+            let fetchedData = [];
+            try {
+                const json = await liveFetchViaProxies(targetUrl);
+                const raw = json.res || [];
+                const rows = [];
+                const startLimit = new Date(sDateStr + "T00:00:00");
+                const endLimit = new Date(eDateStr + "T23:59:59");
+
+                raw.forEach(item => {
+                    if (!item.startDt) return;
+                    const sDt = new Date(item.startDt + "T00:00:00");
+                    const eDt = new Date(item.endDt + "T23:59:59");
+                    const isPeriod = item.startDt !== item.endDt;
+                    const pRng = `${item.startDt}~${item.endDt}`;
+                    const dNms = liveWeekdayNamesFromCodes(item.allowDay);
+                    const allowed = item.allowDay ? String(item.allowDay).split(",").map(d => d.trim()).filter(d => !isNaN(d)) : [];
+
+                    let curr = new Date(sDt);
+                    while (curr <= eDt) {
+                        if (curr >= startLimit && curr <= endLimit) {
+                            let dayNo = curr.getDay();
+                            if (dayNo === 0) dayNo = 7;
+                            if (allowed.length === 0 || allowed.includes(String(dayNo))) {
+                                const fullDate = liveToLocalDateStr(curr);
+                                rows.push({
+                                    full_date: fullDate,
+                                    yoil: liveWeekdayName(fullDate),
+                                    shift: liveRowShift(fullDate),
+                                    is_period: isPeriod,
+                                    period_range: pRng,
+                                    allowed_days: isPeriod ? dNms : liveWeekdayName(fullDate),
+                                    건물명: String(item.buNm || '').trim(),
+                                    장소: item.placeNm || '-',
+                                    시간: `${item.startTime || ''}~${item.endTime || ''}`,
+                                    행사명: item.eventNm || '-',
+                                    부서: item.mgDeptNm || '-',
+                                    인원: String(item.peopleCount || '0'),
+                                    상태: item.status === 'Y' ? '확정' : '대기'
+                                });
+                            }
+                        }
+                        curr.setDate(curr.getDate() + 1);
+                    }
+                });
+
+                const seen = new Set();
+                fetchedData = rows.filter(item => {
+                    const k = [item.full_date, item.장소, item.시간, item.행사명].join('|');
+                    if (seen.has(k)) return false;
+                    seen.add(k);
+                    return true;
+                });
+            } catch (err) {
+                label.innerText = '학교 서버 최신화';
+                btn.disabled = false; btn.style.opacity = '1';
+                setLiveStatus(`❌ 대학 서버 조회 실패: ${err.message}. 인터넷 상태 확인 후 다시 시도해주세요.`);
+                return;
+            }
+
+            if (fetchedData.length === 0) {
+                label.innerText = '학교 서버 최신화';
+                btn.disabled = false; btn.style.opacity = '1';
+                setLiveStatus('⚠️ 선택된 기간에 조회된 대관 내역이 없습니다.');
+                return;
+            }
+
+            label.innerText = '② 구글시트에 반영 중...';
+            setLiveStatus(`총 ${fetchedData.length}건 조회 완료 — 구글시트에 반영 중...`);
+
+            const payload = { rows: fetchedData, startDate: sDateStr, endDate: eDateStr };
+            let lastError = null;
+            for (let attempt = 1; attempt <= 3; attempt++) {
+                try {
+                    const postRes = await fetch(GAS_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await postRes.json();
+                    if (!data.ok) throw new Error(data.error || '알 수 없는 오류');
+
+                    label.innerText = '학교 서버 최신화';
+                    btn.disabled = false; btn.style.opacity = '1';
+                    setLiveStatus(`✅ 신규 ${data.added}건 · 갱신 ${data.updated}건 · 취소처리 ${data.cancelled}건 · ${data.syncedAt} 기준 최신화 완료`);
+
+                    await loadFromGoogle(true); // 화면 재조회 강제 (isManual=false면 캐시가 있을 때 재조회를 건너뛰는 구조라 true로 호출)
+                    return;
+                } catch (err) {
+                    lastError = err;
+                    await liveSleep(1000 * attempt);
+                }
+            }
+
+            label.innerText = '학교 서버 최신화';
+            btn.disabled = false; btn.style.opacity = '1';
+            setLiveStatus(`❌ 구글시트 반영 실패: ${lastError.message}. 다시 시도해주세요.`);
+        }
+
+        async function loadFromGoogle(isManual = false) {
+            const cached = localStorage.getItem("rental_db_cache");
+            if (cached && !isManual) {
+                sheetData = JSON.parse(cached);
+                renderUI();
+            }
+            if (isManual || !sheetData.length) {
+                try {
+                    const res = await fetch(`${GAS_URL}?t=${new Date().getTime()}`);
+                    const data = await res.json();
+                    if (data && data.length > 0) {
+                        sheetData = data;
+                        localStorage.setItem("rental_db_cache", JSON.stringify(data));
+                        renderUI();
+                        if (isManual) alert("업데이트 완료");
+                    }
+                } catch (e) { console.error(e); }
+            }
+        }
+
+        function getShift(dateStr) {
+            const base = new Date('2026-03-09').setHours(0,0,0,0);
+            const target = new Date(dateStr).setHours(0,0,0,0);
+            const diff = Math.floor((target - base) / 86400000);
+            const patterns = [{n:'C', c:'#1976D2'}, {n:'A', c:'#F57C00'}, {n:'B', c:'#D32F2F'}];
+            return patterns[((diff % 3) + 3) % 3];
+        }
+
+        function renderUI() {
+            const area = document.getElementById('outputArea');
+            area.innerHTML = '';
+            let curr = new Date(dateRange.start + 'T00:00:00');
+            const stop = new Date(dateRange.end + 'T00:00:00');
+
+            while (curr <= stop) {
+                const dStr = curr.toLocaleDateString('en-CA');
+                const shift = getShift(dStr);
+                const dayIdx = curr.getDay();
+                const dayName = ["일","월","화","수","목","금","토"][dayIdx];
+                let dayClass = (dayIdx === 0 || HOLIDAYS.includes(dStr)) ? 'day-red' : (dayIdx === 6 ? 'day-blue' : 'text-slate-600');
+
+                let dayHtml = `<div>
+                    <div class="flex items-center justify-between bg-[#EEF2F6] border border-slate-200 p-3 rounded-2xl mb-4 shadow-sm">
+                        <span class="font-black text-sm text-slate-600">${dStr.replace(/-/g,'.')} <span class="${dayClass}">(${dayName})</span></span>
+                        <span class="text-white text-[10px] px-2 py-0.5 rounded-md font-black" style="background-color:${shift.c}">${shift.n}조 근무</span>
+                    </div>`;
+
+                selectedBu.forEach(buName => {
+                    const searchBu = buName === "의산연" ? "의생명산업연구원" : buName;
+                    // [수정] 기본적으로 취소건은 제외하고 표출 (showCancelled 토글로 필요시 표시)
+                    const filtered = sheetData.filter(d => d.rawDate === dStr && d.bu.includes(searchBu) && (showCancelled || !isCancelled(d)));
+                    dayHtml += `<div class="mb-6"><div class="flex items-center gap-2 px-1 font-black text-xs text-[#1E3A5F] mb-2"><span class="w-1.5 h-3 bg-[#1E3A5F] rounded-full"></span>${buName} (${filtered.length})</div>`;
+
+                    if (filtered.length > 0) {
+                        dayHtml += `<div class="view-pc overflow-hidden border border-slate-200 rounded-xl bg-white shadow-sm"><table class="fixed-table"><thead><tr><th class="col-place">장소</th><th class="col-time">시간</th><th>행사명</th><th class="col-count">인원</th><th class="col-dept">부서</th><th class="col-status">상태</th></tr></thead><tbody>`;
+                        filtered.forEach(i => {
+                            const cancelled = isCancelled(i);
+                            const statusColor = cancelled ? 'text-red-500 bg-red-50' : ((i.status === '확정' || i.status === '승인') ? 'text-orange-600 bg-orange-50' : 'text-slate-400 bg-slate-50');
+                            dayHtml += `<tr class="${cancelled ? 'cancelled' : ''}"><td class="text-center font-bold text-slate-600">${i.place}</td><td class="text-center font-bold text-red-500">${i.time}</td><td class="px-2"><div class="font-black text-slate-900">${i.event}</div>${i.type === '기간' ? `<div class="period-text">📅 ${i.period} (${i.yoil})</div>` : ''}</td><td class="text-center font-bold text-slate-500">${i.people || i.count || '-'}</td><td class="text-center text-slate-400 font-bold italic">${i.dept}</td><td class="text-center"><span class="status-badge ${statusColor}">${cancelled ? '🚫 ' : ''}${i.status}</span></td></tr>`;
+                        });
+                        dayHtml += `</tbody></table></div>`;
+                        
+                        dayHtml += `<div class="view-mo space-y-2">`;
+                        filtered.forEach(i => {
+                            const cancelled = isCancelled(i);
+                            const statusColor = cancelled ? 'text-red-500 bg-red-50' : ((i.status === '확정' || i.status === '승인') ? 'text-orange-600 bg-orange-50' : 'text-slate-400 bg-slate-50');
+                            dayHtml += `<div class="rental-card ${cancelled ? 'cancelled' : ''} ${i.type === '기간' ? 'border-l-purple-500' : 'border-l-blue-500'}">
+                                <div class="flex justify-between items-center mb-1"><span class="text-[12px] font-bold text-slate-500">📍 ${i.place}</span><span class="text-[10px] font-bold text-red-500">🕒 ${i.time}</span></div>
+                                <div class="text-[14px] font-black text-slate-900 leading-tight mb-2">${i.event}</div>
+                                ${i.type === '기간' ? `<div class="period-text mb-2">📅 ${i.period} (${i.yoil})</div>` : ''}
+                                <div class="flex justify-between items-center pt-1 border-t border-slate-50 mt-1">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="status-badge ${statusColor}">${cancelled ? '🚫 ' : ''}${i.status}</span>
+                                        <span class="text-[10px] font-bold text-slate-400 italic">${i.dept}</span>
+                                    </div>
+                                    <span class="text-[11px] font-black text-slate-700">👥 ${i.people || i.count || '-'}명</span>
+                                </div>
+                            </div>`;
+                        });
+                        dayHtml += `</div>`;
+                    }
+                    dayHtml += `</div>`;
+                });
+                area.innerHTML += dayHtml + `</div>`;
+                curr.setDate(curr.getDate() + 1);
+            }
+        }
+
+        async function downloadExcel() {
+            if (!sheetData.length) return;
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('대관현황');
+            sheet.columns = [{ width: 20 }, { width: 14 }, { width: 45 }, { width: 20 }, { width: 10 }, { width: 10 }];
+            
+            let rIdx = 1;
+            let curr = new Date(dateRange.start + 'T00:00:00');
+            const end = new Date(dateRange.end + 'T00:00:00');
+
+            while (curr <= end) {
+                const dStr = curr.toLocaleDateString('en-CA');
+                
+                // [날짜 구분 헤더] - 높이 35
+                sheet.mergeCells(rIdx, 1, rIdx, 6);
+                const dCell = sheet.getCell(rIdx, 1);
+                const dayNameForExcel = ["일","월","화","수","목","금","토"][curr.getDay()];
+                dCell.value = `📅 성의교정 대관 내역 - ${dStr}(${dayNameForExcel}) [${getShift(dStr).n}조]`;
+                dCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } };
+                dCell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+                dCell.alignment = { vertical: 'middle', horizontal: 'center' };
+                sheet.getRow(rIdx).height = 35;
+                rIdx++;
+
+                selectedBu.forEach(bu => {
+                    const search = (bu === "의산연") ? "의생명산업연구원" : bu;
+                    // [수정] 엑셀 내보내기도 화면과 동일하게 취소건 기본 제외 (showCancelled 토글 상태 따름)
+                    const filtered = sheetData.filter(d => d.rawDate === dStr && d.bu.includes(search) && (showCancelled || !isCancelled(d)));
+                    
+                    // [건물 구분 헤더] - 높이 35
+                    sheet.mergeCells(rIdx, 1, rIdx, 6);
+                    const bCell = sheet.getCell(rIdx, 1);
+                    bCell.value = `🏢 ${bu} (${filtered.length}건)`;
+                    bCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE9ECEF' } };
+                    bCell.font = { bold: true };
+                    bCell.alignment = { vertical: 'middle', horizontal: 'center' };
+                    sheet.getRow(rIdx).height = 35;
+                    rIdx++;
+
+                    if (filtered.length > 0) {
+                        // [열 항목 헤더] - 높이 35
+                        const hRow = sheet.addRow(['장소', '시간', '행사명', '부서', '인원', '상태']);
+                        hRow.height = 35;
+                        hRow.eachCell(c => {
+                            c.font = { bold: true };
+                            c.alignment = { vertical: 'middle', horizontal: 'center' };
+                            c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } };
+                            c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+                        });
+                        rIdx++;
+
+                        filtered.forEach(i => {
+                            const cancelled = isCancelled(i);
+                            const evt = i.type === '기간' ? `${i.event}\n(${i.period})` : i.event;
+                            const row = sheet.addRow([i.place, i.time, evt, i.dept, i.people || '-', (cancelled ? '🚫 ' : '') + i.status]);
+                            row.height = 35; 
+                            row.eachCell((c, col) => {
+                                c.alignment = { vertical: 'middle', horizontal: col === 3 ? 'left' : 'center', wrapText: col === 3 };
+                                if (col === 5 || col === 6) c.font = { bold: true, size: 10 };
+                                if (cancelled) c.font = Object.assign({}, c.font, { color: { argb: 'FFDC2626' } });
+                                c.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+                            });
+                            rIdx++;
+                        });
+                        
+                        // [건물 사이 빈 행] - 테두리 제거 및 높이 17
+                        const emptyBuRow = sheet.addRow([]);
+                        emptyBuRow.height = 17;
+                        for(let i=1; i<=6; i++) { emptyBuRow.getCell(i).border = {}; }
+                        rIdx++;
+                    }
+                });
+                
+                // [날짜 사이 빈 행] - 테두리 제거 및 높이 25
+                const emptyDateRow = sheet.addRow([]);
+                emptyDateRow.height = 25;
+                for(let i=1; i<=6; i++) { emptyDateRow.getCell(i).border = {}; }
+                rIdx++;
+
+                curr.setDate(curr.getDate() + 1);
+            }
+            
+            const buffer = await workbook.xlsx.writeBuffer();
+            // [수정] 파일명에 날짜 기간 포함: 성의교정 대관 내역(시작일~종료일).xlsx
+            const fileName = `성의교정 대관 내역(${dateRange.start}~${dateRange.end}).xlsx`;
+            saveAs(new Blob([buffer]), fileName);
+        }
+
+        window.onload = () => {
+            initBuChips();
+            flatpickr("#rangePicker", {
+                mode: "range", locale: "ko", dateFormat: "Y-m-d", defaultDate: [kstToday, kstToday],
+                onClose: (dates) => { if(dates.length === 2) { 
+                    dateRange.start = dates[0].toLocaleDateString('en-CA'); 
+                    dateRange.end = dates[1].toLocaleDateString('en-CA'); 
+                    renderUI(); 
+                } }
+            });
+            loadFromGoogle();
+        };
+
+        function initBuChips() {
+            const container = document.getElementById('buContainer');
+            BUILDINGS.forEach(bu => {
+                const chip = document.createElement('div');
+                chip.className = `bu-chip shadow-sm ${selectedBu.includes(bu) ? 'active' : ''}`;
+                chip.innerText = bu;
+                chip.onclick = () => {
+                    if (bu === "전체") selectedBu = (selectedBu.length === BUILDINGS.length - 1) ? [] : BUILDINGS.filter(b => b !== "전체");
+                    else selectedBu.includes(bu) ? selectedBu = selectedBu.filter(b => b !== bu) : selectedBu.push(bu);
+                    document.querySelectorAll('.bu-chip').forEach(c => c.classList.toggle('active', c.innerText === "전체" ? selectedBu.length === BUILDINGS.length - 1 : selectedBu.includes(c.innerText)));
+                    renderUI();
+                };
+                container.appendChild(chip);
+            });
+        }
+    </script>
+</body>
+</html>
