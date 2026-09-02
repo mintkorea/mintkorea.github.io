@@ -178,6 +178,17 @@
     label.innerText = '① 대학 서버 조회 중...';
     setLiveStatus('대학 서버에 접속해 최신 대관 정보를 가져오는 중입니다...');
 
+    const LAST_SYNC_KEY = "rental_last_sync_msg";
+
+function saveLastSyncMsg(msg) {
+    localStorage.setItem(LAST_SYNC_KEY, msg);
+}
+
+function loadLastSyncMsg() {
+    const saved = localStorage.getItem(LAST_SYNC_KEY);
+    if (saved) setLiveStatus(saved, true);
+}
+           
     const sDateStr = dateRange.start;
     const eDateStr = dateRange.end;
 
@@ -268,8 +279,10 @@
             if (!data.ok) throw new Error(data.error || '알 수 없는 오류');
 
             label.innerText = '학교 서버 최신화';
-            btn.disabled = false; btn.style.opacity = '1';
-            setLiveStatus(`✅ 신규 ${data.added}건 · 갱신 ${data.updated}건 · 취소처리 ${data.cancelled}건 · ${data.syncedAt} 기준 최신화 완료`);
+btn.disabled = false; btn.style.opacity = '1';
+const successMsg = `✅ 최신화 ${data.syncedAt} 기준 : 신규 ${data.added}건 · 갱신 ${data.updated}건 · 취소처리 ${data.cancelled}건`;
+setLiveStatus(successMsg, true);
+saveLastSyncMsg(successMsg);
 
             await loadFromGoogle(true);
             return;
